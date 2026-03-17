@@ -25,6 +25,21 @@ graph TD
 - **Worker (`apps/worker`)**: Distributed workers that consume execution jobs and manage sandboxed Docker containers.
 - **Shared (`packages/shared`)**: Shared types and constants across the monorepo.
 
+## 📁 Project Structure
+
+```text
+.
+├── apps/
+│   ├── api/             # Express API (MERN backend)
+│   ├── web/             # React SPA (Vite/Monaco Editor)
+│   └── worker/          # BullMQ Job Worker (Docker Sandbox)
+├── packages/
+│   └── shared/          # Common types and constants
+├── docs/                # Project documentation
+├── docker-compose.yml   # Multi-service orchestration
+└── package.json         # Root workspace configuration
+```
+
 ## 🛡️ Security & Sandboxing
 Code execution is isolated using a dual-layer strategy:
 1. **Container Isolation**: Each run executes in a stateless, short-lived Docker container.
