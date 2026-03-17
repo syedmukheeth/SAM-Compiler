@@ -1,7 +1,7 @@
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
 
 export async function submitRun({ language, code }) {
-  const res = await fetch(`${API_URL}/api/code/run`, {
+  const res = await fetch(`${API_URL}/runs`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({ language, code })
@@ -11,9 +11,11 @@ export async function submitRun({ language, code }) {
 }
 
 export async function fetchStatus(jobId) {
-  const res = await fetch(`${API_URL}/api/code/status/${encodeURIComponent(jobId)}`);
+  const res = await fetch(`${API_URL}/runs/${encodeURIComponent(jobId)}`);
   if (!res.ok) throw new Error(await res.text());
-  return await res.json();
+  const data = await res.json();
+  // Map runId back to jobId for consistency
+  return { ...data, jobId: data.runId };
 }
 
 export async function runAndPoll({ language, code, onUpdate, pollMs = 500 }) {

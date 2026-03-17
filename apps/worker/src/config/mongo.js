@@ -1,9 +1,16 @@
 const mongoose = require("mongoose");
 const { env } = require("./env");
+const { logger } = require("./logger");
 
 async function connectMongo() {
-  mongoose.set("strictQuery", true);
-  await mongoose.connect(env.MONGO_URI);
+  try {
+    mongoose.set("strictQuery", true);
+    await mongoose.connect(env.MONGO_URI);
+    logger.info("Connected to MongoDB");
+  } catch (err) {
+    logger.error({ err }, "Failed to connect to MongoDB");
+    throw err;
+  }
 }
 
 module.exports = { connectMongo };

@@ -11,6 +11,9 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@octokit/auth-oauth-app": "^9.0.3",
+    "@octokit/rest": "^22.0.1",
+    "@octokit/webhooks": "^14.2.0",
     "bullmq": "^5.12.10",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",

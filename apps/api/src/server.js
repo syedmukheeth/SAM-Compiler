@@ -1,4 +1,7 @@
 const { logger } = require("./config/logger");
+const { env } = require("./config/env");
+const { connectMongo } = require("./config/mongo");
+const { createApp } = require("./app");
 
 async function main() {
   await connectMongo();

@@ -5,24 +5,26 @@ const { createRun, getRun } = require("./runs.service");
 const runsRouter = Router();
 
 const CreateRunSchema = z.object({
-  projectId: z.string().min(1),
-  runtime: z.literal("nodejs"),
-  entrypoint: z.string().min(1),
-  files: z
-    .array(
-      z.object({
-        path: z.string().min(1),
-        content: z.string()
-      })
-    )
-    .min(1)
+  language: z.enum(["nodejs", "python", "cpp", "java", "go"]),
+  code: z.string().min(1)
 });
 
 runsRouter.post("/", async (req, res, next) => {
   try {
-    const input = CreateRunSchema.parse(req.body);
-    const run = await createRun(input);
-    res.status(201).json({ runId: run._id.toString(), status: run.status });
+    const { language, code } = CreateRunSchema.parse(req.body);
+    
+    // Transform simplified payload to existing internal run format
+    const run = await createRun({
+      projectId: "playground",
+      runtime: language === "nodejs" ? "nodejs" : language,
+      entrypoint: language === "java" ? "Main.java" : language === "python" ? "main.py" : language === "cpp" ? "main.cpp" : language === "go" ? "main.go" : "index.js",
+      files: [{
+        path: language === "java" ? "Main.java" : language === "python" ? "main.py" : language === "cpp" ? "main.cpp" : language === "go" ? "main.go" : "index.js",
+        content: code
+      }]
+    });
+    
+    res.status(201).json({ jobId: run._id.toString(), status: run.status });
   } catch (err) {
     next(err);
   }

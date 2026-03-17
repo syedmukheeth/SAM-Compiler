@@ -1,7 +1,12 @@
 const http = require("node:http");
+const { Worker } = require("bullmq");
 const { logger } = require("./config/logger");
+const { env } = require("./config/env");
+const { connectMongo } = require("./config/mongo");
+const { RunModel } = require("./models/Run");
+const { RUNS_QUEUE_NAME } = require("./queue/constants");
+const { executeRun } = require("./sandbox/multiSandbox");
 
-// Simple health check server for container orchestration
 function startHealthServer() {
   const server = http.createServer((req, res) => {
     if (req.url === "/health") {
@@ -14,8 +19,6 @@ function startHealthServer() {
   });
   server.listen(3001, () => logger.info("Worker health server listening on :3001"));
 }
-
-const { logger } = require("./config/logger");
 
 async function main() {
   startHealthServer();
@@ -38,11 +41,8 @@ async function main() {
       await run.save();
 
       try {
-        if (run.runtime !== "nodejs") {
-          throw new Error(`Unsupported runtime: ${run.runtime}`);
-        }
-
-        const { stdout, stderr, exitCode } = await executeNodeRun({
+        const { stdout, stderr, exitCode } = await executeRun({
+          language: run.runtime,
           files: run.files,
           entrypoint: run.entrypoint
         });
