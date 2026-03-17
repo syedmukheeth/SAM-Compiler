@@ -59,10 +59,30 @@ body {
   .flux-button-secondary {
     @apply flux-button border border-white/10 bg-white/5 hover:bg-white/10;
   }
+
+  .flux-glass-active {
+    @apply border-blue-500/30 bg-blue-500/5 shadow-[0_0_50px_rgba(59,130,246,0.2)];
+  }
 }
 
 .animate-glow {
   animation: glow 4s ease-in-out infinite alternate;
+}
+
+.animate-shimmer {
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.05),
+    transparent
+  );
+  background-size: 200% 100%;
+  animation: shimmer 2s infinite;
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
 }
 
 @keyframes glow {

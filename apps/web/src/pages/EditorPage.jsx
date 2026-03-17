@@ -81,7 +81,8 @@ export default function EditorPage() {
     setRunStatus("Saving to GitHub...");
 
     try {
-      const response = await fetch("http://localhost:8080/github/push", {
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
+      const response = await fetch(`${apiUrl}/github/push`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -157,11 +158,12 @@ export default function EditorPage() {
         {/* Content Area */}
         <div className="flex flex-1 gap-4 overflow-hidden">
           {/* Editor Container */}
-          <div className="flux-glass relative flex-[3] overflow-hidden rounded-[2rem] shadow-2xl transition-all duration-500 hover:shadow-blue-500/5">
+          <div className={["flux-glass relative flex-[3] overflow-hidden rounded-[2rem] shadow-2xl transition-all duration-500 hover:shadow-blue-500/5", busy ? "flux-glass-active" : ""].join(" ")}>
+            {busy && <div className="animate-shimmer absolute inset-0 z-0 pointer-events-none" />}
             <div className="absolute left-6 top-6 z-10 hidden rounded-full bg-blue-500/20 px-3 py-1 text-[10px] font-bold text-blue-400 backdrop-blur-md lg:block">
               WORKSPACE
             </div>
-            <div className="h-full w-full pt-4">
+            <div className="relative z-10 h-full w-full pt-4">
               <CodeEditor
                 language={activeLangId === "javascript" ? "javascript" : activeLangId}
                 value={buffers[activeLangId]}
