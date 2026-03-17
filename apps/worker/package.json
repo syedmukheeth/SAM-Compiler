@@ -1,0 +1,24 @@
+{
+  "name": "@liquidide/worker",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "main": "src/worker.js",
+  "scripts": {
+    "dev": "nodemon src/worker.js",
+    "build": "node -e \"console.log('worker: no build step (plain JS)')\"",
+    "start": "node src/worker.js",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "bullmq": "^5.12.10",
+    "dotenv": "^16.4.5",
+    "mongoose": "^8.6.2",
+    "pino": "^9.14.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "nodemon": "^3.1.4"
+  }
+}

@@ -1,0 +1,60 @@
+const { Router } = require("express");
+const { z } = require("zod");
+const { createRun, getRun } = require("./runs.service");
+
+const runsRouter = Router();
+
+const CreateRunSchema = z.object({
+  projectId: z.string().min(1),
+  runtime: z.literal("nodejs"),
+  entrypoint: z.string().min(1),
+  files: z
+    .array(
+      z.object({
+        path: z.string().min(1),
+        content: z.string()
+      })
+    )
+    .min(1)
+});
+
+runsRouter.post("/", async (req, res, next) => {
+  try {
+    const input = CreateRunSchema.parse(req.body);
+    const run = await createRun(input);
+    res.status(201).json({ runId: run._id.toString(), status: run.status });
+  } catch (err) {
+    next(err);
+  }
+});
+
+runsRouter.get("/:runId", async (req, res, next) => {
+  try {
+    const run = await getRun(req.params.runId);
+    if (!run) return res.status(404).json({ message: "Run not found" });
+    res.json({
+      runId: run._id.toString(),
+      status: run.status,
+      exitCode: run.exitCode ?? null,
+      stdout: run.stdout ?? "",
+      stderr: run.stderr ?? "",
+      startedAt: run.startedAt ? new Date(run.startedAt).toISOString() : null,
+      finishedAt: run.finishedAt ? new Date(run.finishedAt).toISOString() : null
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+runsRouter.use((err, _req, res, next) => {
+  void next;
+  if (err instanceof z.ZodError) {
+    return res.status(400).json({ message: "Invalid request", issues: err.issues });
+  }
+  // eslint-disable-next-line no-console
+  console.error(err);
+  return res.status(500).json({ message: "Internal error" });
+});
+
+module.exports = { runsRouter };
+

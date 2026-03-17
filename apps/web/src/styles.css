@@ -1,0 +1,70 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Subtle editor-like scrollbars */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  border-radius: 999px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background:
+    radial-gradient(900px 600px at 15% 0%, rgba(88, 120, 255, 0.25), transparent 60%),
+    radial-gradient(900px 600px at 85% 20%, rgba(0, 255, 180, 0.10), transparent 55%),
+    #0b1020;
+}
+
+@layer components {
+  /* Base liquid-glass surface */
+  .glass-panel {
+    @apply relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.06] shadow-glass backdrop-blur-xl;
+  }
+
+  /* Slightly denser glass for nav/side panels */
+  .glass-sidebar {
+    @apply glass-panel rounded-2xl bg-white/[0.07] shadow-glass;
+  }
+
+  /* Editor surface: subtle inset + minimal border */
+  .editor-container {
+    @apply glass-panel ring-1 ring-white/5;
+  }
+
+  /* Terminal surface: a little darker and more contrast */
+  .terminal-container {
+    @apply glass-panel bg-black/20 ring-1 ring-white/5;
+  }
+
+  /* Status bar: low profile, crisp border */
+  .status-bar {
+    @apply flex h-8 w-full items-center justify-between border-t border-white/10 bg-white/[0.05] px-3 text-[11px] text-white/70 backdrop-blur-xl;
+  }
+}
+
+@layer utilities {
+  /* Backwards compatible helper */
+  .glass {
+    @apply glass-panel;
+  }
+
+  .liquid-hover {
+    @apply transition duration-200 ease-out hover:bg-white/10 hover:text-white;
+  }
+}
+
