@@ -5,18 +5,19 @@ const { createRun, getRun } = require("./runs.service");
 const runsRouter = Router();
 
 const CreateRunSchema = z.object({
-  language: z.enum(["nodejs", "python", "cpp", "java", "go"]),
+  language: z.enum(["nodejs", "javascript", "python", "cpp", "java", "go"]),
   code: z.string().min(1)
 });
 
 runsRouter.post("/", async (req, res, next) => {
   try {
     const { language, code } = CreateRunSchema.parse(req.body);
+    const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
     
     // Transform simplified payload to existing internal run format
     const run = await createRun({
       projectId: "playground",
-      runtime: language === "nodejs" ? "nodejs" : language,
+      runtime: runtime,
       entrypoint: language === "java" ? "Main.java" : language === "python" ? "main.py" : language === "cpp" ? "main.cpp" : language === "go" ? "main.go" : "index.js",
       files: [{
         path: language === "java" ? "Main.java" : language === "python" ? "main.py" : language === "cpp" ? "main.cpp" : language === "go" ? "main.go" : "index.js",

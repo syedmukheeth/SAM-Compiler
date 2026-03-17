@@ -35,44 +35,48 @@ async function executeRun(opts) {
   const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "liquidide-run-"));
   try {
     await materializeFiles(runDir, files);
-
     const entry = path.posix.normalize(entrypoint).replace(/^(\.\.(\/|\\|$))+/, "");
     
-    const dockerArgs = [
-      "run",
-      "--rm",
-      "--network",
-      "none",
-      "--memory",
-      env.RUN_MEMORY || "128m",
-      "--cpus",
-      env.RUN_CPUS || "0.5",
-      "--pids-limit",
-      String(env.RUN_PIDS_LIMIT || 32),
-      "--read-only",
-      "--tmpfs",
-      "/tmp:rw,noexec,nosuid,size=64m",
-      "-v",
-      `${runDir}:/workspace:rw`,
-      "-w",
-      "/workspace",
-      "-u",
-      "1000:1000",
-      config.image,
-      ...config.command(entry)
-    ];
+    // 1. Try Docker first
+    try {
+      const dockerArgs = [
+        "run", "--rm", "--network", "none",
+        "--memory", env.RUN_MEMORY || "128m",
+        "--cpus", env.RUN_CPUS || "0.5",
+        "--pids-limit", String(env.RUN_PIDS_LIMIT || 32),
+        "--read-only",
+        "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+        "-v", `${runDir}:/workspace:rw`,
+        "-w", "/workspace",
+        "-u", "1000:1000",
+        config.image,
+        ...config.command(entry)
+      ];
+      return await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000);
+    } catch (dockerErr) {
+      if (dockerErr.code !== "ENOENT") throw dockerErr;
+      
+      // 2. Fallback to Local execution if Docker is missing
+      console.warn(`Docker not found. Falling back to local execution for ${language}`);
+      
+      const isWin = process.platform === "win32";
+      const exeExt = isWin ? ".exe" : "";
+      const shell = isWin ? "cmd" : "sh";
+      const shellFlag = isWin ? "/c" : "-c";
 
-    const { stdout, stderr, exitCode } = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000);
-    return { stdout, stderr, exitCode };
-  } catch (err) {
-    if (err.code === "ENOENT") {
-      return {
-        stdout: "",
-        stderr: "Error: 'docker' command not found. Please ensure Docker is installed and running.",
-        exitCode: 127
+      const localCmds = {
+        javascript: ["node", entry],
+        python: ["python", entry],
+        cpp: [shell, shellFlag, `g++ ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
+        java: [shell, shellFlag, `javac ${entry} && java ${entry.replace(".java", "")}`],
+        go: ["go", "run", entry]
       };
+
+      const [cmd, ...args] = localCmds[language] || localCmds.javascript;
+      return await execWithTimeout(cmd, args, env.RUN_TIMEOUT_MS || 10000, { cwd: runDir });
     }
-    throw err;
+  } catch (err) {
+    return { stdout: "", stderr: `Execution Error: ${err.message}`, exitCode: 1 };
   } finally {
     await fs.rm(runDir, { recursive: true, force: true });
   }
@@ -96,27 +100,32 @@ function sanitizeRelPath(p) {
   return joined;
 }
 
-function execWithTimeout(cmd, args, timeoutMs) {
-  return new Promise((resolve) => {
-    const child = spawn(cmd, args, { windowsHide: true });
+function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
+  return new Promise((resolve, reject) => {
+    try {
+      const child = spawn(cmd, args, { ...opts, windowsHide: true });
+      let stdout = "";
+      let stderr = "";
+      
+      if (child.stdout) child.stdout.on("data", (d) => (stdout += d.toString()));
+      if (child.stderr) child.stderr.on("data", (d) => (stderr += d.toString()));
 
-    let stdout = "";
-    let stderr = "";
-    if (child.stdout) child.stdout.on("data", (d) => (stdout += d.toString()));
-    if (child.stderr) child.stderr.on("data", (d) => (stderr += d.toString()));
+      const timeout = setTimeout(() => {
+        try { child.kill("SIGKILL"); } catch {}
+      }, timeoutMs);
 
-    const timeout = setTimeout(() => {
-      try {
-        child.kill("SIGKILL");
-      } catch {
-        // ignore
-      }
-    }, timeoutMs);
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
 
-    child.on("close", (code) => {
-      clearTimeout(timeout);
-      resolve({ stdout, stderr, exitCode: code });
-    });
+      child.on("close", (code) => {
+        clearTimeout(timeout);
+        resolve({ stdout, stderr, exitCode: code });
+      });
+    } catch (err) {
+      reject(err);
+    }
   });
 }
 
