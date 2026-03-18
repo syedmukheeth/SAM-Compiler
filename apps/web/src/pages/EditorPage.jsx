@@ -7,6 +7,7 @@ import AuthModal from "../components/AuthModal";
 import SettingsModal from "../components/SettingsModal";
 import HistoryModal from "../components/HistoryModal";
 import UpgradeModal from "../components/UpgradeModal";
+import { useAuth } from "../hooks/useAuth";
 
 const languageConfigs = {
   cpp: { name: "solution.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: `#include <iostream>\n\nint main() {\n  // Write your code here\n  std::cout << "Hello from LiquidIDE C++" << std::endl;\n  return 0;\n}\n`, lang: "cpp" },
@@ -28,7 +29,8 @@ export default function EditorPage() {
   const [busy, setBusy] = useState(false);
   const [isOutputVisible, setIsOutputVisible] = useState(true);
   const [activeModal, setActiveModal] = useState(null); // 'auth', 'settings', 'history', 'upgrade'
-  const [user, setUser] = useState(null);
+  
+  const { user, loginUser, logoutUser } = useAuth();
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("flux_settings");
     return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
@@ -151,13 +153,13 @@ export default function EditorPage() {
           <div className={`h-4 w-px ${isDarkMode ? "bg-white/10" : "bg-slate-200"}`} />
 
           {user ? (
-            <div className="flex items-center gap-4 group cursor-pointer" onClick={() => setUser(null)} title="Click to Sign Out">
+            <div className="flex items-center gap-4 group cursor-pointer" onClick={logoutUser} title="Click to Sign Out">
                <div className="flex flex-col items-end">
                   <span className={`text-[11px] font-black uppercase tracking-tight ${isDarkMode ? "text-white" : "text-slate-800"}`}>{user.name}</span>
-                  <span className={`text-[9px] font-bold uppercase tracking-widest ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>{user.provider}</span>
+                  <span className={`text-[9px] font-bold uppercase tracking-widest ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>Account</span>
                </div>
                <div className="h-10 w-10 overflow-hidden rounded-xl border border-white/10 bg-white/5 p-0.5 shadow-2xl transition-transform group-hover:scale-105 active:scale-95">
-                  <img src={user.avatar} className="h-full w-full rounded-[8px] object-cover" alt="Avatar" />
+                  <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=6366f1&color=fff`} className="h-full w-full rounded-[8px] object-cover" alt="Avatar" />
                </div>
             </div>
           ) : (
@@ -304,7 +306,7 @@ export default function EditorPage() {
         isOpen={activeModal === 'auth'} 
         onClose={() => setActiveModal(null)} 
         isDarkMode={isDarkMode} 
-        onLogin={setUser}
+        onLogin={loginUser}
       />
       <SettingsModal 
         isOpen={activeModal === 'settings'} 
