@@ -5,11 +5,14 @@ const { logger } = require("./logger");
 async function connectMongo() {
   try {
     mongoose.set("strictQuery", true);
-    await mongoose.connect(env.MONGO_URI);
-    logger.info("Connected to MongoDB");
+    // Non-blocking connection to allow worker to start
+    mongoose.connect(env.MONGO_URI).then(() => {
+      logger.info("Worker connected to MongoDB");
+    }).catch(err => {
+      logger.error({ err }, "Worker failed to connect to MongoDB (deferred)");
+    });
   } catch (err) {
-    logger.error({ err }, "Failed to connect to MongoDB");
-    throw err;
+    logger.error({ err }, "Worker failed to initiate MongoDB connection");
   }
 }
 
