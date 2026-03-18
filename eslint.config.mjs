@@ -46,7 +46,7 @@ export default [
   },
   // apps/api and apps/worker are CommonJS Node
   {
-    files: ["apps/api/src/**/*.js", "apps/worker/src/**/*.js", "packages/shared/src/**/*.js"],
+    files: ["apps/api/**/*.js", "apps/worker/**/*.js", "packages/shared/src/**/*.js"],
     languageOptions: {
       sourceType: "commonjs",
       globals: {
@@ -57,7 +57,8 @@ export default [
         console: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
-        URL: "readonly"
+        URL: "readonly",
+        Buffer: "readonly"
       }
     }
   },

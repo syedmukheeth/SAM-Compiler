@@ -1,15 +1,15 @@
 import React, { useRef, useState } from "react";
-import ActivityBar from "../components/ActivityBar";
 import CodeEditor from "../components/CodeEditor";
+import LanguageSelector from "../components/LanguageSelector";
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
 
 const languageConfigs = {
-  cpp: { name: "main.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: `#include <iostream>\n\nint main() {\n  std::cout << "Hello from LiquidIDE C++" << std::endl;\n  return 0;\n}\n`, lang: "cpp" },
-  python: { name: "main.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: `print("Hello from LiquidIDE Python")\n`, lang: "python" },
-  javascript: { name: "main.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg", template: `console.log("Hello from LiquidIDE JS");\n`, lang: "nodejs" },
-  java: { name: "Main.java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg", template: `public class Main {\n  public static void main(String[] args) {\n    System.out.println("Hello from LiquidIDE Java");\n  }\n}\n`, lang: "java" },
-  go: { name: "main.go", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg", template: `package main\n\nimport "fmt"\n\nfunc main() {\n  fmt.Println("Hello from LiquidIDE Go")\n}\n`, lang: "go" }
+  cpp: { name: "solution.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: `#include <iostream>\n\nint main() {\n  // Write your code here\n  std::cout << "Hello from LiquidIDE C++" << std::endl;\n  return 0;\n}\n`, lang: "cpp" },
+  python: { name: "solution.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: `import sys\n\ndef main():\n    # Write your code here\n    print("Hello from LiquidIDE Python")\n\nif __name__ == "__main__":\n    main()\n`, lang: "python" },
+  javascript: { name: "solution.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg", template: `// Write your code here\nconsole.log("Hello from LiquidIDE JS");\n`, lang: "nodejs" },
+  java: { name: "Solution.java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg", template: `import java.util.*;\n\npublic class Solution {\n  public static void main(String[] args) {\n    // Write your code here\n    System.out.println("Hello from LiquidIDE Java");\n  }\n}\n`, lang: "java" },
+  go: { name: "solution.go", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/go/go-original.svg", template: `package main\n\nimport "fmt"\n\nfunc main() {\n  // Write your code here\n  fmt.Println("Hello from LiquidIDE Go")\n}\n`, lang: "go" }
 };
 
 export default function EditorPage() {
@@ -21,9 +21,10 @@ export default function EditorPage() {
   const [stderr, setStderr] = useState("");
   const [runStatus, setRunStatus] = useState("Ready");
   const [busy, setBusy] = useState(false);
-  const [showGithubModal, setShowGithubModal] = useState(false);
+  const [activeTab, setActiveTab] = useState("description"); // description, solution, etc.
+  const [isOutputVisible, setIsOutputVisible] = useState(true);
+  
   const runRef = useRef({ jobId: null });
-
   const activeConfig = languageConfigs[activeLangId];
 
   function onCodeChange(value) {
@@ -38,6 +39,7 @@ export default function EditorPage() {
     setStdout("");
     setStderr("");
     setRunStatus("Running");
+    setIsOutputVisible(true);
 
     try {
       const { jobId } = await submitRun({ language, code });
@@ -73,203 +75,197 @@ export default function EditorPage() {
     }
   }
 
-  async function onSaveToGithub(githubData) {
-    const code = buffers[activeLangId] ?? "";
-    const path = activeConfig.name;
-
-    setBusy(true);
-    setRunStatus("Saving to GitHub...");
-
-    try {
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080";
-      const response = await fetch(`${apiUrl}/github/push`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: githubData.token,
-          repo: githubData.repo,
-          path: path,
-          content: code,
-          message: githubData.message || `Saved via LiquidIDE`
-        })
-      });
-
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || "Push failed");
-
-      alert(`Successfully saved to GitHub! Check it out: ${result.url}`);
-      setShowGithubModal(false);
-    } catch (err) {
-      alert(`Error: ${err.message}`);
-    } finally {
-      setBusy(false);
-      setRunStatus("Ready");
-    }
-  }
-
   return (
-    <div className="relative flex h-screen w-full overflow-hidden p-4">
-      {/* Background Decorative Glows */}
-      <div className="absolute left-[-10%] top-[-10%] h-[40%] w-[40%] rounded-full bg-blue-600/10 blur-[120px]" />
-      <div className="absolute bottom-[-10%] right-[-10%] h-[40%] w-[40%] rounded-full bg-purple-600/10 blur-[120px]" />
-
-      {/* Sidebar */}
-      <ActivityBar activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
-
-      {/* Main Workspace */}
-      <div className="flex flex-1 flex-col gap-4 overflow-hidden py-4 pr-4">
-        {/* Top Floating Glass Header */}
-        <div className="flux-glass flex h-16 w-full items-center justify-between rounded-3xl px-8 shadow-xl">
-          <div className="flex items-center gap-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/5">
-              <img src={activeConfig.icon} alt={activeConfig.lang} className="h-5 w-5" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold tracking-tight text-white/90">{activeConfig.name}</h1>
-              <p className="text-[10px] uppercase tracking-widest text-white/30">{activeConfig.lang}</p>
-            </div>
+    <div className="flex h-screen w-full flex-col bg-[#0a0a0a] text-white">
+      {/* Top Navbar */}
+      <header className="flex h-12 items-center justify-between border-b border-white/5 bg-[#1a1a1a]/80 px-4 backdrop-blur-md">
+        <div className="flex items-center gap-6">
+          <div className="flex items-center gap-2">
+            <div className="h-6 w-6 rounded-md bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center font-bold text-[12px]">L</div>
+            <span className="text-sm font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white to-white/60">Liquid IDE</span>
           </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowGithubModal(true)}
-              className="flux-button-secondary flex items-center gap-2"
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>
-              <span>Save</span>
-            </button>
-            <button
-              onClick={onRun}
-              disabled={busy}
-              className="flux-button-primary flex items-center gap-2 px-8"
-            >
-              {busy ? (
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white" />
-              ) : (
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
-                </svg>
-              )}
-              <span>{busy ? "Running" : "Flux Run"}</span>
-            </button>
+          <nav className="flex items-center gap-4 text-[12px] font-medium text-white/40">
+            <button className="hover:text-white transition-colors">Problems</button>
+            <button className="text-blue-500">Editor</button>
+            <button className="hover:text-white transition-colors">Contest</button>
+            <button className="hover:text-white transition-colors">Discuss</button>
+          </nav>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 items-center gap-1 rounded-lg bg-white/5 p-1">
+            <button className="h-full rounded-md px-3 text-[11px] font-bold text-white transition-all hover:bg-white/5">Sign In</button>
+            <button className="h-full rounded-md bg-blue-600 px-3 text-[11px] font-bold text-white shadow-lg shadow-blue-500/10">Premium</button>
           </div>
         </div>
+      </header>
 
-        {/* Content Area */}
-        <div className="flex flex-1 gap-4 overflow-hidden">
-          {/* Editor Container */}
-          <div className={["flux-glass relative flex-[3] overflow-hidden rounded-[2rem] shadow-2xl transition-all duration-500 hover:shadow-blue-500/5", busy ? "flux-glass-active" : ""].join(" ")}>
-            {busy && <div className="animate-shimmer absolute inset-0 z-0 pointer-events-none" />}
-            <div className="absolute left-6 top-6 z-10 hidden rounded-full bg-blue-500/20 px-3 py-1 text-[10px] font-bold text-blue-400 backdrop-blur-md lg:block">
-              WORKSPACE
+      {/* Main Container */}
+      <main className="flex flex-1 overflow-hidden p-2 gap-2">
+        {/* Left Panel - Problem Description */}
+        <section className="flex flex-[0.8] flex-col overflow-hidden rounded-xl border border-white/5 bg-[#1e1e1e]">
+          <div className="flex h-10 items-center gap-4 border-b border-white/5 bg-white/5 px-4">
+            <button 
+              onClick={() => setActiveTab("description")}
+              className={`text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === "description" ? "text-blue-400 border-b-2 border-blue-400 h-full" : "text-white/40 hover:text-white/60"}`}
+            >
+              Description
+            </button>
+            <button 
+              onClick={() => setActiveTab("submissions")}
+              className={`text-[11px] font-bold uppercase tracking-wider transition-all ${activeTab === "submissions" ? "text-blue-400 border-b-2 border-blue-400 h-full" : "text-white/40 hover:text-white/60"}`}
+            >
+              Submissions
+            </button>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-6 prose prose-invert max-w-none">
+            <h1 className="text-xl font-bold mb-4">1. Two Sum</h1>
+            <div className="flex gap-2 mb-6">
+              <span className="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-500 text-[10px] font-bold uppercase tracking-widest">Easy</span>
+              <span className="px-2 py-0.5 rounded bg-white/5 text-white/40 text-[10px] font-bold uppercase tracking-widest">Array</span>
+              <span className="px-2 py-0.5 rounded bg-white/5 text-white/40 text-[10px] font-bold uppercase tracking-widest">Hash Table</span>
             </div>
-            <div className="relative z-10 h-full w-full pt-4">
-              <CodeEditor
-                language={activeLangId === "javascript" ? "javascript" : activeLangId}
+            
+            <p className="text-sm text-white/70 leading-relaxed mb-4">
+              Given an array of integers <code>nums</code> and an integer <code>target</code>, return indices of the two numbers such that they add up to <code>target</code>.
+            </p>
+            <p className="text-sm text-white/70 leading-relaxed mb-6">
+              You may assume that each input would have <strong>exactly one solution</strong>, and you may not use the same element twice.
+            </p>
+
+            <h3 className="text-sm font-bold mb-3 text-white">Example 1:</h3>
+            <div className="bg-black/30 rounded-lg p-4 font-mono text-xs text-white/60 mb-6">
+              <p><strong>Input:</strong> nums = [2,7,11,15], target = 9</p>
+              <p><strong>Output:</strong> [0,1]</p>
+              <p><strong>Explanation:</strong> Because nums[0] + nums[1] == 9, we return [0, 1].</p>
+            </div>
+
+            <h3 className="text-sm font-bold mb-3 text-white">Constraints:</h3>
+            <ul className="text-sm text-white/60 list-disc ml-4 space-y-1">
+              <li><code>2 &lt;= nums.length &lt;= 10⁴</code></li>
+              <li><code>-10⁹ &lt;= nums[i] &lt;= 10⁹</code></li>
+              <li><code>-10⁹ &lt;= target &lt;= 10⁹</code></li>
+            </ul>
+          </div>
+        </section>
+
+        {/* Right Panel - Editor & Console */}
+        <section className="flex flex-[1.2] flex-col overflow-hidden gap-2">
+          {/* Editor Area */}
+          <div className="flex flex-[2] flex-col overflow-hidden rounded-xl border border-white/5 bg-[#1e1e1e]">
+            {/* Editor Toolbar */}
+            <div className="flex h-10 items-center justify-between border-b border-white/5 bg-white/5 px-4">
+              <div className="flex items-center gap-4">
+                <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
+                <button className="flex items-center gap-1.5 text-[11px] font-medium text-white/40 hover:text-white transition-colors">
+                  <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                  Reset
+                </button>
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={onRun}
+                  disabled={busy}
+                  className="flex h-7 items-center gap-2 rounded-md bg-white/5 px-3 text-[11px] font-bold text-white transition-all hover:bg-white/10 disabled:opacity-50"
+                >
+                  {busy ? <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" /> : <svg className="h-3.5 w-3.5 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>}
+                  Run
+                </button>
+                <button className="flex h-7 items-center gap-2 rounded-md bg-blue-600 px-3 text-[11px] font-bold text-white shadow-lg shadow-blue-500/20 transition-all hover:bg-blue-500">
+                  <svg className="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                  Submit
+                </button>
+              </div>
+            </div>
+            
+            {/* Real Monaco Editor */}
+            <div className="flex-1 overflow-hidden">
+               <CodeEditor
+                language={activeLangId === "javascript" ? "nodejs" : activeLangId}
                 value={buffers[activeLangId]}
                 onChange={onCodeChange}
               />
             </div>
           </div>
 
-          {/* Output Container */}
-          <div className="flux-glass flex flex-[1.2] flex-col overflow-hidden rounded-[2rem] shadow-2xl">
-            <div className="flex h-14 items-center justify-between border-b border-white/5 px-6">
-              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-white/40">Terminal Output</span>
+          {/* Console / Output Area */}
+          <div className={`flex transition-all duration-300 ${isOutputVisible ? "flex-[0.8]" : "h-10"} flex-col overflow-hidden rounded-xl border border-white/5 bg-[#1e1e1e]`}>
+            <div className="flex h-10 items-center justify-between border-b border-white/5 bg-white/5 px-4 shrink-0">
+              <div className="flex items-center gap-4">
+                <button 
+                  onClick={() => setIsOutputVisible(true)}
+                  className={`text-[11px] font-bold uppercase tracking-wider transition-all ${isOutputVisible ? "text-emerald-400 border-b-2 border-emerald-400 h-10" : "text-white/40"}`}
+                >
+                  Console
+                </button>
+                <button className="text-[11px] font-bold uppercase tracking-wider text-white/40 hover:text-white/60">Testcase</button>
+              </div>
               <button 
-                onClick={() => { setStdout(""); setStderr(""); }}
-                className="text-[10px] font-bold text-white/20 transition-colors hover:text-white/60"
+                onClick={() => setIsOutputVisible(!isOutputVisible)}
+                className="text-white/20 hover:text-white/60 transition-colors"
               >
-                CLEAR
+                <svg className={`h-4 w-4 transition-transform ${isOutputVisible ? "" : "rotate-180"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
               </button>
             </div>
-            <div className="flex-1 overflow-auto p-6 font-mono text-sm leading-relaxed">
-              {stdout && <pre className="whitespace-pre-wrap text-emerald-400/90 [text-shadow:0_0_20px_rgba(52,211,153,0.3)]">{stdout}</pre>}
-              {stderr && <pre className="whitespace-pre-wrap text-rose-400/90 [text-shadow:0_0_20px_rgba(251,113,113,0.3)]">{stderr}</pre>}
-              
-              {!stdout && !stderr && !busy && (
-                <div className="flex h-full flex-col items-center justify-center gap-3 opacity-20">
-                  <div className="h-1 w-12 rounded-full bg-white/50" />
-                  <span className="text-[10px] font-black uppercase tracking-widest">Awaiting Flux</span>
-                </div>
-              )}
-              
-              {busy && !stdout && !stderr && (
-                <div className="flex h-full flex-col items-center justify-center gap-4">
-                  <div className="flex gap-1">
-                    <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.3s]" />
-                    <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500 [animation-delay:-0.15s]" />
+            
+            {isOutputVisible && (
+              <div className="flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed">
+                {busy && !stdout && !stderr && (
+                  <div className="flex h-full items-center justify-center gap-3 text-blue-400/60 font-medium">
                     <div className="h-1.5 w-1.5 animate-bounce rounded-full bg-blue-500" />
+                    <span>Executing code...</span>
                   </div>
-                  <span className="text-[10px] font-black uppercase tracking-widest text-blue-400/60">Processing Liquid Code</span>
-                </div>
-              )}
+                )}
+                
+                {stdout && (
+                  <div className="mb-4">
+                    <p className="text-white/30 uppercase text-[9px] font-black mb-1 tracking-widest">Standard Output</p>
+                    <pre className="whitespace-pre-wrap text-emerald-400/90">{stdout}</pre>
+                  </div>
+                )}
+                
+                {stderr && (
+                  <div>
+                    <p className="text-rose-500/30 uppercase text-[9px] font-black mb-1 tracking-widest">Runtime Error</p>
+                    <pre className="whitespace-pre-wrap text-rose-400/90">{stderr}</pre>
+                  </div>
+                )}
+
+                {!stdout && !stderr && !busy && (
+                  <div className="flex h-full flex-col items-center justify-center opacity-20 italic">
+                    You must run your code to see results.
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <div className="flex h-8 items-center border-t border-white/5 bg-black/20 px-4 shrink-0">
+              <div className="flex items-center gap-2">
+                <div className={`h-1.5 w-1.5 rounded-full ${runStatus === "Done" ? "bg-emerald-500" : runStatus === "Failed" ? "bg-rose-500" : "bg-white/20"}`} />
+                <span className="text-[9px] font-black uppercase tracking-widest text-white/30">{runStatus}</span>
+              </div>
             </div>
-            <div className="flex items-center gap-2 border-t border-white/5 bg-white/[0.02] px-6 py-3 text-[10px]">
-              <div className={["h-2 w-2 rounded-full", runStatus === "failed" ? "bg-rose-500 shadow-[0_0_10px_#f43f5e]" : "bg-emerald-500 shadow-[0_0_10px_#10b981]"].join(" ")} />
-              <span className="font-bold uppercase tracking-widest text-white/30">{runStatus}</span>
-            </div>
           </div>
-        </div>
-      </div>
-
-      {showGithubModal && (
-        <GithubSaveModal 
-          onClose={() => setShowGithubModal(false)}
-          onSave={onSaveToGithub}
-          activeFile={activeConfig.name}
-        />
-      )}
-    </div>
-  );
-}
-
-function GithubSaveModal({ onClose, onSave, activeFile }) {
-  const [data, setData] = useState({ token: "", repo: "", message: "" });
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-md p-4">
-      <div className="flux-glass w-full max-w-md rounded-[2.5rem] p-10 shadow-3xl">
-        <h2 className="mb-2 text-3xl font-black tracking-tight">Save Push</h2>
-        <p className="mb-8 text-xs font-bold uppercase tracking-widest text-white/30">Liquid to GitHub Sync</p>
-        
-        <div className="mb-8 flex flex-col gap-4">
-          <div className="space-y-1">
-            <label className="ml-1 text-[10px] font-black uppercase tracking-widest text-white/20">Security Token</label>
-            <input 
-              placeholder="PA Token"
-              type="password"
-              className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:bg-white/[0.08]"
-              value={data.token}
-              onChange={(e) => setData({ ...data, token: e.target.value })}
-            />
+        </section>
+      </main>
+      
+      {/* Footer / Status Bar */}
+      <footer className="flex h-8 items-center justify-between border-t border-white/5 bg-[#1a1a1a] px-4">
+        <div className="flex items-center gap-4 text-[10px] text-white/30 font-medium">
+          <div className="flex items-center gap-1.5">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500"></div>
+            <span>System Online</span>
           </div>
-          <div className="space-y-1">
-            <label className="ml-1 text-[10px] font-black uppercase tracking-widest text-white/20">Target Repository</label>
-            <input 
-              placeholder="Repo Name"
-              className="w-full rounded-2xl border border-white/5 bg-white/5 p-4 text-sm outline-none transition-all focus:border-blue-500/50 focus:bg-white/[0.08]"
-              value={data.repo}
-              onChange={(e) => setData({ ...data, repo: e.target.value })}
-            />
-          </div>
+          <span>v0.1.0-alpha</span>
         </div>
-        
-        <div className="flex flex-col gap-3">
-          <button 
-            className="flux-button-primary h-14 w-full rounded-2xl text-base font-black uppercase tracking-widest"
-            onClick={() => onSave(data)}
-          >
-            Initiate Push
-          </button>
-          <button 
-            onClick={onClose}
-            className="h-10 text-[11px] font-black uppercase tracking-[0.3em] text-white/20 transition-colors hover:text-white/60"
-          >
-            DISCARD
-          </button>
+        <div className="flex items-center gap-4 text-[10px] text-white/30 font-medium">
+          <span>Row 1, Col 1</span>
+          <span>Tab Size: 2</span>
+          <span>UTF-8</span>
         </div>
-      </div>
+      </footer>
     </div>
   );
 }

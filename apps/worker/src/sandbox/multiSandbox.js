@@ -111,7 +111,7 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
       if (child.stderr) child.stderr.on("data", (d) => (stderr += d.toString()));
 
       const timeout = setTimeout(() => {
-        try { child.kill("SIGKILL"); } catch {}
+        try { child.kill("SIGKILL"); } catch (e) { /* ignore kill error */ void e; }
       }, timeoutMs);
 
       child.on("error", (err) => {

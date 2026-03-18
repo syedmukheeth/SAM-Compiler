@@ -75,7 +75,13 @@ function redisConnectionFromUrl(redisUrl) {
   const u = new URL(redisUrl);
   const port = u.port ? Number(u.port) : 6379;
   const password = u.password ? decodeURIComponent(u.password) : undefined;
-  return { host: u.hostname, port, password };
+  return { 
+    host: u.hostname, 
+    port, 
+    password,
+    tls: u.protocol === "rediss:" ? {} : undefined,
+    maxRetriesPerRequest: 0 
+  };
 }
 
 main().catch((err) => {

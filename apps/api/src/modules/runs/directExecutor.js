@@ -82,10 +82,20 @@ async function executeDirectly(run) {
 
 async function materializeFiles(root, files) {
   for (const f of files) {
-    const abs = path.join(root, path.basename(f.path));
+    const safeRel = sanitizeRelPath(f.path);
+    const abs = path.join(root, safeRel);
     await fs.mkdir(path.dirname(abs), { recursive: true });
     await fs.writeFile(abs, f.content, "utf8");
   }
+}
+
+function sanitizeRelPath(p) {
+  const normalized = String(p || "").replaceAll("\\", "/");
+  const parts = normalized.split("/").filter(Boolean);
+  const safeParts = parts.filter((seg) => seg !== "." && seg !== ".." && !seg.includes(":"));
+  const joined = safeParts.join(path.sep);
+  if (!joined) return crypto.randomUUID() + ".txt";
+  return joined;
 }
 
 function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
@@ -99,7 +109,7 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
       if (child.stderr) child.stderr.on("data", (d) => (stderr += d.toString()));
 
       const timeout = setTimeout(() => {
-        try { child.kill("SIGKILL"); } catch {}
+        try { child.kill("SIGKILL"); } catch (e) { /* ignore kill error */ void e; }
       }, timeoutMs);
 
       child.on("error", (err) => {

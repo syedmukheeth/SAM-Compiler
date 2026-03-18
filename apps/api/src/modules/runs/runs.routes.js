@@ -18,9 +18,9 @@ runsRouter.post("/", async (req, res, next) => {
     const run = await createRun({
       projectId: "playground",
       runtime: runtime,
-      entrypoint: language === "java" ? "Main.java" : language === "python" ? "main.py" : language === "cpp" ? "main.cpp" : language === "go" ? "main.go" : "index.js",
+      entrypoint: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "go" ? "solution.go" : "solution.js",
       files: [{
-        path: language === "java" ? "Main.java" : language === "python" ? "main.py" : language === "cpp" ? "main.cpp" : language === "go" ? "main.go" : "index.js",
+        path: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "go" ? "solution.go" : "solution.js",
         content: code
       }]
     });

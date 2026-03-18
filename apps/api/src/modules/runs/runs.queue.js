@@ -21,6 +21,7 @@ function redisConnectionFromUrl(redisUrl) {
       host: u.hostname, 
       port, 
       password, 
+      tls: u.protocol === "rediss:" ? {} : undefined,
       maxRetriesPerRequest: 0,
       enableOfflineQueue: false,
       connectTimeout: 5000 
