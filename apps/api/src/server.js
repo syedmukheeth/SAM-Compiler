@@ -8,7 +8,9 @@ async function main() {
   const app = createApp();
 
   app.listen(env.PORT, () => {
-    logger.info(`LiquidIDE API listening on :${env.PORT}`);
+    logger.info(`LiquidIDE API listening on port ${env.PORT}`);
+    console.log(`🚀 API Server ready on http://localhost:${env.PORT}`);
+    console.log(`📡 Environment: ${process.env.NODE_ENV || "development"}`);
   });
 }
 

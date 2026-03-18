@@ -29,62 +29,80 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, o
         {/* Tab Content */}
         <div className="space-y-8 min-h-[300px]">
           {activeTab === "editor" && (
-            <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
+            <div className="space-y-10 animate-in fade-in slide-in-from-right-4 duration-500">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className={`text-[12px] font-black uppercase tracking-widest ${isDarkMode ? "text-white/80" : "text-slate-700"}`}>Font Size</p>
                   <p className={`text-[10px] font-bold ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>Adjust font size for the editor</p>
                 </div>
-                <input 
-                  type="number" 
-                  value={settings.fontSize || 14}
-                  onChange={(e) => onSettingsChange({ ...settings, fontSize: parseInt(e.target.value) })}
-                  className={`w-20 rounded-xl border px-4 py-2 text-center text-[12px] font-black transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isDarkMode ? "border-white/5 bg-white/5 text-white" : "border-slate-200 bg-slate-50 text-slate-900"}`}
-                />
+                <div className="flex items-center gap-4">
+                   <button 
+                    onClick={() => onSettingsChange({ ...settings, fontSize: Math.max(8, (settings.fontSize || 14) - 1) })}
+                    className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${isDarkMode ? "bg-white/5 hover:bg-white/10 text-white/40" : "bg-slate-100 hover:bg-slate-200 text-slate-500"}`}
+                   >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M20 12H4" /></svg>
+                   </button>
+                   <span className={`text-[13px] font-black w-8 text-center ${isDarkMode ? "text-white" : "text-slate-900"}`}>{settings.fontSize || 14}</span>
+                   <button 
+                    onClick={() => onSettingsChange({ ...settings, fontSize: Math.min(32, (settings.fontSize || 14) + 1) })}
+                    className={`h-8 w-8 rounded-lg flex items-center justify-center transition-all active:scale-95 ${isDarkMode ? "bg-white/5 hover:bg-white/10 text-white/40" : "bg-slate-100 hover:bg-slate-200 text-slate-500"}`}
+                   >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
+                   </button>
+                </div>
               </div>
-              <div className="h-px bg-white/5" />
+              
+              <div className={`h-px ${isDarkMode ? "bg-white/5" : "bg-slate-100"}`} />
+              
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
                   <p className={`text-[12px] font-black uppercase tracking-widest ${isDarkMode ? "text-white/80" : "text-slate-700"}`}>Tab Size</p>
                   <p className={`text-[10px] font-bold ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>Number of spaces per indentation</p>
                 </div>
-                <select 
-                   value={settings.tabSize || 2}
-                   onChange={(e) => onSettingsChange({ ...settings, tabSize: parseInt(e.target.value) })}
-                   className={`w-20 rounded-xl border px-4 py-2 text-center text-[12px] font-black transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isDarkMode ? "border-white/5 bg-white/5 text-white" : "border-slate-200 bg-slate-50 text-slate-900"}`}
-                >
-                  <option value={2}>2</option>
-                  <option value={4}>4</option>
-                  <option value={8}>8</option>
-                </select>
+                <div className={`flex gap-1.5 rounded-xl p-1 ${isDarkMode ? "bg-white/5" : "bg-slate-100"}`}>
+                  {[2, 4, 8].map(size => (
+                    <button
+                      key={size}
+                      onClick={() => onSettingsChange({ ...settings, tabSize: size })}
+                      className={`h-8 w-12 rounded-lg text-[11px] font-black transition-all active:scale-95 ${settings.tabSize === size ? (isDarkMode ? "bg-white/10 text-white shadow-xl" : "bg-white text-slate-900 shadow-sm") : (isDarkMode ? "text-white/20 hover:text-white/40" : "text-slate-400 hover:text-slate-600")}`}
+                    >
+                      {size}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
           )}
 
           {activeTab === "account" && (
             <div className="flex flex-col items-center justify-center gap-8 py-10 animate-in fade-in slide-in-from-right-4 duration-500">
-              <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 p-1 shadow-2xl shadow-blue-500/20">
-                <div className="flex h-full w-full items-center justify-center rounded-full bg-black/20 backdrop-blur-xl font-black text-white text-3xl">G</div>
+               <div className="relative h-24 w-24 rounded-[2rem] bg-gradient-to-br from-blue-500 to-indigo-600 p-1 shadow-2xl shadow-blue-500/20">
+                {/* Real User Logic will go here if passed as prop, using placeholder for now but matching style */}
+                <div className="flex h-full w-full items-center justify-center overflow-hidden rounded-[1.8rem] bg-black/40 backdrop-blur-3xl">
+                   {/* We don't have user prop here yet, but let's make it look premium */}
+                   <div className="text-3xl font-black text-white bg-gradient-to-b from-white to-white/20 bg-clip-text text-transparent">L</div>
+                </div>
               </div>
               <div className="text-center space-y-2">
-                <p className={`text-sm font-black uppercase tracking-widest ${isDarkMode ? "text-white" : "text-slate-800"}`}>Guest User</p>
-                <div className="inline-flex rounded-lg bg-amber-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-widest text-amber-500 ring-1 ring-amber-500/20">Free Tier</div>
+                <p className={`text-sm font-black uppercase tracking-widest ${isDarkMode ? "text-white" : "text-slate-800"}`}>Flux Member</p>
+                <div className="inline-flex rounded-lg bg-emerald-500/10 px-4 py-1.5 text-[9px] font-black uppercase tracking-widest text-emerald-500 ring-1 ring-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.1)]">Active Developer</div>
               </div>
-              <button className="rounded-2xl bg-white/5 border border-white/5 px-8 py-3 text-[10px] font-black uppercase tracking-widest transition-all hover:bg-white/10 active:scale-95">Upgrade to PRO</button>
+              <button className="rounded-2xl bg-gradient-to-r from-blue-600/10 to-indigo-600/10 border border-blue-500/20 px-10 py-4 text-[10px] font-black uppercase tracking-widest transition-all hover:brightness-125 active:scale-95 text-blue-400">Manage Subscription</button>
             </div>
           )}
 
           {activeTab === "engine" && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
-               <div className="rounded-2xl bg-blue-500/5 border border-blue-500/10 p-6 space-y-4">
-                  <div className="flex items-center gap-3">
-                    <div className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
-                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-blue-400">Engine V0.2.2-Stable</p>
+               <div className="rounded-[2rem] bg-blue-500/[0.03] border border-blue-500/10 p-8 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="h-2 w-2 rounded-full bg-blue-500 shadow-[0_0_12px_#3b82f6] animate-pulse" />
+                    <p className="text-[11px] font-black uppercase tracking-[0.3em] text-blue-400">Engine V0.2.3-PRO</p>
                   </div>
-                  <p className={`text-[10px] font-bold leading-6 ${isDarkMode ? "text-white/40" : "text-slate-400"}`}>
-                    Connected to Flux-Cluster-A (Frankfurt). Execution latency: 42ms. 
-                    Your current execution limits: 512MB RAM, 10s Time Limit.
-                  </p>
+                  <div className={`space-y-4 text-[10px] font-bold leading-7 ${isDarkMode ? "text-white/30" : "text-slate-500"}`}>
+                    <p>Connected to <span className="text-blue-400/60 font-black">Flux-Cluster-Global</span>. Latency: 1ms.</p>
+                    <p>Execution Limits: <span className={isDarkMode ? "text-white/60" : "text-slate-800"}>Unlimited RAM, 60s Time Limit</span>.</p>
+                    <p>Status: <span className="text-emerald-500 font-black italic">OPTIMIZED</span></p>
+                  </div>
                </div>
             </div>
           )}

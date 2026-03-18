@@ -67,13 +67,22 @@ async function executeRun(opts) {
       const pythonCmd = await findPythonCommand();
       const localCmds = {
         javascript: ["node", entry],
-        python: [pythonCmd, entry],
+        python: pythonCmd ? [pythonCmd, entry] : null,
         cpp: [shell, shellFlag, `g++ ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
         c: [shell, shellFlag, `gcc ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
         java: [shell, shellFlag, `javac ${entry} && java ${entry.replace(".java", "")}`]
       };
 
-      const [cmd, ...args] = localCmds[language] || localCmds.javascript;
+      const cmdInfo = localCmds[language];
+      if (!cmdInfo) {
+        return { 
+          stdout: "", 
+          stderr: `Local Execution Error: ${language} is not installed or detected on the host compute. \nTip: Install ${language} or start Docker for a sandboxed experience.`, 
+          exitCode: 127 
+        };
+      }
+
+      const [cmd, ...args] = cmdInfo;
       return await execWithTimeout(cmd, args, env.RUN_TIMEOUT_MS || 10000, { cwd: runDir });
     }
   } catch (err) {
@@ -136,15 +145,31 @@ async function findPythonCommand() {
   const { promisify } = require("node:util");
   const execAsync = promisify(exec);
 
+  const isWin = process.platform === "win32";
+
   for (const cmd of commands) {
     try {
-      await execAsync(`${cmd} --version`);
-      return cmd;
+      if (isWin) {
+        // Specifically check 'where' and ignore WindowsApps stubs
+        const { stdout } = await execAsync(`where ${cmd}`);
+        const paths = stdout.split(/\r?\n/).filter(Boolean);
+        const realPath = paths.find(p => !p.includes("Microsoft\\WindowsApps"));
+        
+        if (realPath) {
+          // Verify it actually runs
+          await execAsync(`"${realPath}" --version`);
+          return `"${realPath}"`;
+        }
+      } else {
+        await execAsync(`command -v ${cmd}`);
+        await execAsync(`${cmd} --version`);
+        return cmd;
+      }
     } catch (err) {
       // Continue searching
     }
   }
-  return "python"; // Default fallback
+  return null;
 }
 
 module.exports = { executeRun };

@@ -2,6 +2,7 @@ const cors = require("cors");
 const express = require("express");
 const helmet = require("helmet");
 const pino = require("pino-http");
+const passport = require("./config/passport");
 const { logger } = require("./config/logger");
 const { env } = require("./config/env");
 const { runsRouter } = require("./modules/runs/runs.routes");
@@ -15,11 +16,13 @@ function createApp() {
   app.use(helmet());
   app.use(
     cors({
-      origin: [env.WEB_ORIGIN, "http://localhost:5179"],
-      credentials: true
+      origin: [env.WEB_ORIGIN, "http://localhost:5173", "http://localhost:5179"],
+      credentials: true,
+      allowedHeaders: ["Content-Type", "Authorization"]
     })
   );
   app.use(express.json({ limit: "2mb" }));
+  app.use(passport.initialize());
 
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
   app.use("/runs", runsRouter);

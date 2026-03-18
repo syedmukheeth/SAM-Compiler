@@ -10,7 +10,7 @@ const CreateRunSchema = z.object({
   code: z.string().min(1)
 });
 
-runsRouter.post("/", authMiddleware, async (req, res, next) => {
+runsRouter.post("/", async (req, res, next) => {
   try {
     const { language, code } = CreateRunSchema.parse(req.body);
     const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;

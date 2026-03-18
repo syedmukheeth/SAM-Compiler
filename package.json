@@ -1,7 +1,7 @@
 {
   "name": "liquidide",
   "private": true,
-  "version": "0.2.2",
+  "version": "0.5.0",
   "description": "LiquidIDE - browser-based IDE with sandboxed execution (MERN + BullMQ + Docker).",
   "workspaces": [
     "apps/*",
@@ -9,6 +9,9 @@
     "server"
   ],
   "scripts": {
+    "start": "npm start -w @liquidide/api",
+    "start:api": "npm start -w @liquidide/api",
+    "start:worker": "npm start -w @liquidide/worker",
     "dev": "concurrently -n api,worker,web -c blue,magenta,green \"npm run dev -w @liquidide/api\" \"npm run dev -w @liquidide/worker\" \"npm run dev -w @liquidide/web\"",
     "build": "npm install && npm run build -ws",
     "lint": "npm run lint -ws"

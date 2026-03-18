@@ -1,4 +1,4 @@
-import React, { useRef, useState } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import CodeEditor from "../components/CodeEditor";
 import LanguageSelector from "../components/LanguageSelector";
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
@@ -12,7 +12,7 @@ import { useAuth } from "../hooks/useAuth";
 const languageConfigs = {
   cpp: { name: "solution.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: `#include <iostream>\n\nint main() {\n  // Write your code here\n  std::cout << "Hello from LiquidIDE C++" << std::endl;\n  return 0;\n}\n`, lang: "cpp" },
   c: { name: "solution.c", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg", template: `#include <stdio.h>\n\nint main() {\n  // Write your code here\n  printf("Hello from LiquidIDE C\\n");\n  return 0;\n}\n`, lang: "c" },
-  python: { name: "solution.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: `import sys\n\ndef main():\n    # Write your code here\n    print("Hello from LiquidIDE Python")\n\nif __name__ == "__main__":\n    main()\n`, lang: "python" },
+  python: { name: "solution.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: `print("Hello from LiquidIDE Python")\n`, lang: "python" },
   javascript: { name: "solution.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg", template: `// Write your code here\nconsole.log("Hello from LiquidIDE JS");\n`, lang: "nodejs" },
   java: { name: "Solution.java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg", template: `import java.util.*;\n\npublic class Solution {\n  public static void main(String[] args) {\n    // Write your code here\n    System.out.println("Hello from LiquidIDE Java");\n  }\n}\n`, lang: "java" }
 };
@@ -31,6 +31,18 @@ export default function EditorPage() {
   const [activeModal, setActiveModal] = useState(null); // 'auth', 'settings', 'history', 'upgrade'
   
   const { user, loginUser, logoutUser } = useAuth();
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get("token");
+    if (token) {
+      // We don't have the user object yet, but useAuth will fetch it via /me because we set the token
+      loginUser(null, token); 
+      // Clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, [loginUser]);
+
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("flux_settings");
     return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
@@ -57,11 +69,58 @@ export default function EditorPage() {
     localStorage.setItem("flux_settings", JSON.stringify(newSettings));
   };
   
+  const [pyodide, setPyodide] = useState(null);
+  const [isPyodideLoading, setIsPyodideLoading] = useState(false);
+
+  // PRE-LOAD PYTHON ENGINE (v0.4.4)
+  useEffect(() => {
+    if (!pyodide && !isPyodideLoading) {
+      setIsPyodideLoading(true);
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js";
+      script.onload = async () => {
+        try {
+          // eslint-disable-next-line no-undef
+          const py = await loadPyodide();
+          setPyodide(py);
+        } catch (err) {
+          console.error("Pyodide failed to load:", err);
+        } finally {
+          setIsPyodideLoading(false);
+        }
+      };
+      document.body.appendChild(script);
+    }
+  }, []); // Run once on mount
+
   const runRef = useRef({ jobId: null });
   const activeConfig = languageConfigs[activeLangId];
 
   function onCodeChange(value) {
     setBuffers((b) => ({ ...b, [activeLangId]: value ?? "" }));
+  }
+
+  async function runPythonInBrowser(code) {
+    if (!pyodide) throw new Error("Python engine is still booting. Please wait a moment...");
+    
+    // Redirect stdout/stderr
+    let output = "";
+    pyodide.setStdout({ batched: (str) => { 
+      output += str + "\n"; 
+      setStdout(output); 
+    } });
+    pyodide.setStderr({ batched: (str) => { 
+      output += str + "\n"; 
+      setStderr(output); 
+    } });
+
+    try {
+      await pyodide.runPythonAsync(code);
+      setRunStatus("succeeded");
+    } catch (err) {
+      setStderr(err.message);
+      setRunStatus("failed");
+    }
   }
 
   async function onRun() {
@@ -73,6 +132,29 @@ export default function EditorPage() {
     setStderr("");
     setRunStatus("Running");
     setIsOutputVisible(true);
+
+    // BROWSER-BASED PYTHON (v0.4.4 - No Fallback)
+    if (activeLangId === "python") {
+      try {
+        if (!pyodide) {
+           setRunStatus("Initializing");
+           setStdout("Booting internal Python engine...\n(This only happens once per session)");
+           // Wait loop for pyodide
+           let attempts = 0;
+           while (!window.loadPyodide && attempts < 20) { await new Promise(r => setTimeout(r, 500)); attempts++; }
+           if (!pyodide) throw new Error("Python engine boot timeout. Please check your internet connection and refresh.");
+        }
+        await runPythonInBrowser(code);
+        saveHistory(code, activeConfig.name, activeLangId);
+        setBusy(false);
+        return;
+      } catch (err) {
+        setStderr(err.message);
+        setRunStatus("Failed");
+        setBusy(false);
+        return; // DO NOT FALL BACK TO BACKEND FOR PYTHON
+      }
+    }
 
     try {
       const { jobId } = await submitRun({ language, code });
@@ -163,7 +245,7 @@ export default function EditorPage() {
                </div>
             </div>
           ) : (
-            <button onClick={() => setActiveModal('auth')} className={`h-10 rounded-2xl px-6 text-[12px] font-black transition-all active:scale-95 border backdrop-blur-xl ${isDarkMode ? "bg-white/5 text-white/80 hover:bg-white/10 border-white/5" : "bg-slate-100 text-slate-600 hover:bg-slate-200 border-slate-200"}`}>Sign In</button>
+            <button onClick={() => setActiveModal('auth')} className={`h-10 rounded-2xl px-6 text-[12px] font-black transition-all active:scale-95 border backdrop-blur-xl ${isDarkMode ? "bg-white/5 text-white/80 hover:bg-white/10 border-white/5" : "bg-white text-slate-700 hover:bg-slate-50 border-slate-200/60 shadow-sm"}`}>Sign In</button>
           )}
 
           <button onClick={() => setActiveModal('upgrade')} className="h-10 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 px-6 text-[12px] font-black text-white shadow-2xl shadow-blue-500/20 transition-all hover:brightness-110 active:scale-95">Go Pro</button>
@@ -188,12 +270,22 @@ export default function EditorPage() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={onRun}
-                  disabled={busy}
+                  disabled={busy || (activeLangId === "python" && isPyodideLoading)}
                   className="group relative flex h-10 items-center gap-3 overflow-hidden rounded-xl bg-emerald-500/10 px-6 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-500 transition-all hover:bg-emerald-500/20 active:scale-95 disabled:opacity-50 ring-1 ring-emerald-500/20"
                 >
-                  {busy ? <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/20 border-t-emerald-500" /> : <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>}
-                  <span>Run code</span>
+                  {(busy || (activeLangId === "python" && isPyodideLoading)) ? (
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-500/20 border-t-emerald-500" />
+                  ) : (
+                    <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" /></svg>
+                  )}
+                  <span>{(activeLangId === "python" && isPyodideLoading) ? "Booting Engine..." : "Run code"}</span>
                 </button>
+                {activeLangId === "python" && (
+                  <div className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-[9px] font-black uppercase tracking-widest transition-all ${pyodide ? "border-emerald-500/20 bg-emerald-500/5 text-emerald-500" : "border-amber-500/20 bg-amber-500/5 text-amber-500"}`}>
+                    <div className={`h-1.5 w-1.5 rounded-full ${pyodide ? "bg-emerald-500 shadow-[0_0_8px_#10b981]" : "bg-amber-500 animate-pulse shadow-[0_0_8px_#f59e0b]"}`} />
+                    {pyodide ? "Web Runner Active" : "Initializing Engine..."}
+                  </div>
+                )}
               </div>
             </div>
             
@@ -260,7 +352,7 @@ export default function EditorPage() {
           </div>
 
           <div className={`flex h-10 shrink-0 items-center justify-between border-t px-8 transition-colors ${isDarkMode ? "border-white/5 bg-black/40" : "border-slate-100 bg-slate-50/50"}`}>
-             <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-colors ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>v0.2.2 Stable</span>
+             <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-colors ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>v0.5.0 Stable (Zero-Friction)</span>
              <span className={`text-[9px] font-black uppercase tracking-[0.2em] transition-colors ${isDarkMode ? "text-white/20" : "text-slate-400"}`}>Buffer: {activeLangId}</span>
           </div>
         </section>

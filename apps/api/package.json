@@ -23,6 +23,9 @@
     "ioredis": "^5.4.1",
     "jsonwebtoken": "^9.0.3",
     "mongoose": "^8.6.2",
+    "passport": "^0.7.0",
+    "passport-github2": "^0.1.12",
+    "passport-google-oauth20": "^2.0.0",
     "pino": "^9.14.0",
     "pino-http": "^11.0.0",
     "zod": "^3.23.8"

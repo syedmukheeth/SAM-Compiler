@@ -10,7 +10,7 @@ export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin }) {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
 
   const handleSocialLogin = (provider) => {
-    setError("Social login is currently under maintenance. Please use Email/Password.");
+    window.location.href = `http://localhost:8080/auth/${provider}`;
   };
 
   const handleAuth = async (e) => {

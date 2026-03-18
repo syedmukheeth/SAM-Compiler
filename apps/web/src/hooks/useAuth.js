@@ -6,6 +6,20 @@ export function useAuth() {
   const [token, setToken] = useState(localStorage.getItem("flux_token"));
   const [loading, setLoading] = useState(true);
 
+  const logoutUser = useCallback(() => {
+    setUser(null);
+    setToken(null);
+    localStorage.removeItem("flux_user");
+    localStorage.removeItem("flux_token");
+  }, []);
+
+  const loginUser = useCallback((userData, accessToken) => {
+    setUser(userData);
+    setToken(accessToken);
+    localStorage.setItem("flux_user", JSON.stringify(userData));
+    localStorage.setItem("flux_token", accessToken);
+  }, []);
+
   const fetchUser = useCallback(async (authToken) => {
     try {
       const userData = await getMe(authToken);
@@ -13,12 +27,13 @@ export function useAuth() {
       localStorage.setItem("flux_user", JSON.stringify(userData));
     } catch (err) {
       console.error("Session verification failed:", err);
-      // Optional: Clear session on invalid token
-      // logoutUser(); 
+      if (err.response?.status === 401) {
+        logoutUser();
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [logoutUser]);
 
   useEffect(() => {
     if (token) {
@@ -29,20 +44,6 @@ export function useAuth() {
       setLoading(false);
     }
   }, [token, fetchUser]);
-
-  const loginUser = (userData, accessToken) => {
-    setUser(userData);
-    setToken(accessToken);
-    localStorage.setItem("flux_user", JSON.stringify(userData));
-    localStorage.setItem("flux_token", accessToken);
-  };
-
-  const logoutUser = () => {
-    setUser(null);
-    setToken(null);
-    localStorage.removeItem("flux_user");
-    localStorage.removeItem("flux_token");
-  };
 
   return {
     user,

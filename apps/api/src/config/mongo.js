@@ -9,10 +9,10 @@ async function connectMongo() {
     // We don't await here or we catch and don't rethrow to allow server startup
     mongoose.connect(env.MONGO_URI).then(() => {
       logger.info("Connected to MongoDB");
-      console.log("✅ Connected to MongoDB");
+      console.log("🟢 [DB] Connected to MongoDB");
     }).catch(err => {
-      console.error("❌ Failed to connect to MongoDB (deferred):", err.message);
-      logger.error({ err }, "Failed to connect to MongoDB (deferred)");
+      console.error("🔴 [DB] Failed to connect to MongoDB:", err.message);
+      logger.error({ err }, "Failed to connect to MongoDB");
     });
   } catch (err) {
     console.error("❌ Failed to initiate MongoDB connection:", err.message);
