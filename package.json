@@ -1,7 +1,7 @@
 {
   "name": "liquidide",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "LiquidIDE - browser-based IDE with sandboxed execution (MERN + BullMQ + Docker).",
   "workspaces": [
     "apps/*",
