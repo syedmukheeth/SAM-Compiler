@@ -1,96 +1,90 @@
-# LiquidIDE 🚀
+# 💧 LiquidIDE: The Enterprise-Grade Fluid Code Playground
 
-LiquidIDE is a production-grade, scalable browser-based IDE (VS Code / Replit style) that allows users to write and execute code **safely** in sandboxed environments.
+LiquidIDE is a high-performance, **production-ready** browser-based IDE designed for safe, sandboxed code execution at scale. Built with the MERN stack, BullMQ, and Docker, it provides a seamless developer experience inspired by VS Code and Replit.
 
-## 🏗️ Architecture
+---
 
-LiquidIDE uses a distributed architecture to ensure high availability, scalability, and security.
+## ✨ Key Features
+
+- **🚀 Real-time Execution**: Instant feedback on your code runs with low-latency streaming.
+- **🛡️ Multi-Layer Sandboxing**: Isolation using Docker containers, PID limits, and CPU/Memory caps.
+- **⚡ Reactive Architecture**: Distributed workers handle execution jobs, ensuring the API remains responsive.
+- **🎨 Modern UI**: Vibrant, glassmorphism-inspired interface with Monaco Editor and Activity Bar.
+- **📂 Integrated File System**: Manage complex projects with ease directly in your browser.
+
+---
+
+## 🏗️ Technical Architecture
+
+LiquidIDE is built for stability and horizontal scalability.
 
 ```mermaid
 graph TD
-    Client[Browser Frontend] -->|HTTP/REST| API[API Service]
-    Client -->|WebSockets| API
-    API -->|Schema| DB[(MongoDB)]
-    API -->|Jobs| Redis[(Redis)]
-    Redis -->|Consume| Worker[Job Worker]
-    Worker -->|Execute| Sandbox[Docker Sandbox]
-    Worker -->|Update| DB
-    Worker -->|Logs| Redis
-    API -->|Stream Logs| Client
+    Client[Browser Frontend/React] -->|REST/WebSockets| API[API Gateway]
+    API -->|Persistence| DB[(MongoDB Atlas)]
+    API -->|Messaging| Redis[(Upstash Redis/BullMQ)]
+    Redis -->|Job Distribution| Worker[Worker Service]
+    Worker -->|Isolation| Sandbox[Docker Sandbox]
+    Worker -->|State Update| DB
+    API -->|Live Stream| Client
 ```
 
-### Components
-- **Frontend (`apps/web`)**: A high-performance React SPA with Monaco Editor.
-- **API (`apps/api`)**: Node.js Express server handling project management, job queuing (BullMQ), and real-time log streaming using WebSockets.
-- **Worker (`apps/worker`)**: Distributed workers that consume execution jobs and manage sandboxed Docker containers.
-- **Shared (`packages/shared`)**: Shared types and constants across the monorepo.
+### Stack & Components
+- **Frontend**: React + Vite + Monaco Editor + Tailwind CSS + Socket.io Client.
+- **Backend API**: Node.js + Express + Passport.js (Auth) + Socket.io.
+- **Worker**: BullMQ + Docker Engine API + Node-Docker integration.
+- **Infrastructure**: MongoDB (Persistence) + Redis (Queue/Cache).
 
-## 📁 Project Structure
+---
 
-```text
-.
-├── apps/
-│   ├── api/             # Express API (MERN backend)
-│   ├── web/             # React SPA (Vite/Monaco Editor)
-│   └── worker/          # BullMQ Job Worker (Docker Sandbox)
-├── packages/
-│   └── shared/          # Common types and constants
-├── docs/                # Project documentation
-├── docker-compose.yml   # Multi-service orchestration
-└── package.json         # Root workspace configuration
-```
+## 🚀 Deployment
 
-## 🛡️ Security & Sandboxing
-Code execution is isolated using a dual-layer strategy:
-1. **Container Isolation**: Each run executes in a stateless, short-lived Docker container.
-2. **Resource Limits**: Configurable memory (256MB), CPU (0.5), and PID limits prevent rogue processes from affecting the host.
-3. **Network Isolation**: Sandbox containers are started with `--network none` to prevent data exfiltration.
+LiquidIDE is designed to run anywhere Docker is supported.
 
-## 🚀 Quick Start (Production-Like)
+### Recommended Production Setup
+- **API & Frontend**: Can be deployed to platforms like **Vercel** or **Render**. Ensure your MongoDB IP Whitelist allows requests from these services.
+- **Worker**: Requires a persistent environment with Docker access (e.g., Render Web Service with a Docker runtime, or an AWS/GCP instance).
 
-The entire stack is containerized for easy deployment and local development.
+### 🛡️ Security Configuration
+1. **Network Isolation**: Sandboxes are restricted from network access by default (`--network none`).
+2. **Resource Quotas**: CPU usage is capped at 0.5 cores and memory at 256MB per run.
+3. **Stateless Runs**: Every execution starts with a fresh container image.
 
-### Prerequisites
-- Docker Desktop (Windows/Mac/Linux)
-- Node.js 20+ (for local development)
+---
 
-### One-Command Setup
-```bash
-docker compose up --build -d
-```
-Access the application at [http://localhost](http://localhost).
+## 🛠️ Local Installation
 
-## 🛠️ Local Development
+1. **Clone the Repository**:
+   ```bash
+   git clone https://github.com/syedmukheeth/Liquid-IDE.git
+   cd Liquid-IDE
+   ```
 
-1. **Install Dependencies**:
+2. **Install Dependencies**:
    ```bash
    npm install
    ```
 
-2. **Setup Infrastructure**:
+3. **Start Infrastructure**:
    ```bash
    docker compose up -d mongo redis
    ```
 
-3. **Run Services**:
+4. **Launch Development Environment**:
    ```bash
-   # Run all in parallel
    npm run dev
    ```
-
-## 📈 Monitoring & Logs
-LiquidIDE uses structured logging via **Pino**. In development, logs are pretty-printed for readability. In production, logs are output in JSON format for easy ingestion by ELK, Splunk, or Datadog.
-
-- **API Health**: `GET /health`
-- **Worker Health**: `GET localhost:3001/health`
-
-## ⚙️ Configuration
-Environment variables can be tuned in `.env` files for each service:
-- `MONGO_URI`: MongoDB connection string.
-- `REDIS_URL`: Redis connection string.
-- `RUN_TIMEOUT_MS`: Maximum execution time for a job.
-- `SANDBOX_NODE_IMAGE`: The Docker image used for the sandbox.
+   *The IDE will be accessible at `http://localhost:5173`.*
 
 ---
-*Built with ❤️ for developers who need a safe playground.*
 
+## ⚙️ Environment Variables
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MONGO_URI` | MongoDB connection string | (Required) |
+| `REDIS_URL` | Redis connection URL | (Required) |
+| `WEB_ORIGIN` | Allowed CORS origin | `http://localhost:5173` |
+| `JWT_SECRET` | Secret for token signing | (Required) |
+
+---
+*Built with ❤️ for developers who need a safe, fluid, and powerful playground.*
