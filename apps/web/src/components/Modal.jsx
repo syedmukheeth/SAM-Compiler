@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import logo from "../assets/logo.jpg";
 
 export default function Modal({ isOpen, onClose, title, children, isDarkMode }) {
   useEffect(() => {
@@ -22,7 +23,12 @@ export default function Modal({ isOpen, onClose, title, children, isDarkMode }) 
       {/* Modal Content */}
       <div className={`relative w-full max-w-lg overflow-hidden rounded-[2.5rem] border shadow-2xl backdrop-blur-3xl transition-all duration-500 animate-in zoom-in-95 slide-in-from-bottom-10 ${isDarkMode ? "border-white/10 bg-[#0a0a0a]/80 text-white" : "border-slate-200 bg-white/90 text-slate-900"}`}>
         <div className={`flex items-center justify-between border-b px-8 py-6 ${isDarkMode ? "border-white/5" : "border-slate-100"}`}>
-          <h2 className={`text-[12px] font-black uppercase tracking-[0.3em] ${isDarkMode ? "text-white/60" : "text-slate-500"}`}>{title}</h2>
+          <div className="flex items-center gap-4">
+            <div className={`flex h-8 w-8 items-center justify-center overflow-hidden rounded-lg border transition-all ${isDarkMode ? "border-white/10" : "border-slate-200"}`}>
+               <img src={logo} alt="Logo" className="h-full w-full object-cover" />
+            </div>
+            <h2 className={`text-[12px] font-black uppercase tracking-[0.3em] ${isDarkMode ? "text-white/60" : "text-slate-500"}`}>{title}</h2>
+          </div>
           <button 
             onClick={onClose}
             className={`rounded-xl p-2 transition-all active:scale-95 ${isDarkMode ? "hover:bg-white/5 text-white/20" : "hover:bg-slate-100 text-slate-400"}`}

@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import CodeEditor from "../components/CodeEditor";
+import logo from "../assets/logo.jpg";
 import LanguageSelector from "../components/LanguageSelector";
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
@@ -207,7 +208,9 @@ export default function EditorPage() {
         <div className="flex items-center gap-12">
           <div className="flex items-center gap-4 group cursor-pointer">
             <div className="relative h-11 w-11 overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-600 p-0.5 shadow-2xl shadow-blue-500/30 transition-all duration-500 group-hover:scale-110 group-hover:rotate-3 active:scale-95">
-              <div className={`flex h-full w-full items-center justify-center rounded-[14px] backdrop-blur-xl font-black text-white text-xl ${isDarkMode ? "bg-[#050505]/40" : "bg-white/40"}`}>L</div>
+              <div className={`flex h-full w-full items-center justify-center rounded-[14px] overflow-hidden backdrop-blur-xl ${isDarkMode ? "bg-[#050505]/40" : "bg-white/40"}`}>
+                <img src={logo} alt="LiquidIDE Logo" className="h-full w-full object-cover" />
+              </div>
             </div>
             <div className="flex flex-col">
                <span className={`text-base font-black tracking-tight leading-none transition-all group-hover:tracking-wider ${isDarkMode ? "text-white" : "text-slate-900"}`}>Liquid Compiler</span>
@@ -319,6 +322,9 @@ export default function EditorPage() {
         <section className={`flux-card flex flex-[3] flex-col overflow-hidden transition-all duration-1000 ${isDarkMode ? "bg-black/60 shadow-indigo-900/10" : "bg-white/90 shadow-slate-200/50"}`}>
           <div className={`flex h-16 shrink-0 items-center justify-between border-b px-8 transition-colors ${isDarkMode ? "border-white/5 bg-white/[0.01]" : "border-slate-100 bg-slate-50/50"}`}>
             <div className="flex items-center gap-4">
+               <div className={`flex h-6 w-6 items-center justify-center overflow-hidden rounded-lg border transition-all ${isDarkMode ? "border-white/10" : "border-slate-200"}`}>
+                  <img src={logo} alt="Flux" className="h-full w-full object-cover" />
+               </div>
                <div className={`h-2.5 w-2.5 rounded-full ring-4 transition-all duration-700 ${runStatus === "Done" || runStatus === "succeeded" ? "bg-emerald-400 ring-emerald-400/10" : runStatus === "Failed" || runStatus === "failed" ? "bg-rose-400 ring-rose-400/10" : busy ? "bg-blue-400 ring-blue-400/10 animate-pulse" : "bg-white/10 ring-transparent"}`} />
                <span className={`text-[10px] font-black uppercase tracking-[0.3em] font-mono ${isDarkMode ? "text-white/60" : "text-slate-500"}`}>Terminal Output</span>
             </div>
