@@ -10,7 +10,8 @@ export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin }) {
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
 
   const handleSocialLogin = (provider) => {
-    window.location.href = `http://localhost:8080/auth/${provider}`;
+    const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
+    window.location.href = `${API_URL}/auth/${provider}`;
   };
 
   const handleAuth = async (e) => {
