@@ -38,7 +38,20 @@ async function executeViaWandbox(run) {
     };
   }
 
-  const code = files && files.length > 0 ? files[0].content : "";
+  let code = files && files.length > 0 ? files[0].content : "";
+
+  // Java: Wandbox uses "prog.java" by default, but Java requires filename = public class name.
+  // Extract the class name and wrap code so Wandbox compiles it correctly.
+  if (runtime === "java") {
+    const classMatch = code.match(/public\s+class\s+(\w+)/);
+    const className = classMatch ? classMatch[1] : "Main";
+    // Replace class name with "Main" and use default prog.java → won't work.
+    // Instead, we rename the class to "prog" to match Wandbox's default filename.
+    code = code.replace(
+      new RegExp(`public\\s+class\\s+${className}`),
+      "public class prog"
+    );
+  }
 
   try {
     const controller = new AbortController();
