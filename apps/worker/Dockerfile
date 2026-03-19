@@ -1,28 +1,22 @@
-# Build stage
-FROM node:20-slim AS builder
+FROM node:20-slim
 
 WORKDIR /app
 
-# Install docker client (worker needs to call docker)
-RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
+# Install Docker CLI (needed to spawn containers for code execution)
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends docker.io ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 
-# Copy root workspace files
-COPY package*.json ./
-# Copy worker app
-COPY apps/worker apps/worker
-
-# Install dependencies
-RUN npm ci --workspace=@liquidide/worker
-
-# Production stage
-FROM node:20-slim AS runner
-
-WORKDIR /app
 ENV NODE_ENV=production
 
-# Install docker client in runner too
-RUN apt-get update && apt-get install -y docker.io && rm -rf /var/lib/apt/lists/*
+# Copy workspace root files
+COPY package*.json ./
 
-COPY --from=builder /app /app
+# Copy only the packages needed by the worker
+COPY apps/worker ./apps/worker
+COPY packages/shared ./packages/shared
 
-CMD ["npm", "start", "-w", "@liquidide/worker"]
+# Install only worker workspace deps
+RUN npm ci --workspace=@liquidide/worker --ignore-scripts
+
+CMD ["node", "apps/worker/src/worker.js"]

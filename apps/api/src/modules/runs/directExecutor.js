@@ -3,114 +3,31 @@ const fs = require("node:fs/promises");
 const os = require("node:os");
 const path = require("node:path");
 const crypto = require("node:crypto");
-const { env } = require("../../config/env");
 const { logger } = require("../../config/logger");
 
-const LANGUAGE_CONFIGS = {
-  javascript: {
-    image: "node:20-alpine",
-    command: (entry) => ["node", entry]
-  },
-  python: {
-    image: "python:3.11-alpine",
-    command: (entry) => ["python", entry]
-  },
-  cpp: {
-    image: "gcc:latest",
-    command: (entry) => ["sh", "-c", `g++ ${entry} -o main && ./main`]
-  },
-  c: {
-    image: "gcc:latest",
-    command: (entry) => ["sh", "-c", `gcc ${entry} -o main && ./main`]
-  },
-  java: {
-    image: "openjdk:17-slim",
-    command: (entry) => ["sh", "-c", `javac ${entry} && java ${entry.replace(".java", "")}`]
-  }
-};
-
+/**
+ * Executes JavaScript code directly using Node.js.
+ * Only JavaScript is supported here — compiled languages (C++, Java, Python)
+ * are sent to the BullMQ Worker which runs them in Docker containers.
+ */
 async function executeDirectly(run) {
-  const language = run.runtime;
-  const config = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS.javascript;
-  
-  const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "liquidide-direct-"));
+  const { runtime, files, entrypoint } = run;
+
+  if (runtime !== "javascript" && runtime !== "nodejs") {
+    return {
+      stdout: "",
+      stderr: `Unsupported runtime for inline execution: ${runtime}. This should be handled by the queue worker.`,
+      exitCode: 1
+    };
+  }
+
+  const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "liquidide-"));
   try {
-    await materializeFiles(runDir, run.files);
-    const entry = path.posix.normalize(run.entrypoint).replace(/^(\.\.(\/|\\|$))+/, "");
-    
-    // 1. Try Docker first
-    try {
-      const dockerArgs = [
-        "run", "--rm", "--network", "none",
-        "--memory", env.RUN_MEMORY || "128m",
-        "--cpus", env.RUN_CPUS || "0.5",
-        "-v", `${runDir}:/workspace:rw`,
-        "-w", "/workspace",
-        config.image,
-        ...config.command(entry)
-      ];
-      return await execWithTimeout("docker", dockerArgs, 10000);
-    } catch (dockerErr) {
-      if (dockerErr.code !== "ENOENT") throw dockerErr;
-      
-      // 2. Fallback to Local execution if Docker is missing
-      logger.warn(`Docker not found. Falling back to local execution for ${language}`);
-      
-      const isWin = process.platform === "win32";
-      const exeExt = isWin ? ".exe" : "";
-      const shell = isWin ? "cmd" : "sh";
-      const shellFlag = isWin ? "/c" : "-c";
-
-      // Pre-check: verify compilers are available before attempting execution
-      const compilerChecks = {
-        cpp: "g++",
-        c: "gcc",
-        java: "javac"
-      };
-      if (compilerChecks[language]) {
-        const compiler = compilerChecks[language];
-        const checkCmd = isWin ? `where ${compiler}` : `command -v ${compiler}`;
-        try {
-          await execWithTimeout(shell, [shellFlag, checkCmd], 3000, { cwd: runDir });
-        } catch {
-          return {
-            stdout: "",
-            stderr: `⚠️ ${compiler} is not installed on this server.\n\nThis deployment runs on Vercel serverless, which does not have ${language.toUpperCase()} compilers.\n\nTo run ${language.toUpperCase()} code, you need to set up the LiquidIDE Worker on a server with Docker (e.g., Render.com).`,
-            exitCode: 127
-          };
-        }
-      }
-
-      const pythonCmd = await findPythonCommand();
-      const localCmds = {
-        javascript: ["node", entry],
-        python: pythonCmd ? [pythonCmd, entry] : null,
-        cpp: [shell, shellFlag, `g++ ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
-        c: [shell, shellFlag, `gcc ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
-        java: [shell, shellFlag, `javac ${entry} && java ${entry.replace(".java", "")}`]
-      };
-
-      if (!pythonCmd && language === "python") {
-        return {
-          stdout: "",
-          stderr: `⚠️ Python is not installed on this server.\n\nThis deployment runs on Vercel serverless, which does not have Python installed.\n\nTo run Python code, you need to set up the LiquidIDE Worker on a server with Docker (e.g., Render.com).`,
-          exitCode: 127
-        };
-      }
-
-      const cmdInfo = localCmds[language];
-      if (!cmdInfo) {
-        return { 
-          stdout: "", 
-          stderr: `Local Execution Error: ${language} is not installed or detected on the host compute. \nTip: Install ${language} or start Docker for a sandboxed experience.`, 
-          exitCode: 127 
-        };
-      }
-
-      const [cmd, ...args] = cmdInfo;
-      return await execWithTimeout(cmd, args, 10000, { cwd: runDir });
-    }
+    await materializeFiles(runDir, files);
+    const entry = sanitizeRelPath(entrypoint);
+    return await execWithTimeout("node", [entry], 10000, { cwd: runDir });
   } catch (err) {
+    logger.error({ err }, "Direct execution failed");
     return { stdout: "", stderr: `Execution Error: ${err.message}`, exitCode: 1 };
   } finally {
     await fs.rm(runDir, { recursive: true, force: true });
@@ -141,12 +58,12 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
       const child = spawn(cmd, args, { ...opts, windowsHide: true });
       let stdout = "";
       let stderr = "";
-      
+
       if (child.stdout) child.stdout.on("data", (d) => (stdout += d.toString()));
       if (child.stderr) child.stderr.on("data", (d) => (stderr += d.toString()));
 
       const timeout = setTimeout(() => {
-        try { child.kill("SIGKILL"); } catch (e) { /* ignore kill error */ void e; }
+        try { child.kill("SIGKILL"); } catch { /* ignore */ }
       }, timeoutMs);
 
       child.on("error", (err) => {
@@ -156,45 +73,12 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
 
       child.on("close", (code) => {
         clearTimeout(timeout);
-        resolve({ stdout, stderr, exitCode: code });
+        resolve({ stdout, stderr, exitCode: code ?? 1 });
       });
     } catch (err) {
       reject(err);
     }
   });
-}
-
-async function findPythonCommand() {
-  const commands = ["python3", "python", "py"];
-  const { exec } = require("node:child_process");
-  const { promisify } = require("node:util");
-  const execAsync = promisify(exec);
-
-  const isWin = process.platform === "win32";
-
-  for (const cmd of commands) {
-    try {
-      if (isWin) {
-        // Specifically check 'where' and ignore WindowsApps stubs
-        const { stdout } = await execAsync(`where ${cmd}`);
-        const paths = stdout.split(/\r?\n/).filter(Boolean);
-        const realPath = paths.find(p => !p.includes("Microsoft\\WindowsApps"));
-        
-        if (realPath) {
-          // Verify it actually runs
-          await execAsync(`"${realPath}" --version`);
-          return `"${realPath}"`;
-        }
-      } else {
-        await execAsync(`command -v ${cmd}`);
-        await execAsync(`${cmd} --version`);
-        return cmd;
-      }
-    } catch (err) {
-      // Continue searching
-    }
-  }
-  return null;
 }
 
 module.exports = { executeDirectly };

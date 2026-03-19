@@ -3,7 +3,7 @@ const { Worker } = require("bullmq");
 const { logger } = require("./config/logger");
 const { env } = require("./config/env");
 const { connectMongo } = require("./config/mongo");
-const { RunModel } = require("./models/Run");
+const { RunModel } = require("./db/run.model");
 const { RUNS_QUEUE_NAME } = require("./queue/constants");
 const { executeRun } = require("./sandbox/multiSandbox");
 

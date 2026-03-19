@@ -1,33 +1,92 @@
-# Deployment Guide for LiquidIDE
+# LiquidIDE Deployment Guide
 
-LiquidIDE is a monorepo containing an API, a Worker, and a Frontend.
+LiquidIDE is a monorepo with three services:
 
-## 🚀 Vercel Deployment (Recommended)
-
-### 1. API (`apps/api`)
-- **Root Directory**: `apps/api`
-- **Framework Preset**: `Express` (Vercel will use the `vercel.json` in `apps/api`)
-- **Environment Variables** (Required):
-    - `MONGO_URI`: Your MongoDB connection string.
-    - `REDIS_URL`: Your Redis connection string (e.g., from Upstash).
-- **Environment Variables** (Optional):
-    - `WEB_ORIGIN`: Your Frontend URL (e.g., `https://liquid-ide-web.vercel.app`).
-    - `JWT_SECRET`: A long random string for security.
-
-### 2. Frontend (`apps/web`)
-- **Root Directory**: `apps/web`
-- **Framework Preset**: `Vite`
-- **Build Settings** (as seen in your screenshot):
-    - **Build Command**: `npm run build` (or `vite build`)
-    - **Output Directory**: `dist`
-    - **Install Command**: `npm install --prefix=../..` (This ensures all workspace dependencies are correctly resolved).
-- **Environment Variables**:
-    - `VITE_API_URL`: Your deployed API URL (e.g., `https://liquid-ide-api.vercel.app`).
+| Service | Platform | Description |
+|---|---|---|
+| `apps/web` | Vercel | React frontend |
+| `apps/api` | Vercel | Express REST API |
+| `apps/worker` | Render.com | Code execution worker (Docker) |
 
 ---
 
-## 🛠️ Important Notes
+## Architecture
 
-1. **SPA Routing**: I have created `apps/web/vercel.json` which automatically handles routing for your React app. You don't need to change any settings for this.
-2. **CORS**: Ensure `WEB_ORIGIN` in your API environment variables matches your Frontend URL to avoid communication issues.
-3. **Database**: Since LiquidIDE uses MongoDB and Redis, ensure your connection strings are accessible from Vercel (allow Vercel IPs or use `0.0.0.0/0` in MongoDB Atlas).
+```
+Browser → Vercel API → JavaScript: executes inline (fast)
+                     → C++/Java/Python: queues to Redis (BullMQ)
+Render Worker → pulls from queue → Docker run → saves to MongoDB
+Browser polls → Vercel API reads MongoDB → shows result
+```
+
+---
+
+## 1. Vercel — Frontend (`apps/web`)
+
+1. Import `syedmukheeth/Liquid-IDE` on Vercel
+2. Set **Root Directory**: `apps/web`
+3. Set **Framework**: Vite
+4. **Build Settings**: Build Command `npm run build`, Output Directory `dist`, Install Command `npm install --prefix=../..`
+5. **Environment Variables**:
+   - `VITE_API_URL` = `https://liquid-ide-api.vercel.app`
+
+---
+
+## 2. Vercel — API (`apps/api`)
+
+1. Import `syedmukheeth/Liquid-IDE` on Vercel
+2. Set **Root Directory**: `apps/api`
+3. Set **Framework**: Express
+4. **Environment Variables** (required):
+   - `MONGO_URI` = your MongoDB Atlas connection string
+   - `REDIS_URL` = your Upstash Redis URL
+5. **Environment Variables** (optional):
+   - `WEB_ORIGIN` = `https://liquid-ide-web.vercel.app`
+   - `JWT_SECRET` = a long random secret string
+
+---
+
+## 3. Render.com — Worker (`apps/worker`)
+
+> The Worker runs C++, Python, Java, and C using Docker containers. Requires Docker access.
+
+1. Go to [render.com](https://render.com) → **New** → **Web Service**
+2. Connect your GitHub repo `syedmukheeth/Liquid-IDE`
+3. **Settings**:
+   - **Name**: `liquid-ide-worker`
+   - **Environment**: `Docker`
+   - **Dockerfile Path**: `./apps/worker/Dockerfile`
+   - **Docker Context**: `.` (project root)
+4. **Environment Variables** (required):
+   - `MONGO_URI` = same MongoDB Atlas connection string as the API
+   - `REDIS_URL` = same Upstash Redis URL as the API
+5. Click **Create Web Service**
+
+> ⚠️ Render.com's free plan may sleep the worker after inactivity — consider upgrading to Starter ($7/mo) for always-on execution.
+
+---
+
+## Environment Variable Reference
+
+### API (`apps/api`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `MONGO_URI` | ✅ | — | MongoDB Atlas connection URL |
+| `REDIS_URL` | ✅ | — | Upstash/Redis connection URL |
+| `WEB_ORIGIN` | | `localhost:5173` | Allowed CORS origin |
+| `JWT_SECRET` | | `flux_super_secret...` | JWT signing secret |
+| `JWT_EXPIRES_IN` | | `7d` | JWT lifetime |
+
+### Worker (`apps/worker`)
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `MONGO_URI` | ✅ | — | MongoDB Atlas connection URL |
+| `REDIS_URL` | ✅ | — | Upstash/Redis connection URL |
+| `RUN_TIMEOUT_MS` | | `10000` | Max execution time per job (ms) |
+| `RUN_MEMORY` | | `256m` | Docker memory limit per container |
+| `RUN_CPUS` | | `0.5` | Docker CPU limit per container |
+
+### Web (`apps/web`)
+| Variable | Required | Description |
+|---|---|---|
+| `VITE_API_URL` | ✅ | Full URL to the deployed API |

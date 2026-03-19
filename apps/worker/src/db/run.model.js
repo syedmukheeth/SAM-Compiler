@@ -15,8 +15,8 @@ const RunSchema = new Schema(
     status: { type: String, required: true, index: true },
     entrypoint: { type: String, required: true },
     files: { type: [FileSchema], required: true },
-    stdout: { type: String, required: true, default: "" },
-    stderr: { type: String, required: true, default: "" },
+    stdout: { type: String, default: "" },
+    stderr: { type: String, default: "" },
     exitCode: { type: Number, required: false, default: null },
     startedAt: { type: Date, required: false, default: null },
     finishedAt: { type: Date, required: false, default: null }
