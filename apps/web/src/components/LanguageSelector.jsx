@@ -8,7 +8,7 @@ const languages = [
   { id: "java", label: "Java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" }
 ];
 
-export default function LanguageSelector({ activeLanguage, onLanguageChange }) {
+export default function LanguageSelector({ activeLanguage, onLanguageChange, isDarkMode }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 

@@ -273,7 +273,7 @@ export default function EditorPage() {
             {/* Editor Toolbar */}
             <div className={`flex h-16 shrink-0 items-center justify-between border-b px-10 transition-colors ${isDarkMode ? "border-white/5 bg-white/[0.02]" : "border-slate-100 bg-slate-50/30"}`}>
               <div className="flex items-center gap-8">
-                <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
+                <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} isDarkMode={isDarkMode} />
                 <button className={`group flex items-center gap-3 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${isDarkMode ? "text-white/20 hover:text-white/60" : "text-slate-400 hover:text-slate-600"}`}>
                   <svg className="h-4 w-4 transition-transform group-hover:rotate-180 duration-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                   Reset

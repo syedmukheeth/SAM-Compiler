@@ -1,6 +1,5 @@
-const { Octokit } = require("@octokit/rest");
-
 async function pushToGithub({ token, repo, path, content, message }) {
+  const { Octokit } = await import("@octokit/rest");
   const octokit = new Octokit({ auth: token });
 
   try {
