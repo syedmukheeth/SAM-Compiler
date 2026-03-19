@@ -8,7 +8,7 @@ const { logger } = require("../../config/logger");
 const INLINE_LANGUAGES = new Set(["javascript", "nodejs"]);
 
 async function createRun(input) {
-  const isConnected = mongoose.connection.readyState === 1;
+  const isConnected = mongoose.connection.readyState >= 1;
   const useInline = INLINE_LANGUAGES.has(input.runtime);
 
   let run;
@@ -131,13 +131,17 @@ async function createRun(input) {
 }
 
 async function getRun(runId) {
-  if (mongoose.connection.readyState === 1) {
+  const state = mongoose.connection.readyState;
+  if (state >= 1) { // 1: connected, 2: connecting
     try {
       const run = await RunModel.findById(runId).lean();
       if (run) return run;
+      logger.warn({ runId }, "Run not found in MongoDB");
     } catch (err) {
-      logger.warn({ err, runId }, "Failed to find run in MongoDB");
+      logger.error({ err, runId }, "Database error during getRun");
     }
+  } else {
+    logger.error({ state, runId }, "Cannot getRun: MongoDB not connected");
   }
   return null;
 }

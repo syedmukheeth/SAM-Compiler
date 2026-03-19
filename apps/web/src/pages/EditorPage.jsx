@@ -83,18 +83,20 @@ export default function EditorPage() {
 
   // Pre-load Pyodide for instant Python execution
   useEffect(() => {
-    if (!pyodide && !isPyodideLoading) {
+    if (!window.loadPyodide && !isPyodideLoading) {
       setIsPyodideLoading(true);
       const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/pyodide/v0.25.0/full/pyodide.js";
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
       script.onload = async () => {
         try {
-          // eslint-disable-next-line no-undef
-          const py = await loadPyodide();
+          const py = await window.loadPyodide({
+            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+          });
           setPyodide(py);
+          setIsPyodideLoading(false);
+          console.log("🐍 Pyodide v0.26.4 loaded successfully.");
         } catch (err) {
-          console.error("Pyodide failed to load:", err);
-        } finally {
+          console.error("❌ Pyodide loading failed:", err);
           setIsPyodideLoading(false);
         }
       };
