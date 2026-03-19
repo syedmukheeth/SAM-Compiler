@@ -29,21 +29,44 @@ export default function EditorPage() {
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
+  const [isOffline, setIsOffline] = useState(!navigator.onLine);
   
   const { user, loginUser, logoutUser } = useAuth();
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Poll worker status
   useEffect(() => {
     const checkStatus = async () => {
+      if (!navigator.onLine) {
+        setIsOffline(true);
+        setIsWorkerOnline(false);
+        return;
+      }
       try {
         const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
         const res = await fetch(`${API_URL}/runs/health/queue`);
         if (res.ok) {
           const data = await res.json();
           setIsWorkerOnline(data.online);
+          setIsOffline(false);
+        } else {
+           // If health check fails, but we have internet, maybe API is just down
+           setIsWorkerOnline(false);
         }
       } catch (err) {
         setIsWorkerOnline(false);
+        // If it was a network error, maybe we are actually "offline" from browser's perspective
+        if (err.name === "TypeError" || !navigator.onLine) setIsOffline(true);
       }
     };
     checkStatus();
@@ -350,6 +373,33 @@ export default function EditorPage() {
       <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} isDarkMode={true} settings={settings} onSettingsChange={onSettingsUpdate} />
       <HistoryModal isOpen={activeModal === 'history'} onClose={() => setActiveModal(null)} isDarkMode={true} history={history} onRestore={onRestoreHistory} />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
+      {/* Offline Overlay */}
+      {isOffline && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-3xl animate-in fade-in duration-700">
+          <div className="relative group max-w-md overflow-hidden rounded-[2.5rem] border border-white/10 bg-white/5 p-12 text-center shadow-[0_30px_100px_rgba(0,0,0,0.8)] transition-all hover:border-white/20">
+            <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-transparent pointer-events-none" />
+            <div className="relative">
+              <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-full bg-blue-500/10 text-blue-400 shadow-[0_0_40px_rgba(59,130,246,0.3)] animate-pulse">
+                <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.237-3.905 14.141 0M1.343 5.858c5.858-5.858 15.355-5.858 21.213 0" />
+                </svg>
+              </div>
+              <h2 className="mb-4 text-3xl font-black tracking-tighter text-white">Network Offline</h2>
+              <p className="mb-8 text-sm leading-relaxed text-white/40">
+                It looks like your browser is in offline mode. <br />
+                Please check your internet connection or <span className="text-blue-400 font-bold">DevTools Throttling settings</span>.
+              </p>
+              <button 
+                onClick={() => window.location.reload()}
+                className="liquid-button group relative px-8 py-3 rounded-full text-[11px] font-black uppercase tracking-widest text-white transition-all hover:scale-105 active:scale-95"
+              >
+                <span className="relative z-10">Retry Connection</span>
+                <div className="absolute inset-0 rounded-full bg-blue-600 opacity-20 blur-md transition-opacity group-hover:opacity-40" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

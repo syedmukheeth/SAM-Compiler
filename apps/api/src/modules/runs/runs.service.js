@@ -29,9 +29,12 @@ async function createRun(input) {
         finishedAt: null
       });
       useMongo = true;
+      logger.info({ runId: run._id }, "Run created successfully in MongoDB");
     } catch (err) {
       logger.error({ err }, "Failed to create run in MongoDB");
     }
+  } else {
+    logger.warn("Mongoose not connected during createRun. Attempting to proceed without DB (limited functionality).");
   }
 
   if (!run) {
