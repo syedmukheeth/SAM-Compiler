@@ -8,7 +8,7 @@ const languages = [
   { id: "java", label: "Java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" }
 ];
 
-export default function LanguageSelector({ activeLanguage, onLanguageChange, isDarkMode }) {
+export default function LanguageSelector({ activeLanguage, onLanguageChange }) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -28,14 +28,14 @@ export default function LanguageSelector({ activeLanguage, onLanguageChange, isD
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-4 rounded-2xl border border-white/5 bg-white/5 px-6 py-2.5 text-[11px] font-black uppercase tracking-[0.15em] transition-all hover:bg-white/10 hover:border-white/20 active:scale-95 group shadow-xl backdrop-blur-xl"
+        className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/5 px-4 py-1.5 transition-all hover:bg-white/10 hover:border-white/20 active:scale-95 group shadow-lg backdrop-blur-3xl"
       >
-        <div className="relative h-5 w-5 transition-transform group-hover:scale-110">
-          <img src={selectedLang.icon} alt={selectedLang.label} className="h-full w-full object-contain drop-shadow-md" />
+        <div className="relative h-4 w-4 transition-transform group-hover:scale-110">
+          <img src={selectedLang.icon} alt={selectedLang.label} className="h-full w-full object-contain filter grayscale-[0.5] group-hover:grayscale-0 transition-all" />
         </div>
-        <span className={`${isDarkMode ? "text-white/70" : "text-slate-600"} group-hover:text-blue-500 transition-colors`}>{selectedLang.label}</span>
+        <span className="text-[11px] font-bold tracking-tight text-white/70 group-hover:text-white transition-colors">{selectedLang.label}</span>
         <svg
-          className={`h-4 w-4 text-white/20 transition-all duration-500 ${isOpen ? "rotate-180 text-blue-500" : "group-hover:text-white/40"}`}
+          className={`h-3 w-3 text-white/20 transition-all duration-300 ${isOpen ? "rotate-180 text-blue-500" : "group-hover:text-white/40"}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -45,8 +45,8 @@ export default function LanguageSelector({ activeLanguage, onLanguageChange, isD
       </button>
 
       {isOpen && (
-        <div className="absolute left-0 mt-4 w-56 overflow-hidden rounded-[2rem] border border-white/10 bg-[#0c111d]/90 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl z-50 animate-in fade-in slide-in-from-top-4 duration-500">
-          <div className="p-3 space-y-1">
+        <div className="absolute left-0 mt-3 w-48 overflow-hidden rounded-2xl border border-white/10 bg-black/80 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-3xl z-50 animate-in fade-in duration-300">
+          <div className="p-2 space-y-0.5">
             {languages.map((lang) => (
               <button
                 key={lang.id}
@@ -54,16 +54,16 @@ export default function LanguageSelector({ activeLanguage, onLanguageChange, isD
                   onLanguageChange(lang.id);
                   setIsOpen(false);
                 }}
-                className={`flex w-full items-center gap-4 px-4 py-3.5 rounded-xl text-left text-[11px] font-black uppercase tracking-widest transition-all hover:bg-white/5 group ${
-                  activeLanguage === lang.id ? "bg-blue-500/10 text-blue-400 shadow-[inset_0_0_20px_rgba(59,130,246,0.1)]" : "text-white/40 hover:text-white/80"
+                className={`flex w-full items-center gap-3 px-3 py-2 rounded-lg text-left transition-all hover:bg-white/5 group ${
+                  activeLanguage === lang.id ? "bg-blue-500/10 text-blue-400" : "text-white/40 hover:text-white/80"
                 }`}
               >
-                <div className={`h-6 w-6 rounded-lg p-1 transition-all ${activeLanguage === lang.id ? "bg-blue-500/20" : "bg-white/5 group-hover:bg-white/10"}`}>
+                <div className={`h-5 w-5 rounded-md p-0.5 transition-all ${activeLanguage === lang.id ? "bg-blue-500/20" : "bg-white/5 group-hover:bg-white/10"}`}>
                    <img src={lang.icon} alt={lang.label} className="h-full w-full object-contain" />
                 </div>
-                <span>{lang.label}</span>
+                <span className="text-[11px] font-bold tracking-tight">{lang.label}</span>
                 {activeLanguage === lang.id && (
-                  <div className="ml-auto h-1.5 w-1.5 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
+                  <div className="ml-auto h-1 w-1 rounded-full bg-blue-500 shadow-[0_0_8px_#3b82f6]" />
                 )}
               </button>
             ))}

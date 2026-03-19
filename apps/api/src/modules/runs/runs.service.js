@@ -1,8 +1,8 @@
+const mongoose = require("mongoose");
 const { RunModel } = require("./runs.model");
 const { getRunsQueue } = require("./runs.queue");
 const { executeDirectly } = require("./directExecutor");
 const { logger } = require("../../config/logger");
-const mongoose = require("mongoose");
 
 // Languages that execute inline on this serverless function (no compiler needed)
 const INLINE_LANGUAGES = new Set(["javascript", "nodejs"]);
