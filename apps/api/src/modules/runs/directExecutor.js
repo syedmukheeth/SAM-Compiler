@@ -8,30 +8,29 @@ const { logger } = require("../../config/logger");
 const TIMEOUT_MS = 15000;
 
 /**
- * Piston API — free, open-source code execution engine.
- * Supports C++, C, Java, Python, JavaScript and 50+ languages.
- * No API key needed.
+ * Wandbox API — free, open-source online compiler. No API key needed.
+ * Supports C++, C, Java, Python, JavaScript, and 50+ languages.
  */
-const PISTON_URL = "https://emkc.org/api/v2/piston/execute";
+const WANDBOX_URL = "https://wandbox.org/api/compile.json";
 
-const PISTON_LANG_MAP = {
-  cpp: { language: "c++", version: "10.2.0" },
-  c: { language: "c", version: "10.2.0" },
-  java: { language: "java", version: "15.0.2" },
-  python: { language: "python", version: "3.10.0" },
-  javascript: { language: "javascript", version: "18.15.0" },
-  nodejs: { language: "javascript", version: "18.15.0" }
+const WANDBOX_COMPILER_MAP = {
+  cpp: "gcc-13.2.0",
+  c: "gcc-13.2.0-c",
+  java: "openjdk-jdk-22+36",
+  python: "cpython-3.12.7",
+  javascript: "nodejs-20.17.0",
+  nodejs: "nodejs-20.17.0"
 };
 
 /**
- * Execute code via the Piston API (cloud-based).
+ * Execute code via the Wandbox API (cloud-based).
  * Used when local compilers are not available (e.g., on Vercel).
  */
-async function executeViaPiston(run) {
+async function executeViaWandbox(run) {
   const { runtime, files } = run;
-  const mapping = PISTON_LANG_MAP[runtime];
-  
-  if (!mapping) {
+  const compiler = WANDBOX_COMPILER_MAP[runtime];
+
+  if (!compiler) {
     return {
       stdout: "",
       stderr: `Unsupported language: ${runtime}`,
@@ -45,13 +44,16 @@ async function executeViaPiston(run) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
-    const response = await fetch(PISTON_URL, {
+    const response = await fetch(WANDBOX_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        language: mapping.language,
-        version: mapping.version,
-        files: [{ content: code }]
+        compiler: compiler,
+        code: code,
+        options: "",
+        "compiler-option-raw": "",
+        "runtime-option-raw": "",
+        save: false
       }),
       signal: controller.signal
     });
@@ -60,70 +62,63 @@ async function executeViaPiston(run) {
 
     if (!response.ok) {
       const text = await response.text().catch(() => "Unknown error");
+      logger.error({ status: response.status, text }, "Wandbox API error");
       return {
         stdout: "",
-        stderr: `Execution service error: ${response.status} ${text}`,
+        stderr: `Compilation service error (${response.status}): ${text}`,
         exitCode: 1
       };
     }
 
     const result = await response.json();
-    
-    // Piston returns { run: { stdout, stderr, code, signal, output }, compile: { ... } }
-    const compilePhase = result.compile || {};
-    const runPhase = result.run || {};
 
-    // If compilation failed
-    if (compilePhase.code && compilePhase.code !== 0) {
-      return {
-        stdout: compilePhase.stdout || "",
-        stderr: compilePhase.stderr || compilePhase.output || "Compilation failed",
-        exitCode: compilePhase.code || 1
-      };
-    }
+    // Wandbox returns: { program_message, compiler_error, compiler_message, status }
+    const stdout = result.program_message || "";
+    const stderr = result.compiler_error || result.compiler_message || "";
+    const exitCode = parseInt(result.status, 10);
 
     return {
-      stdout: runPhase.stdout || "",
-      stderr: runPhase.stderr || "",
-      exitCode: runPhase.code ?? 0
+      stdout,
+      stderr,
+      exitCode: isNaN(exitCode) ? (stdout ? 0 : 1) : exitCode
     };
   } catch (err) {
     if (err.name === "AbortError") {
       return { stdout: "", stderr: "⏱ Execution timed out (15s limit).", exitCode: 1 };
     }
-    logger.error({ err, runtime }, "Piston API call failed");
+    logger.error({ err, runtime }, "Wandbox API call failed");
     return { stdout: "", stderr: `Execution service error: ${err.message}`, exitCode: 1 };
   }
 }
 
 /**
- * Try local execution first, fall back to Piston API.
+ * Try local execution first, fall back to Wandbox API.
  */
 async function executeDirectly(run) {
-  const { runtime, files, entrypoint } = run;
+  const { runtime } = run;
 
   // For JS/Node, always try local first (fast and reliable)
   if (runtime === "javascript" || runtime === "nodejs") {
     try {
       return await executeLocally(run);
     } catch (err) {
-      logger.warn({ err }, "Local JS execution failed, trying Piston");
-      return await executeViaPiston(run);
+      logger.warn({ err }, "Local JS execution failed, trying Wandbox");
+      return await executeViaWandbox(run);
     }
   }
 
-  // For compiled languages, try local first, fall back to Piston
+  // For compiled languages, try local first, fall back to Wandbox
   try {
     const result = await executeLocally(run);
-    // If command was not found, use Piston instead
+    // If command was not found, use Wandbox instead
     if (result.exitCode === 127) {
-      logger.info({ runtime }, "Local compiler not found, using Piston API");
-      return await executeViaPiston(run);
+      logger.info({ runtime }, "Local compiler not found, using Wandbox API");
+      return await executeViaWandbox(run);
     }
     return result;
   } catch (err) {
-    logger.info({ runtime }, "Local execution unavailable, using Piston API");
-    return await executeViaPiston(run);
+    logger.info({ runtime }, "Local execution unavailable, using Wandbox API");
+    return await executeViaWandbox(run);
   }
 }
 
@@ -179,21 +174,17 @@ async function executeLocally(run) {
     await materializeFiles(runDir, files);
     const entry = sanitizeRelPath(entrypoint);
 
-    // Compile if needed
     if (config.compile) {
       const { cmd, args } = config.compile(entry);
       const compileResult = await execWithTimeout(cmd, args, TIMEOUT_MS, { cwd: runDir });
-      if (compileResult.exitCode === 127) return compileResult; // Command not found
+      if (compileResult.exitCode === 127) return compileResult;
       if (compileResult.exitCode !== 0) {
         return { stdout: "", stderr: compileResult.stderr || "Compilation failed", exitCode: compileResult.exitCode };
       }
     }
 
-    // Run
     const { cmd, args } = config.run(entry);
     return await execWithTimeout(cmd, args, TIMEOUT_MS, { cwd: runDir });
-  } catch (err) {
-    throw err;
   } finally {
     await fs.rm(runDir, { recursive: true, force: true }).catch(() => {});
   }
