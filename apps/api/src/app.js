@@ -13,7 +13,10 @@ function createApp() {
   const app = express();
 
   app.use(pino({ logger }));
-  app.use(helmet());
+  app.use(helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    crossOriginEmbedderPolicy: false
+  }));
   app.use(
     cors({
       origin: true, // Reflect origin for reliability on Vercel
