@@ -26,14 +26,21 @@ function createApp() {
   app.use(passport.initialize());
 
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
-  app.use("/runs", runsRouter);
-  app.use("/github", githubRouter);
-  app.use("/auth", authRouter);
+  
+  // Standard routes handled at root (prefix stripping done in entry point)
+  const routes = express.Router();
+  routes.use("/runs", runsRouter);
+  routes.use("/github", githubRouter);
+  routes.use("/auth", authRouter);
+  routes.get("/health", (_req, res) => res.json({ status: "ok", origin: "api-router" }));
+
+  app.use("/", routes);
 
   // Global Error Handler
   app.use((err, req, res, next) => {
     void next;
-    req.log.error({ err }, "Unhandled application error");
+    const errorLogger = req.log || logger;
+    errorLogger.error({ err }, "Unhandled application error");
     res.status(err.status || 500).json({
       message: err.message || "Internal Server Error",
       error: process.env.NODE_ENV === "production" ? {} : err
