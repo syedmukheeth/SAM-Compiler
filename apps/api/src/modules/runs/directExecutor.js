@@ -224,7 +224,7 @@ async function executeDirectly(run, onLog) {
       if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Python script...\x1b[0m\n\r\n");
       return await execWithTimeout(IS_WINDOWS ? "python" : "python3", [filePath], 60000, jobId, onLog, { cwd: tempDir, env: { PYTHONUNBUFFERED: "1" } });
 
-    } else if (language === "nodejs") {
+    } else if (language === "nodejs" || language === "javascript") {
       const filePath = path.join(tempDir, "solution.js");
       await fs.writeFile(filePath, code);
       if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Node.js script...\x1b[0m\n\r\n");
