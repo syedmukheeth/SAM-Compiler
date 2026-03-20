@@ -27,6 +27,8 @@ function isToolAvailable(cmd) {
   try {
     const checkCmd = IS_WINDOWS ? `where ${cmd}` : `command -v ${cmd}`;
     execSync(checkCmd, { stdio: "ignore" });
+    // Verify it actually executes by checking version
+    execSync(`${cmd} --version`, { stdio: "ignore" });
     return true;
   } catch (e) {
     return false;

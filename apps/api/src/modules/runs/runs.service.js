@@ -62,7 +62,12 @@ async function createRun(input) {
       // Determine if we should attempt direct execution or delegate to worker
       const isCompiled = ["cpp", "c", "java"].includes(runData.runtime);
       const hostTool = runData.runtime === "cpp" ? "g++" : runData.runtime === "c" ? "gcc" : runData.runtime === "java" ? "javac" : null;
-      const canRunDirectly = !hostTool || isToolAvailable(hostTool);
+      let canRunDirectly = !hostTool || isToolAvailable(hostTool);
+      
+      // Safety: Never attempt direct compilation on Vercel even if tool seems present
+      if (process.env.VERCEL && hostTool) {
+        canRunDirectly = false;
+      }
 
       if (canRunDirectly) {
         const result = await executeDirectly(runData, emitLog);
