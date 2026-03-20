@@ -1,4 +1,3 @@
-const { Queue } = require("bullmq");
 const { env } = require("../../config/env");
 const { logger } = require("../../config/logger");
 
@@ -9,6 +8,7 @@ let _runsQueue = null;
 function getRunsQueue() {
   if (!_runsQueue) {
     try {
+      const { Queue } = require("bullmq");
       _runsQueue = new Queue(RUNS_QUEUE_NAME, {
         connection: redisConnectionFromUrl(env.REDIS_URL)
       });

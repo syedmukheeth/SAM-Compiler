@@ -24,11 +24,11 @@ module.exports = async (req, res) => {
       
       console.log("✅ App initialized successfully");
     } catch (err) {
-      console.error("❌ CRITICAL: Failed to initialize app:", err);
+      console.error("❌ CRITICAL: Failed to initialize or handle request:", err);
       return res.status(500).json({ 
         error: "Initialization Failure", 
         message: err.message,
-        stack: process.env.NODE_ENV === "production" ? null : err.stack
+        stack: process.env.NODE_ENV === "production" ? undefined : err.stack
       });
     }
   }

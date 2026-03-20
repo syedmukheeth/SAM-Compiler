@@ -6,34 +6,29 @@ const { logger } = require("../../config/logger");
 const { getBufferedInput } = require("./socketHandler");
 
 let pty = null;
-if (!process.env.VERCEL) {
+function getPty() {
+  if (pty) return pty;
+  if (process.env.VERCEL) return null;
   try {
     pty = require("node-pty");
-    logger.info("✅ node-pty successfully initialized for professional terminal support");
+    return pty;
   } catch (e) {
-    logger.warn("⚠️ node-pty not available (this is expected on cloud hosts like Vercel), falling back to simple spawn");
+    return null;
   }
-} else {
-  logger.info("ℹ️ Running on Vercel: node-pty disabled for stability");
 }
 
 const IS_WINDOWS = os.platform() === "win32";
 
-/**
- * Executes code with a professional PTY environment (node-pty)
- * or falls back to simple spawn if pty is unavailable.
- */
 async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {}) {
   return new Promise(async (resolve, reject) => {
     let stdout = "";
     let stderr = "";
     let killed = false;
 
-    // Use pty for interactive execution if available and requested (internal execution)
-    if (pty && !spawnOpts.noPty) {
+    const ptyMod = getPty();
+    if (ptyMod && !spawnOpts.noPty) {
       try {
-        // Create the PTY
-        const ptyProcess = pty.spawn(cmd, args, {
+        const ptyProcess = ptyMod.spawn(cmd, args, {
           name: 'xterm-color',
           cols: 80,
           rows: 24,
@@ -58,11 +53,8 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
 
         if (jobId) {
           process.on(`run:input:${jobId}`, inputHandler);
-          // Drain buffered input (sent during compilation)
           const buffered = getBufferedInput(jobId);
           if (buffered.length > 0) {
-            logger.info({ jobId, count: buffered.length }, "Draining buffered input to PTY");
-            // Wait a tiny bit for the process to be ready for input
             setTimeout(() => {
               buffered.forEach(input => inputHandler(input));
             }, 300);
@@ -81,16 +73,13 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
           if (onLog) onLog(jobId, "end", { status: exitCode === 0 ? "succeeded" : "failed" });
           resolve({ stdout, stderr, exitCode });
         });
-
-        return; 
+        return;
       } catch (e) {
         logger.error({ error: e.message }, "PTY spawn failed, falling back to spawn");
       }
     }
 
-    // Fallback/Non-interactive path (compilation usually goes here)
     const child = spawn(cmd, args, { ...spawnOpts, windowsHide: true });
-    
     const timeout = setTimeout(() => {
       killed = true;
       try { child.kill(); } catch (e) {}
@@ -109,7 +98,7 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
       if (buffered.length > 0) {
         setTimeout(() => {
           buffered.forEach(input => inputHandler(input));
-        }, 300); 
+        }, 300);
       }
     }
 
@@ -143,85 +132,74 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
 
 async function executeDirectly(run, onLog) {
   const { language, code } = run;
-    const jobId = run._id.toString();
-    const tempDir = path.join(os.tmpdir(), `liquid-${jobId}`);
-    
-    try {
-      await fs.mkdir(tempDir, { recursive: true });
-      
-      if (language === "cpp") {
-        const filePath = path.join(tempDir, "solution.cpp");
-        const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
-        await fs.writeFile(filePath, code);
-        
-        if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling program...\x1b[0m\n");
-        const compile = await execWithTimeout("g++", [filePath, "-o", outPath], 15000, null, null, { noPty: true });
-        
-        if (compile.exitCode !== 0) {
-          if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
-          return { status: "failed", stderr: compile.stderr };
-        }
-        
-        if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning interactive terminal...\x1b[0m\n\r\n");
-        return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
+  const jobId = run._id.toString();
+  const tempDir = path.join(os.tmpdir(), `liquid-${jobId}`);
 
-      } else if (language === "c") {
-        const filePath = path.join(tempDir, "solution.c");
-        const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
-        await fs.writeFile(filePath, code);
-        
-        if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling C program...\x1b[0m\n");
-        const compile = await execWithTimeout("gcc", [filePath, "-o", outPath], 15000, null, null, { noPty: true });
-        
-        if (compile.exitCode !== 0) {
-          if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
-          return { status: "failed", stderr: compile.stderr };
-        }
-        
-        if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning interactive terminal...\x1b[0m\n\r\n");
-        return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
+  try {
+    await fs.mkdir(tempDir, { recursive: true });
 
-      } else if (language === "python" || language === "python3") {
-        const filePath = path.join(tempDir, "solution.py");
-        await fs.writeFile(filePath, code);
-        if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Python script (PTY mode)...\x1b[0m\n\r\n");
-        return await execWithTimeout(IS_WINDOWS ? "python" : "python3", [filePath], 60000, jobId, onLog, { cwd: tempDir, env: { PYTHONUNBUFFERED: "1" } });
-
-      } else if (language === "nodejs") {
-        const filePath = path.join(tempDir, "solution.js");
-        await fs.writeFile(filePath, code);
-        if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Node.js script (PTY mode)...\x1b[0m\n\r\n");
-        return await execWithTimeout("node", [filePath], 60000, jobId, onLog, { cwd: tempDir });
-
-      } else if (language === "java") {
-        const filePath = path.join(tempDir, "Solution.java");
-        await fs.writeFile(filePath, code);
-        if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling Java...\x1b[0m\n");
-        const compile = await execWithTimeout("javac", [filePath], 15000, null, null, { noPty: true });
-        
-        if (compile.exitCode !== 0) {
-          if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
-          return { status: "failed", stderr: compile.stderr };
-        }
-        
-        if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning Java (PTY mode)...\x1b[0m\n\r\n");
-        return await execWithTimeout("java", ["Solution"], 60000, jobId, onLog, { cwd: tempDir });
+    if (language === "cpp") {
+      const filePath = path.join(tempDir, "solution.cpp");
+      const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
+      await fs.writeFile(filePath, code);
+      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling program...\x1b[0m\n");
+      const compile = await execWithTimeout("g++", [filePath, "-o", outPath], 15000, null, null, { noPty: true });
+      if (compile.exitCode !== 0) {
+        if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
+        return { status: "failed", stderr: compile.stderr };
       }
+      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning interactive terminal...\x1b[0m\n\r\n");
+      return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
 
-      throw new Error(`Unsupported language: ${language}`);
-    } catch (err) {
-      if (onLog) onLog(jobId, "stderr", err.message);
-      return { status: "failed", stderr: err.message };
-    } finally {
-      // Small delay before cleanup to ensure all data is read
-      setTimeout(async () => {
-        try {
-          await fs.rm(tempDir, { recursive: true, force: true });
-        } catch (e) {
-          logger.warn({ path: tempDir }, "Failed to cleanup temp execution directory");
-        }
-      }, 10000);
+    } else if (language === "c") {
+      const filePath = path.join(tempDir, "solution.c");
+      const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
+      await fs.writeFile(filePath, code);
+      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling C program...\x1b[0m\n");
+      const compile = await execWithTimeout("gcc", [filePath, "-o", outPath], 15000, null, null, { noPty: true });
+      if (compile.exitCode !== 0) {
+        if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
+        return { status: "failed", stderr: compile.stderr };
+      }
+      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning interactive terminal...\x1b[0m\n\r\n");
+      return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
+
+    } else if (language === "python" || language === "python3") {
+      const filePath = path.join(tempDir, "solution.py");
+      await fs.writeFile(filePath, code);
+      if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Python script...\x1b[0m\n\r\n");
+      return await execWithTimeout(IS_WINDOWS ? "python" : "python3", [filePath], 60000, jobId, onLog, { cwd: tempDir, env: { PYTHONUNBUFFERED: "1" } });
+
+    } else if (language === "nodejs") {
+      const filePath = path.join(tempDir, "solution.js");
+      await fs.writeFile(filePath, code);
+      if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Node.js script...\x1b[0m\n\r\n");
+      return await execWithTimeout("node", [filePath], 60000, jobId, onLog, { cwd: tempDir });
+
+    } else if (language === "java") {
+      const filePath = path.join(tempDir, "Solution.java");
+      await fs.writeFile(filePath, code);
+      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling Java...\x1b[0m\n");
+      const compile = await execWithTimeout("javac", [filePath], 15000, null, null, { noPty: true });
+      if (compile.exitCode !== 0) {
+        if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
+        return { status: "failed", stderr: compile.stderr };
+      }
+      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning Java...\x1b[0m\n\r\n");
+      return await execWithTimeout("java", ["Solution"], 60000, jobId, onLog, { cwd: tempDir });
     }
+    throw new Error(`Unsupported language: ${language}`);
+  } catch (err) {
+    if (onLog) onLog(jobId, "stderr", err.message);
+    return { status: "failed", stderr: err.message };
+  } finally {
+    setTimeout(async () => {
+      try {
+        await fs.rm(tempDir, { recursive: true, force: true });
+      } catch (e) {
+        logger.warn({ path: tempDir }, "Failed to cleanup temp execution directory");
+      }
+    }, 10000);
   }
 }
 

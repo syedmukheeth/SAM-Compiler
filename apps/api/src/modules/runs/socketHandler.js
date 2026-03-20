@@ -1,10 +1,10 @@
-const { Server } = require("socket.io");
 const { logger } = require("../../config/logger");
 
 let io = null;
 const inputBuffers = new Map(); // jobId -> string[]
 
 function initSocket(server) {
+  const { Server } = require("socket.io");
   io = new Server(server, {
     cors: {
       origin: "*", // Adjust as needed, but for local dev * is fine
