@@ -19,7 +19,29 @@ const EnvSchema = z.object({
   CALLBACK_URL_BASE: z.string().default("http://localhost:8080/auth")
 });
 
-const env = EnvSchema.parse(process.env);
+let env;
+const result = EnvSchema.safeParse(process.env);
+
+if (!result.success) {
+  console.error("⚠️ Environment validation failed:", JSON.stringify(result.error.format(), null, 2));
+  // Provide bare minimums for startup if on Vercel
+  if (process.env.VERCEL) {
+    env = {
+      PORT: process.env.PORT || 8080,
+      MONGO_URI: process.env.MONGO_URI,
+      REDIS_URL: process.env.REDIS_URL,
+      WEB_ORIGIN: process.env.WEB_ORIGIN || "http://localhost:5173",
+      JWT_SECRET: process.env.JWT_SECRET || "fallback_secret_for_emergency",
+      JWT_EXPIRES_IN: "7d",
+      CALLBACK_URL_BASE: "http://localhost:8080/auth"
+    };
+  } else {
+    // If local, we still want to throw to let the dev know
+    env = EnvSchema.parse(process.env);
+  }
+} else {
+  env = result.data;
+}
 
 module.exports = { env };
 
