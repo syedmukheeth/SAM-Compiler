@@ -31,6 +31,7 @@ export default function EditorPage() {
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
+  const [apiVersion, setApiVersion] = useState(null);
   const [isOffline, setIsOffline] = useState(!navigator.onLine);
   const [activeMobileTab, setActiveMobileTab] = useState("editor"); // "editor" or "terminal"
   
@@ -61,6 +62,7 @@ export default function EditorPage() {
         if (res.ok) {
           const data = await res.json();
           setIsWorkerOnline(data.online);
+          setApiVersion(data.version);
           setIsOffline(false);
         } else {
            // If health check fails, but we have internet, maybe API is just down
@@ -388,7 +390,7 @@ export default function EditorPage() {
                 </button>
                 <div className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full shadow-[0_0_10px_currentcolor] transition-colors duration-500 ${runStatus === "Succeeded" ? "text-emerald-400 bg-emerald-400" : runStatus === "Failed" ? "text-rose-400 bg-rose-400" : busy ? "text-blue-400 bg-blue-400 animate-pulse" : "text-white/20 bg-white/20"}`} />
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/50 font-mono">
-                  {isWorkerOnline ? "Local Terminal" : "Cloud Sandbox"}
+                  {isWorkerOnline ? (apiVersion === "0.5.2" ? "Local Terminal" : "Local Terminal (Outdated)") : "Cloud Sandbox"}
                 </span>
               </div>
               <div className="text-[8px] md:text-[9px] font-bold tracking-widest text-white/30 uppercase">{runStatus}</div>
@@ -427,7 +429,12 @@ export default function EditorPage() {
                 <div className="mt-4 flex flex-col gap-2 border-t border-white/5 pt-4">
                   {!isWorkerOnline && (
                     <div className="text-[10px] font-bold text-amber-500/50 uppercase tracking-widest bg-amber-500/5 p-2 rounded-lg border border-amber-500/10 mb-2">
-                       ⚠️ Running in Cloud Mode (Limited Interactivity)
+                       ⚠️ Cloud Sandbox - Interactivity limited. Run API locally for full stdin.
+                    </div>
+                  )}
+                  {isWorkerOnline && apiVersion !== "0.5.2" && (
+                    <div className="text-[10px] font-bold text-rose-500/50 uppercase tracking-widest bg-rose-500/5 p-2 rounded-lg border border-rose-500/10 mb-2">
+                       🚨 API Outdated - Stdin may not work. Please `git pull` and restart the local API.
                     </div>
                   )}
                   <div className="flex items-center gap-3">

@@ -118,6 +118,7 @@ async function getRun(runId) {
 async function getQueueStatus() {
   return {
     online: true,
+    version: "0.5.2", // Match frontend version
     mode: "direct-execution",
     message: "Code runs directly on the API server.",
     timestamp: new Date().toISOString()
