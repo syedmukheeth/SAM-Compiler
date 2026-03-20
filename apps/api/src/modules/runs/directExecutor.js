@@ -146,15 +146,31 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
   });
 }
 
+function getJavaMainClass(code) {
+  const match = code.match(/public\s+class\s+(\w+)/);
+  return match ? match[1] : "Solution";
+}
+
+async function materializeFiles(root, files) {
+  for (const f of files) {
+    const normalized = String(f.path || "").replaceAll("\\", "/");
+    const parts = normalized.split("/").filter(Boolean).filter(s => s !== ".." && s !== ".");
+    const safePath = path.join(root, ...parts);
+    await fs.mkdir(path.dirname(safePath), { recursive: true });
+    await fs.writeFile(safePath, f.content, "utf8");
+  }
+}
+
 async function executeDirectly(run, onLog) {
   const runtime = run.runtime || run.language;
   const language = runtime;
   const jobId = run._id.toString();
+  const entrypoint = run.entrypoint || (language === "java" ? "Solution.java" : "solution.js");
+  const files = run.files || [];
   
-  // Extract code from files based on entrypoint
-  const entrypoint = run.entrypoint || "solution.js";
-  const fileObj = (run.files || []).find(f => f.path === entrypoint);
-  const code = fileObj ? fileObj.content : (run.code || "");
+  // Primary code content (for fallback or single file mode)
+  const mainFile = files.find(f => f.path === entrypoint);
+  const code = mainFile ? mainFile.content : (run.code || "");
 
   if (!runtime) {
     logger.error({ run }, "Execution failed: No runtime/language specified");
@@ -165,6 +181,12 @@ async function executeDirectly(run, onLog) {
 
   try {
     await fs.mkdir(tempDir, { recursive: true });
+    await materializeFiles(tempDir, files);
+
+    // If no entrypoint file was provided in files array, write the run.code to entrypoint path
+    if (files.length === 0 || !mainFile) {
+        await fs.writeFile(path.join(tempDir, entrypoint), code);
+    }
 
     if (language === "cpp") {
       const filePath = path.join(tempDir, "solution.cpp");
@@ -205,16 +227,38 @@ async function executeDirectly(run, onLog) {
       return await execWithTimeout("node", [filePath], 60000, jobId, onLog, { cwd: tempDir });
 
     } else if (language === "java") {
-      const filePath = path.join(tempDir, "Solution.java");
-      await fs.writeFile(filePath, code);
-      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling Java...\x1b[0m\n");
-      const compile = await execWithTimeout("javac", [filePath], 15000, null, null, { noPty: true });
+      const javaClass = getJavaMainClass(code);
+      const javaFile = `${javaClass}.java`;
+      const javaFilePath = path.join(tempDir, javaFile);
+      
+      // Ensure the java file matching the class name exists
+      await fs.writeFile(javaFilePath, code);
+      
+      if (onLog) onLog(jobId, "stdout", `🔨 \x1b[1;34mCompiling Java (${javaClass})...\x1b[0m\n`);
+      const compile = await execWithTimeout("javac", [javaFile], 15000, null, null, { noPty: true, cwd: tempDir });
       if (compile.exitCode !== 0) {
         if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
         return { status: "failed", stderr: compile.stderr };
       }
       if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning Java...\x1b[0m\n\r\n");
-      return await execWithTimeout("java", ["Solution"], 60000, jobId, onLog, { cwd: tempDir });
+      return await execWithTimeout("java", [javaClass], 60000, jobId, onLog, { cwd: tempDir });
+
+    } else if (language === "go") {
+      const goFile = entrypoint.endsWith(".go") ? entrypoint : "main.go";
+      if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Go program...\x1b[0m\n\r\n");
+      return await execWithTimeout("go", ["run", goFile], 60000, jobId, onLog, { cwd: tempDir });
+
+    } else if (language === "rust") {
+      const rustFile = entrypoint.endsWith(".rs") ? entrypoint : "main.rs";
+      const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
+      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling Rust...\x1b[0m\n");
+      const compile = await execWithTimeout("rustc", [rustFile, "-o", outPath], 30000, null, null, { noPty: true, cwd: tempDir });
+      if (compile.exitCode !== 0) {
+        if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
+        return { status: "failed", stderr: compile.stderr };
+      }
+      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning Rust...\x1b[0m\n\r\n");
+      return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
     }
     throw new Error(`Unsupported language/runtime: ${runtime}`);
   } catch (err) {

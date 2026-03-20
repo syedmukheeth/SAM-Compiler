@@ -16,6 +16,15 @@ RUN npm ci --workspace=@liquidide/api --workspace=@liquidide/shared
 # Production stage
 FROM node:20-slim AS runner
 
+# Install native compilers (Programiz level)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    g++ \
+    gcc \
+    openjdk-17-jdk-headless \
+    python3 \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 ENV NODE_ENV=production
 

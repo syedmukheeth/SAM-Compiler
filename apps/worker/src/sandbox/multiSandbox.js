@@ -5,6 +5,11 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { env } = require("../config/env");
 
+function getJavaMainClass(code) {
+  const match = code.match(/public\s+class\s+(\w+)/);
+  return match ? match[1] : "Solution";
+}
+
 const LANGUAGE_CONFIGS = {
   javascript: {
     image: "node:20-alpine",
@@ -24,7 +29,18 @@ const LANGUAGE_CONFIGS = {
   },
   java: {
     image: "openjdk:17-slim",
-    command: (entry) => ["sh", "-c", `javac ${entry} && java ${entry.replace(".java", "")}`]
+    command: (entry, code) => {
+      const className = getJavaMainClass(code);
+      return ["sh", "-c", `javac ${className}.java && java ${className}`];
+    }
+  },
+  go: {
+    image: "golang:1.21-alpine",
+    command: (entry) => ["go", "run", entry]
+  },
+  rust: {
+    image: "rust:1.72-slim",
+    command: (entry) => ["sh", "-c", `rustc ${entry} -o main && ./main`]
   }
 };
 
@@ -50,7 +66,7 @@ async function executeRun(opts) {
         "-w", "/workspace",
         "-u", "1000:1000",
         config.image,
-        ...config.command(entry)
+        ...config.command(entry, files.find(f => f.path === entrypoint)?.content || "")
       ];
       return await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000);
     } catch (dockerErr) {
@@ -70,7 +86,13 @@ async function executeRun(opts) {
         python: pythonCmd ? [pythonCmd, entry] : null,
         cpp: [shell, shellFlag, `g++ ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
         c: [shell, shellFlag, `gcc ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
-        java: [shell, shellFlag, `javac ${entry} && java ${entry.replace(".java", "")}`]
+        java: (() => {
+          const code = files.find(f => f.path === entrypoint)?.content || "";
+          const className = getJavaMainClass(code);
+          return [shell, shellFlag, `javac ${className}.java && java ${className}`];
+        })(),
+        go: ["go", "run", entry],
+        rust: [shell, shellFlag, `rustc ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`]
       };
 
       const cmdInfo = localCmds[language];
