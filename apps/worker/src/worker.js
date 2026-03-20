@@ -101,7 +101,9 @@ function redisConnectionFromUrl(redisUrl) {
     port, 
     password,
     tls: u.protocol === "rediss:" ? {} : undefined,
-    maxRetriesPerRequest: 0 
+    maxRetriesPerRequest: null,
+    enableOfflineQueue: true,
+    connectTimeout: 10000
   };
 }
 

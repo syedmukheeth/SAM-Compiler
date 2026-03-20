@@ -79,14 +79,18 @@ async function createRun(input) {
         // Delegate to worker queue
         const queue = getRunsQueue();
         const redis = getRedisClient();
-        const workerOnline = redis ? !!(await redis.get(WORKER_HEARTBEAT_KEY)) : false;
+        let workerOnline = false;
+        try {
+          workerOnline = redis ? !!(await redis.get(WORKER_HEARTBEAT_KEY)) : false;
+        } catch (e) {
+          logger.warn({ e }, "Failed to fetch worker heartbeat during run creation");
+        }
 
         if (queue) {
           if (workerOnline) {
             if (emitLog) emitLog(run._id.toString(), "stdout", "📡 \x1b[1;33mCompiler not found in Cloud Sandbox.\x1b[0m\n⏳ \x1b[1;34mDelegating to LiquidIDE Worker (Local)...\x1b[0m\n\r\n");
           } else {
             if (emitLog) emitLog(run._id.toString(), "stderr", "❌ \x1b[1;31mError: Local Worker is Offline.\x1b[0m\n💡 \x1b[1;36mTo run C++, please start the worker locally:\x1b[0m\n   1. Open a terminal in \x1b[33mapps/worker\x1b[0m\n   2. Run: \x1b[1;32mnpm start\x1b[0m\n\r\n");
-            // Still queue it, but with a warning.
           }
           await queue.add("execute", { runId: run._id.toString() });
           run.status = "queued";

@@ -52,18 +52,18 @@ function redisConnectionFromUrl(redisUrl) {
       port, 
       password, 
       tls: u.protocol === "rediss:" ? {} : undefined,
-      maxRetriesPerRequest: 0,
-      enableOfflineQueue: false,
-      connectTimeout: 5000 
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: true,
+      connectTimeout: 10000 
     };
   } catch (err) {
     logger.error({ err, redisUrl }, "Invalid Redis URL");
     return { 
       host: "localhost", 
       port: 6379, 
-      maxRetriesPerRequest: 0,
-      enableOfflineQueue: false,
-      connectTimeout: 5000
+      maxRetriesPerRequest: null,
+      enableOfflineQueue: true,
+      connectTimeout: 10000
     };
   }
 }
