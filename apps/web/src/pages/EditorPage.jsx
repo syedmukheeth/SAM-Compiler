@@ -127,13 +127,22 @@ export default function EditorPage() {
         background: 'transparent',
         foreground: '#e2f3f5',
         cursor: '#3b82f6',
+        cursorAccent: '#000000',
         selectionBackground: 'rgba(59, 130, 246, 0.3)',
+        black: '#1e1e1e',
+        red: '#ff5f56',
+        green: '#27c93f',
+        yellow: '#ffbd2e',
+        blue: '#007aff',
+        magenta: '#ff79c6',
+        cyan: '#8be9fd',
+        white: '#f8f8f2',
       },
       fontFamily: 'JetBrains Mono, Menlo, monospace',
-      fontSize: 13,
-      lineHeight: 1.4,
+      fontSize: 14,
+      lineHeight: 1.5,
       cursorBlink: true,
-      cursorStyle: 'underline',
+      cursorStyle: 'block',
       allowTransparency: true,
     });
 
@@ -438,7 +447,7 @@ builtins.input = input_shim
               <div className="text-[8px] md:text-[9px] font-bold tracking-widest text-white/30 uppercase">{runStatus}</div>
             </div>
             
-            <div className="flex-1 overflow-hidden p-0 bg-black/20 relative">
+            <div className="flex-1 overflow-hidden p-3 md:p-5 bg-black/40 relative">
               <div ref={terminalRef} className="h-full w-full" />
               
               {!isWorkerOnline && busy && (
@@ -450,12 +459,16 @@ builtins.input = input_shim
               )}
             </div>
 
-            <div className="flex h-8 md:h-10 shrink-0 items-center justify-between border-t border-white/5 px-4 md:px-6 bg-black/40">
-              <div className="flex items-center gap-2">
-                <span className="text-[9px] font-bold uppercase tracking-widest text-white/20">Flux Engine</span>
-                <span className="hidden sm:inline text-[8px] font-bold text-blue-500/30">v0.5.2-STABLE</span>
+            <div className="flex h-9 md:h-11 shrink-0 items-center justify-between border-t border-white/5 px-4 md:px-6 bg-white/[0.01] backdrop-blur-md">
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
+                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-blue-400">Flux Engine</span>
+                </div>
+                <span className="hidden sm:inline text-[8px] font-bold text-white/20 uppercase tracking-widest">v0.5.2-STABLE</span>
               </div>
-              <span className="text-[9px] font-bold uppercase tracking-widest text-white/20 truncate ml-2">Buffer: {activeLangId}</span>
+              <div className="flex items-center gap-3">
+                 <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 truncate">Buffer: {activeLangId}</span>
+              </div>
             </div>
           </div>
         </section>
