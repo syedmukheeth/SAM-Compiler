@@ -141,9 +141,8 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
   });
 }
 
-const directExecutor = {
-  execute: async (run, onLog) => {
-    const { language, code } = run;
+async function executeDirectly(run, onLog) {
+  const { language, code } = run;
     const jobId = run._id.toString();
     const tempDir = path.join(os.tmpdir(), `liquid-${jobId}`);
     
@@ -223,7 +222,7 @@ const directExecutor = {
         }
       }, 10000);
     }
-  },
-};
+  }
+}
 
-module.exports = directExecutor;
+module.exports = { executeDirectly };
