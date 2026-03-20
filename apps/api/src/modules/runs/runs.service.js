@@ -92,7 +92,12 @@ async function createRun(input) {
           } else {
             if (emitLog) emitLog(run._id.toString(), "stderr", "❌ \x1b[1;31mError: Local Worker is Offline.\x1b[0m\n💡 \x1b[1;36mTo run C++, please start the worker locally:\x1b[0m\n   1. Open a terminal in \x1b[33mapps/worker\x1b[0m\n   2. Run: \x1b[1;32mnpm start\x1b[0m\n\r\n");
           }
-          await queue.add("execute", { runId: run._id.toString() });
+          try {
+            await queue.add("execute", { runId: run._id.toString() });
+          } catch (qErr) {
+            logger.error({ qErr }, "Failed to add job to BullMQ queue");
+            throw new Error(`Queue submission failed: ${qErr.message}. Ensure Redis is reachable.`);
+          }
           run.status = "queued";
           if (useMongo) {
             await RunModel.findByIdAndUpdate(run._id, { 
