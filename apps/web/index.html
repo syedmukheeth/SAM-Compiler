@@ -10,8 +10,16 @@
     <title>LiquidIDE | Next-Gen Cloud Code Editor</title>
   </head>
   <body>
+    <script>
+      // Force unregister all Service Workers to break "offline" loops
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (let reg of regs) reg.unregister();
+        });
+      }
+    </script>
     <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
+    <script type="module" src="/src/main.jsx?v=2"></script>
   </body>
 </html>
 
