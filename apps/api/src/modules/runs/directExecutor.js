@@ -5,12 +5,16 @@ const fs = require("node:fs/promises");
 const logger = require("../../utils/logger");
 const { getBufferedInput } = require("./socketHandler");
 
-let pty;
-try {
-  pty = require("node-pty");
-  logger.info("✅ node-pty successfully initialized for professional terminal support");
-} catch (e) {
-  logger.warn("⚠️ node-pty not available, falling back to simple spawn for execution");
+let pty = null;
+if (!process.env.VERCEL) {
+  try {
+    pty = require("node-pty");
+    logger.info("✅ node-pty successfully initialized for professional terminal support");
+  } catch (e) {
+    logger.warn("⚠️ node-pty not available (this is expected on cloud hosts like Vercel), falling back to simple spawn");
+  }
+} else {
+  logger.info("ℹ️ Running on Vercel: node-pty disabled for stability");
 }
 
 const IS_WINDOWS = os.platform() === "win32";
