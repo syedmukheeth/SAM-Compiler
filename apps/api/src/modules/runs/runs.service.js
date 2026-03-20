@@ -60,9 +60,16 @@ async function createRun(input) {
       const runData = (run && typeof run.toObject === "function") ? run.toObject() : run;
       
       // Determine if we should attempt direct execution or delegate to worker
-      const isCompiled = ["cpp", "c", "java"].includes(runData.runtime);
-      const hostTool = runData.runtime === "cpp" ? "g++" : runData.runtime === "c" ? "gcc" : runData.runtime === "java" ? "javac" : null;
-      let canRunDirectly = !hostTool || isToolAvailable(hostTool);
+      const isCompiled = ["cpp", "c", "java", "go", "rust"].includes(runData.runtime);
+      const hostTool = runData.runtime === "cpp" ? "g++" : 
+                       runData.runtime === "c" ? "gcc" : 
+                       runData.runtime === "java" ? "javac" : 
+                       runData.runtime === "go" ? "go" :
+                       runData.runtime === "rust" ? "rustc" : null;
+                       
+      // If we are on Render (Cloud), we MUST attempt direct execution
+      const isCloud = !!process.env.RENDER;
+      let canRunDirectly = isCloud || !hostTool || isToolAvailable(hostTool);
       
       // Safety: Never attempt direct compilation on Vercel even if tool seems present
       if (process.env.VERCEL && hostTool) {
@@ -70,6 +77,9 @@ async function createRun(input) {
       }
 
       if (canRunDirectly) {
+        if (isCloud && hostTool && !isToolAvailable(hostTool)) {
+            logger.warn({ hostTool }, "Attempting direct execution on Cloud even though initial check failed.");
+        }
         const result = await executeDirectly(runData, emitLog);
         run.stdout = result.stdout;
         run.stderr = result.stderr;
@@ -193,14 +203,18 @@ async function getQueueStatus() {
     }
   }
 
+  const isCloud = !!process.env.RENDER;
+
   return {
     online: true, // API is online
-    workerOnline, // NEW: Actual worker status
-    version: "0.5.2",
-    mode: "hybrid-distributed",
-    message: workerOnline 
-      ? "Worker is online and ready for compiled languages." 
-      : "Worker is offline. Compiled languages (C++/Java) will be queued.",
+    workerOnline, // Actual worker status
+    version: "0.6.0-STABLE",
+    mode: isCloud ? "cloud-native" : "hybrid-distributed",
+    message: isCloud 
+      ? "Engine is running in Cloud-Native mode (All compilers active)."
+      : (workerOnline 
+          ? "Worker is online and ready for compiled languages." 
+          : "Worker is offline. Compiled languages (C++/Java) will be queued."),
     timestamp: new Date().toISOString()
   };
 }
