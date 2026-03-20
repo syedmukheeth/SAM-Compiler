@@ -77,12 +77,32 @@ async function executeRun(opts) {
       if (!cmdInfo) {
         return { 
           stdout: "", 
-          stderr: `LiquidIDE Execution Engine Error:\n- ${language} is not installed on this host.\n- Docker is not available for sandboxed execution.\n\nPlease install ${language} or start Docker to enable execution for this language.`, 
+          stderr: `LiquidIDE Execution Engine Error:\n- ${language} configuration is missing for this host.\n- Docker is not available for sandboxed execution.\n\nPlease install ${language} or start Docker to enable execution for this language.`, 
           exitCode: 127 
         };
       }
 
       const [cmd, ...args] = cmdInfo;
+      
+      // Verify the command or the first part of the shell script exists
+      try {
+        const checkCmd = isWin ? `where ${cmd}` : `command -v ${cmd}`;
+        const { execSync } = require("node:child_process");
+        execSync(checkCmd, { stdio: "ignore" });
+        
+        // If it's a compiler command, also check the compiler itself inside the shell script
+        if (language === "cpp" || language === "c" || language === "java") {
+            const tool = language === "cpp" ? "g++" : language === "c" ? "gcc" : "javac";
+            const checkTool = isWin ? `where ${tool}` : `command -v ${tool}`;
+            execSync(checkTool, { stdio: "ignore" });
+        }
+      } catch (e) {
+        return {
+          stdout: "",
+          stderr: `LiquidIDE Worker Error:\n- ${language} compiler/runtime is not installed on this local machine.\n- PATH: ${process.env.PATH}\n\nPlease install ${language === "cpp" ? "G++ (MinGW/GCC)" : language === "java" ? "JDK" : language} to continue.`,
+          exitCode: 127
+        };
+      }
       return await execWithTimeout(cmd, args, env.RUN_TIMEOUT_MS || 10000, { cwd: runDir });
     }
   } catch (err) {
