@@ -3,7 +3,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://liquid-ide-api.vercel.app/$1"
+      "destination": "https://liquid-ide-api.vercel.app/api/$1"
     },
     {
       "source": "/(.*)",
