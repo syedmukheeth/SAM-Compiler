@@ -28,6 +28,15 @@ function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(passport.initialize());
 
+  // Handle /api prefix transparency (Render/Vercel compatibility)
+  app.use((req, _res, next) => {
+    if (req.url.startsWith("/api/")) {
+      req.url = req.url.replace(/^\/api/, "");
+      if (req.url === "") req.url = "/";
+    }
+    next();
+  });
+
   app.get("/", (_req, res) => res.json({ 
     message: "LiquidIDE API - Professional Multi-Language Execution Engine",
     version: "1.0.0",
