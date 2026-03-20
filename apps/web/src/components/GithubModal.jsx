@@ -17,8 +17,7 @@ export function GithubModal({ isOpen, onClose, code, language, isDarkMode }) {
     localStorage.setItem("gh_path", path);
 
     try {
-      const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
-      const res = await fetch(`${API_URL}/github/push`, {
+      const res = await fetch("/api/github/push", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, repo, path, content: code, message }),

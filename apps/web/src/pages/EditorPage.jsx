@@ -63,8 +63,7 @@ export default function EditorPage() {
         return;
       }
       try {
-        const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8080";
-        const res = await fetch(`${API_URL}/runs/health/queue`);
+        const res = await fetch("/api/runs/health/queue");
         if (res.ok) {
           const data = await res.json();
           setIsWorkerOnline(data.online);

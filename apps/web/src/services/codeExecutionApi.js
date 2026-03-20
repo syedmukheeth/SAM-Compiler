@@ -1,4 +1,4 @@
-const getApiUrl = () => import.meta.env.VITE_API_URL || "http://localhost:8080";
+const API_BASE = "/api/runs";
 
 export async function submitRun({ language, code }) {
   const token = localStorage.getItem("flux_token");
@@ -6,7 +6,7 @@ export async function submitRun({ language, code }) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   try {
-    const res = await fetch(`${getApiUrl()}/runs`, {
+    const res = await fetch(`${API_BASE}`, {
       method: "POST",
       headers,
       body: JSON.stringify({ language, code })
@@ -18,14 +18,14 @@ export async function submitRun({ language, code }) {
     return await res.json(); // { jobId }
   } catch (err) {
     if (err.name === "TypeError" && err.message === "Failed to fetch") {
-      throw new Error("Unable to reach the execution engine. Check VITE_API_URL and network connectivity.");
+      throw new Error("Unable to reach the execution engine. Check network connectivity.");
     }
     throw err;
   }
 }
 
 export async function fetchStatus(jobId) {
-  const res = await fetch(`${getApiUrl()}/runs/${encodeURIComponent(jobId)}`);
+  const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`);
   if (!res.ok) {
      const errorText = await res.text().catch(() => "Unknown error");
      throw new Error(`Status check failed: ${res.status}. ${errorText}`);
