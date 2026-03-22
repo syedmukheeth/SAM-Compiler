@@ -308,11 +308,11 @@ builtins.input = input_shim
   };
 
   return (
-    <div className="relative flex h-screen w-full flex-col overflow-hidden bg-black selection:bg-blue-500/30">
+    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden bg-black selection:bg-blue-500/30">
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
-      <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between border-b border-white/5 bg-black/20 px-4 md:px-8 backdrop-blur-2xl">
+      <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between border-b border-white/5 bg-black md:bg-black/20 px-4 md:px-8 md:backdrop-blur-2xl">
         <div className="flex items-center gap-4 md:gap-10">
           <div className="flex items-center gap-2 md:gap-3 transition-transform hover:scale-[1.02]">
             <div className="flex h-7 w-7 md:h-9 md:w-9 overflow-hidden rounded-lg md:rounded-xl border border-white/10 bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-2xl">
@@ -368,7 +368,7 @@ builtins.input = input_shim
         </div>
       </header>
 
-      <div className="flex md:hidden h-12 shrink-0 border-b border-white/5 bg-black/40 backdrop-blur-xl">
+      <div className="flex md:hidden h-12 shrink-0 border-b border-white/5 bg-[#0a0a0c]">
         <button 
           onClick={() => setActiveMobileTab('editor')}
           className={`relative flex-1 flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${activeMobileTab === 'editor' ? "text-blue-400 bg-white/5" : "text-white/30"}`}
@@ -394,7 +394,7 @@ builtins.input = input_shim
       <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
         <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex md:flex-[7]`}>
           <div className="glass-card flex flex-1 flex-col overflow-hidden">
-            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/5 px-3 md:px-5 bg-white/[0.02]">
+            <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/5 px-3 md:px-5 bg-white/5 md:bg-white/[0.02]">
               <div className="flex items-center gap-2 md:gap-5">
                 <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} isDarkMode={true} />
               </div>
@@ -489,7 +489,7 @@ builtins.input = input_shim
         </section>
       </main>
 
-      <footer className="relative z-20 flex h-9 md:h-12 shrink-0 items-center justify-between border-t border-white/5 bg-black/80 px-4 md:px-8 backdrop-blur-3xl">
+      <footer className="relative z-20 flex h-9 md:h-12 shrink-0 items-center justify-between border-t border-white/5 bg-black md:bg-black/80 px-4 md:px-8 md:backdrop-blur-3xl">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className={`h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentcolor] ${isWorkerOnline ? "text-emerald-500 bg-emerald-500" : "text-rose-500 bg-rose-500"}`} />

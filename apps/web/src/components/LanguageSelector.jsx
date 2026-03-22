@@ -28,7 +28,7 @@ export default function LanguageSelector({ activeLanguage, onLanguageChange }) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 md:gap-3 rounded-lg md:rounded-xl border border-white/10 bg-white/[0.03] px-2.5 md:px-4 py-1.5 transition-all hover:bg-white/10 hover:border-white/20 active:scale-95 group backdrop-blur-md"
+        className="flex items-center gap-2 md:gap-3 rounded-lg md:rounded-xl border border-white/10 bg-white/5 md:bg-white/[0.03] px-2.5 md:px-4 py-1.5 transition-all hover:bg-white/10 hover:border-white/20 active:scale-95 group md:backdrop-blur-md"
       >
         <div className="relative h-3 w-3 md:h-4 md:w-4 transition-transform group-hover:scale-110">
           <img src={selectedLang.icon} alt={selectedLang.label} className="h-full w-full object-contain filter grayscale-[0.5] group-hover:grayscale-0 transition-all" />
