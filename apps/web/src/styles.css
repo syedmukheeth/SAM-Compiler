@@ -29,6 +29,7 @@ body {
   font-family: var(--font-sans);
   overflow: hidden;
   height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile */
   width: 100vw;
 }
 
@@ -69,9 +70,16 @@ body {
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   border: 1px solid var(--glass-border);
-  border-radius: 28px;
+  border-radius: 20px; /* Slightly smaller radius for better fit */
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 15px 45px -10px rgba(0, 0, 0, 0.6);
+  box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+}
+
+@media (min-width: 768px) {
+  .glass-card {
+    border-radius: 28px;
+    box-shadow: 0 15px 45px -10px rgba(0, 0, 0, 0.6);
+  }
 }
 
 .glass-card:hover {

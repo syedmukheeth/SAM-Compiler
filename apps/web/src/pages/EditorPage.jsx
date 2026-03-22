@@ -171,6 +171,17 @@ export default function EditorPage() {
     };
   }, []);
 
+  // Ensure terminal fits when switching tabs on mobile
+  useEffect(() => {
+    if (activeMobileTab === 'terminal' && fitAddonRef.current) {
+      // Small delay to ensure the DOM is visible before fitting
+      const timer = setTimeout(() => {
+        fitAddonRef.current.fit();
+      }, 50);
+      return () => clearTimeout(timer);
+    }
+  }, [activeMobileTab]);
+
   const runRef = useRef({ jobId: null });
   const activeConfig = languageConfigs[activeLangId];
 
@@ -246,9 +257,6 @@ builtins.input = input_shim
         if (evt.type === "end") {
           setRunStatus(evt.status === "succeeded" ? "Succeeded" : "Failed");
           setBusy(false);
-          if (xtermRef.current) {
-            xtermRef.current.write(`\r\n\r\n\x1b[1;36m🏁 Program finished with status: ${evt.status}\x1b[0m\r\n`);
-          }
         }
       };
 
@@ -441,7 +449,7 @@ builtins.input = input_shim
                 </button>
                 <div className={`h-1.5 w-1.5 md:h-2 md:w-2 rounded-full shadow-[0_0_10px_currentcolor] transition-colors duration-500 ${runStatus === "Succeeded" ? "text-emerald-400 bg-emerald-400" : runStatus === "Failed" ? "text-rose-400 bg-rose-400" : busy ? "text-blue-400 bg-blue-400 animate-pulse" : "text-white/20 bg-white/20"}`} />
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/50 font-mono">
-                  {isWorkerOnline ? (apiVersion === "0.5.2" ? "Local Terminal" : "Local Terminal (Outdated)") : "Cloud Sandbox"}
+                  {isWorkerOnline ? "Terminal" : "Cloud Sandbox"}
                 </span>
               </div>
               <div className="text-[8px] md:text-[9px] font-bold tracking-widest text-white/30 uppercase">{runStatus}</div>
@@ -459,15 +467,12 @@ builtins.input = input_shim
               )}
             </div>
 
-            <div className="flex h-9 md:h-11 shrink-0 items-center justify-between border-t border-white/5 px-4 md:px-6 bg-white/[0.01] backdrop-blur-md">
+            <div className="flex h-8 md:h-10 shrink-0 items-center justify-between border-t border-white/5 px-4 md:px-6 bg-white/[0.01]">
               <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-blue-500/10 border border-blue-500/20">
-                  <span className="text-[8px] md:text-[9px] font-black uppercase tracking-[0.1em] text-blue-400">Flux Engine</span>
-                </div>
-                <span className="hidden sm:inline text-[8px] font-bold text-white/20 uppercase tracking-widest">v0.5.2-STABLE</span>
+                <span className="text-[8px] font-bold text-white/20 uppercase tracking-widest">STABLE-RUNTIME</span>
               </div>
               <div className="flex items-center gap-3">
-                 <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-white/30 truncate">Buffer: {activeLangId}</span>
+                 <span className="text-[8px] md:text-[9px] font-bold uppercase tracking-[0.2em] text-white/20 truncate">{activeLangId}</span>
               </div>
             </div>
           </div>
