@@ -3,28 +3,28 @@ import { getMe } from "../services/authApi";
 
 export function useAuth() {
   const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem("flux_token"));
+  const [token, setToken] = useState(localStorage.getItem("liquid_token"));
   const [loading, setLoading] = useState(true);
 
   const logoutUser = useCallback(() => {
     setUser(null);
     setToken(null);
-    localStorage.removeItem("flux_user");
-    localStorage.removeItem("flux_token");
+    localStorage.removeItem("liquid_user");
+    localStorage.removeItem("liquid_token");
   }, []);
 
   const loginUser = useCallback((userData, accessToken) => {
     setUser(userData);
     setToken(accessToken);
-    localStorage.setItem("flux_user", JSON.stringify(userData));
-    localStorage.setItem("flux_token", accessToken);
+    localStorage.setItem("liquid_user", JSON.stringify(userData));
+    localStorage.setItem("liquid_token", accessToken);
   }, []);
 
   const fetchUser = useCallback(async (authToken) => {
     try {
       const userData = await getMe(authToken);
       setUser(userData);
-      localStorage.setItem("flux_user", JSON.stringify(userData));
+      localStorage.setItem("liquid_user", JSON.stringify(userData));
     } catch (err) {
       console.error("Session verification failed:", err);
       if (err.response?.status === 401) {
@@ -41,7 +41,7 @@ export function useAuth() {
     const oauthToken = params.get("token");
     if (oauthToken) {
       setToken(oauthToken);
-      localStorage.setItem("flux_token", oauthToken);
+      localStorage.setItem("liquid_token", oauthToken);
       // Clean the URL
       window.history.replaceState({}, document.title, window.location.pathname);
     }
@@ -49,7 +49,7 @@ export function useAuth() {
 
   useEffect(() => {
     if (token) {
-      const savedUser = localStorage.getItem("flux_user");
+      const savedUser = localStorage.getItem("liquid_user");
       if (savedUser) setUser(JSON.parse(savedUser));
       fetchUser(token);
     } else {

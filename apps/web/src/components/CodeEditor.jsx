@@ -55,7 +55,7 @@ export default function CodeEditor({ language, value, onChange, onCursorChange, 
           renderLineHighlight: "none",
           backgroundColor: "#00000000" // Transparent
         }}
-        loading={<div className="flex h-full items-center justify-center text-blue-500/20 font-black uppercase tracking-widest animate-pulse">Initializing Flux</div>}
+        loading={<div className="flex h-full items-center justify-center text-blue-500/20 font-black uppercase tracking-widest animate-pulse">Initializing LiquidIDE</div>}
       />
     </div>
   );
