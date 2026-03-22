@@ -67,12 +67,12 @@ export default function EditorPage() {
   }, []);
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem("flux_settings");
+    const saved = localStorage.getItem("liquid_settings");
     return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
   });
   
   const [history, setHistory] = useState(() => {
-    const saved = localStorage.getItem("flux_history");
+    const saved = localStorage.getItem("liquid_history");
     return saved ? JSON.parse(saved) : [];
   });
 
@@ -80,7 +80,7 @@ export default function EditorPage() {
     const newEntry = { code, language, languageId: lId, timestamp: Date.now() };
     const newHistory = [newEntry, ...history].slice(0, 10);
     setHistory(newHistory);
-    localStorage.setItem("flux_history", JSON.stringify(newHistory));
+    localStorage.setItem("liquid_history", JSON.stringify(newHistory));
   }, [history]);
 
   const onRestoreHistory = (code, languageId) => {
@@ -90,7 +90,7 @@ export default function EditorPage() {
 
   const onSettingsUpdate = (newSettings) => {
     setSettings(newSettings);
-    localStorage.setItem("flux_settings", JSON.stringify(newSettings));
+    localStorage.setItem("liquid_settings", JSON.stringify(newSettings));
   };
   
   const [pyodide, setPyodide] = useState(null);
@@ -176,8 +176,12 @@ export default function EditorPage() {
     if (activeMobileTab === 'terminal' && fitAddonRef.current) {
       // Small delay to ensure the DOM is visible before fitting
       const timer = setTimeout(() => {
-        fitAddonRef.current.fit();
-      }, 50);
+        try {
+          fitAddonRef.current.fit();
+        } catch (e) {
+          console.warn("Terminal fit failed (DOM not ready)");
+        }
+      }, 100);
       return () => clearTimeout(timer);
     }
   }, [activeMobileTab]);
@@ -245,6 +249,11 @@ builtins.input = input_shim
       runRef.current.jobId = jobId;
 
       const socket = getSocket();
+      if (!socket.connected) {
+        setRunStatus("Warning: Offline");
+        xtermRef.current.write("⚠️ Terminal socket disconnected. Attempting to reconnect...\n");
+        socket.connect();
+      }
       socket.emit("subscribe", { jobId });
 
       const onLog = (evt) => {

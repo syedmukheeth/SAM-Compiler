@@ -10,6 +10,10 @@ const { getRunsQueue, getRedisClient, WORKER_HEARTBEAT_KEY } = require("./runs.q
  * ALL languages are executed inline — no queue/worker dependency.
  */
 async function createRun(input) {
+  if (!input.runtime) throw new Error("Runtime/Language is required");
+  if (!input.code && (!input.files || input.files.length === 0)) {
+    throw new Error("No code or files provided for execution");
+  }
   const isConnected = mongoose.connection.readyState >= 1;
 
   let run;

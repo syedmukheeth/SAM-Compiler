@@ -19,5 +19,18 @@ export function getSocket() {
     transports: ["polling", "websocket"],
     secure: window.location.protocol === "https:"
   });
+
+  socket.on("connect", () => {
+    console.log("✅ [LiquidIDE] WebSocket Connected to", endpoint);
+  });
+
+  socket.on("connect_error", (err) => {
+    console.error("❌ [LiquidIDE] WebSocket Connection Error:", err.message);
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.warn("⚠️ [LiquidIDE] WebSocket Disconnected:", reason);
+  });
+
   return socket;
 }

@@ -55,8 +55,14 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
 
           const timeout = setTimeout(() => {
             killed = true;
-            try { ptyProcess.kill(); } catch (e) { /* ignore signal error */ }
-            if (onLog) onLog(jobId, "stderr", "\n❌ Execution Timed Out\n");
+            try { 
+              if (IS_WINDOWS) {
+                execSync(`taskkill /F /T /PID ${ptyProcess.pid}`, { stdio: "ignore" });
+              } else {
+                ptyProcess.kill(); 
+              }
+            } catch (e) { /* ignore signal error */ }
+            if (onLog) onLog(jobId, "stderr", "\n❌ Execution Timed Out after " + (timeoutMs / 1000) + "s\n");
             resolve({ stdout, stderr: "Timed Out", exitCode: 124 });
           }, timeoutMs);
 
@@ -100,7 +106,14 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
       const child = spawn(cmd, args, { ...spawnOpts, windowsHide: true });
       const timeout = setTimeout(() => {
         killed = true;
-        try { child.kill(); } catch (e) { /* ignore */ }
+        try { 
+          if (IS_WINDOWS) {
+            execSync(`taskkill /F /T /PID ${child.pid}`, { stdio: "ignore" });
+          } else {
+            child.kill('SIGKILL'); 
+          }
+        } catch (e) { /* ignore */ }
+        if (onLog) onLog(jobId, "stderr", "\n❌ Execution Timed Out after " + (timeoutMs / 1000) + "s\n");
         resolve({ stdout, stderr: "Timed Out", exitCode: 124 });
       }, timeoutMs);
 
