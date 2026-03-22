@@ -58,20 +58,14 @@ async function createRun(input) {
     await new Promise(resolve => setTimeout(resolve, 800));
     try {
       const runData = (run && typeof run.toObject === "function") ? run.toObject() : run;
-      
-      // Determine if we should attempt direct execution or delegate to worker
       const hostTool = runData.runtime === "cpp" ? "g++" : 
                        runData.runtime === "c" ? "gcc" : 
                        runData.runtime === "java" ? "javac" : null;
                        
-      // If we are on Render (Cloud), we should attempt direct execution ONLY if the tool is available
       const isCloud = !!process.env.RENDER;
       let canRunDirectly = !hostTool || isToolAvailable(hostTool);
       
-      // Safety: Never attempt direct compilation on Vercel
-      if (process.env.VERCEL && hostTool) {
-        canRunDirectly = false;
-      }
+      if (process.env.VERCEL && hostTool) canRunDirectly = false;
 
       if (canRunDirectly) {
         const result = await executeDirectly(runData, emitLog);
@@ -80,46 +74,30 @@ async function createRun(input) {
         run.exitCode = result.exitCode;
         run.status = result.exitCode === 0 ? "succeeded" : "failed";
       } else {
-        // Delegate to worker queue or fail with a helpful message
         const queue = getRunsQueue();
         const redis = getRedisClient();
         let workerOnline = false;
         try {
           workerOnline = redis ? !!(await redis.get(WORKER_HEARTBEAT_KEY)) : false;
         } catch (e) {
-          logger.warn({ e }, "Failed to fetch worker heartbeat during run creation");
+          logger.warn({ e }, "Worker heartbeat check failed");
         }
 
         if (queue && workerOnline) {
-          if (emitLog) emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33m${hostTool} not found in Cloud Sandbox.\x1b[0m\n⏳ \x1b[1;34mDelegating to LiquidIDE Worker (Local)...\x1b[0m\n\r\n`);
-          try {
-            await queue.add("execute", { runId: run._id.toString() });
-          } catch (qErr) {
-            logger.error({ qErr }, "Failed to add job to BullMQ queue");
-            if (emitLog) emitLog(run._id.toString(), "stderr", `\n❌ Queue Failure: ${qErr.message}\n`);
-          }
+          if (emitLog) emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33m${hostTool} delegating to Worker...\x1b[0m\n\r\n`);
+          await queue.add("execute", { runId: run._id.toString() });
           run.status = "queued";
         } else {
-          // No worker and no local tool
-          const msg = workerOnline ? `Redis Queue unreachable` : `${hostTool || "Compiler"} not found and Local Worker is offline`;
-          const workerCommand = "cd apps/worker && npm start";
-          const errMsg = `❌ \x1b[1;31mError: ${msg}.\x1b[0m\n` +
-                         `💡 \x1b[1;36mThis environment (${isCloud ? "Cloud" : "Serverless"}) doesn't have native compilers.\x1b[0m\n\n` +
-                         "\x1b[1;33mTo run compiled languages, please start your local worker:\x1b[0m\n" +
-                         `   \x1b[1;32m${workerCommand}\x1b[0m\n\n` +
-                         "🔗 \x1b[1;34mCloud Tip:\x1b[0m Deploy via Docker (see DEPLOYMENT.md) for 100% cloud execution.\n\r\n";
-          
-          if (emitLog) {
-            emitLog(run._id.toString(), "stderr", errMsg);
-          }
+          const errMsg = `❌ \x1b[1;31mError: ${hostTool || "Compiler"} not found.\x1b[0m\n` +
+                         `💡 \x1b[1;36mStart your local worker to run ${hostTool || "compiled languages"}.\x1b[0m\n\r\n`;
+          if (emitLog) emitLog(run._id.toString(), "stderr", errMsg);
           run.status = "failed";
-          run.stderr = msg;
+          run.stderr = "Compiler not found";
         }
 
         if (useMongo) {
           await RunModel.findByIdAndUpdate(run._id, { 
             status: run.status,
-            stdout: run.stdout,
             stderr: run.stderr
           });
         }
@@ -130,8 +108,7 @@ async function createRun(input) {
       run.finishedAt = new Date();
     } catch (err) {
       logger.error({ err }, "Execution error");
-      run.stderr = `Execution error: ${err.message}`;
-      run.exitCode = 1;
+      run.stderr = err.message;
       run.status = "failed";
       run.finishedAt = new Date();
     }

@@ -178,8 +178,8 @@ async function executeDirectly(run, onLog) {
   const code = mainFile ? mainFile.content : (run.code || "");
 
   if (!runtime) {
-    logger.error({ run }, "Execution failed: No runtime/language specified");
-    throw new Error("Unsupported language/runtime: undefined (Check model consistency)");
+    logger.error({ runId: jobId }, "Execution failed: No runtime specified");
+    throw new Error("Unsupported language/runtime (Check model consistency)");
   }
 
   const tempDir = path.join(os.tmpdir(), `liquid-${jobId}`);

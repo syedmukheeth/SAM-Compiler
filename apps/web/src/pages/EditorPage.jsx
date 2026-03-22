@@ -489,25 +489,21 @@ builtins.input = input_shim
         </section>
       </main>
 
-      <footer className="relative z-20 flex flex-col md:flex-row h-auto md:h-12 shrink-0 items-center justify-between border-t border-white/5 bg-black/60 px-4 md:px-8 py-3 md:py-0 backdrop-blur-xl gap-3 md:gap-0">
-        <div className="flex items-center gap-4 md:gap-6">
+      <footer className="relative z-20 flex h-9 md:h-12 shrink-0 items-center justify-between border-t border-white/5 bg-black/80 px-4 md:px-8 backdrop-blur-3xl">
+        <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className={`h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentcolor] ${isWorkerOnline ? "text-emerald-500 bg-emerald-500" : "text-rose-500 bg-rose-500"}`} />
-            <span className={`text-[10px] font-bold uppercase tracking-widest ${isWorkerOnline ? "text-emerald-500/70" : "text-rose-500/70"}`}>
-              <span className="hidden md:inline">Engine </span>{isWorkerOnline ? "Online" : "Offline"}
+            <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${isWorkerOnline ? "text-emerald-500/70" : "text-rose-500/70"}`}>
+              {isWorkerOnline ? "Online" : "Offline"}
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-4 md:gap-6">
-           <span className="text-[9px] font-bold uppercase tracking-widest text-white/40 flex items-center gap-1.5">
-             Built by 
-             <a href="https://linkedin.com/in/syedmukheeth" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 transition-colors hover:underline underline-offset-4">
-               Syed Mukheeth
-             </a>
+           <span className="hidden sm:inline text-[9px] font-bold uppercase tracking-widest text-white/30">
+             Built by <a href="https://linkedin.com/in/syedmukheeth" target="_blank" rel="noopener noreferrer" className="text-blue-400/60 hover:text-blue-400 transition-colors">Syed Mukheeth</a>
            </span>
-           <div className="hidden md:block h-3 w-px bg-white/10" />
-           <span className="text-[9px] font-bold uppercase tracking-widest text-white/20">© 2026 LiquidIDE</span>
+           <span className="text-[9px] font-bold uppercase tracking-widest text-white/20">© 2026</span>
         </div>
       </footer>
 
