@@ -196,38 +196,32 @@ async function executeDirectly(run, onLog) {
       const filePath = path.join(tempDir, "solution.cpp");
       const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
       await fs.writeFile(filePath, code);
-      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling program...\x1b[0m\n");
       const compile = await execWithTimeout("g++", [filePath, "-o", outPath], 15000, null, null, { noPty: true });
       if (compile.exitCode !== 0) {
         if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
         return { status: "failed", stderr: compile.stderr };
       }
-      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning interactive terminal...\x1b[0m\n\r\n");
       return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
 
     } else if (language === "c") {
       const filePath = path.join(tempDir, "solution.c");
       const outPath = path.join(tempDir, IS_WINDOWS ? "program.exe" : "program");
       await fs.writeFile(filePath, code);
-      if (onLog) onLog(jobId, "stdout", "🔨 \x1b[1;34mCompiling C program...\x1b[0m\n");
       const compile = await execWithTimeout("gcc", [filePath, "-o", outPath], 15000, null, null, { noPty: true });
       if (compile.exitCode !== 0) {
         if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
         return { status: "failed", stderr: compile.stderr };
       }
-      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning interactive terminal...\x1b[0m\n\r\n");
       return await execWithTimeout(outPath, [], 60000, jobId, onLog, { cwd: tempDir });
 
     } else if (language === "python" || language === "python3") {
       const filePath = path.join(tempDir, "solution.py");
       await fs.writeFile(filePath, code);
-      if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Python script...\x1b[0m\n\r\n");
       return await execWithTimeout(IS_WINDOWS ? "python" : "python3", [filePath], 60000, jobId, onLog, { cwd: tempDir, env: { PYTHONUNBUFFERED: "1" } });
 
     } else if (language === "nodejs" || language === "javascript") {
       const filePath = path.join(tempDir, "solution.js");
       await fs.writeFile(filePath, code);
-      if (onLog) onLog(jobId, "stdout", "🚀 \x1b[1;36mRunning Node.js script...\x1b[0m\n\r\n");
       return await execWithTimeout("node", [filePath], 60000, jobId, onLog, { cwd: tempDir });
 
     } else if (language === "java") {
@@ -237,13 +231,11 @@ async function executeDirectly(run, onLog) {
       
       await fs.writeFile(javaFilePath, code);
       
-      if (onLog) onLog(jobId, "stdout", `🔨 \x1b[1;34mCompiling Java (${javaClass})...\x1b[0m\n`);
       const compile = await execWithTimeout("javac", [javaFile], 15000, null, null, { noPty: true, cwd: tempDir });
       if (compile.exitCode !== 0) {
         if (onLog) onLog(jobId, "stderr", compile.stderr || "Compilation failed\n");
         return { status: "failed", stderr: compile.stderr };
       }
-      if (onLog) onLog(jobId, "stdout", "✅ \x1b[1;32mCompilation successful.\x1b[0m\n🚀 \x1b[1;36mRunning Java...\x1b[0m\n\r\n");
       return await execWithTimeout("java", [javaClass], 60000, jobId, onLog, { cwd: tempDir });
 
     }
