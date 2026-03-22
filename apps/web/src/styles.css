@@ -31,6 +31,17 @@ body {
   height: 100vh;
   height: 100dvh; /* Dynamic viewport height for mobile */
   width: 100vw;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hidden-mobile {
+  display: none !important;
+}
+
+@media (min-width: 768px) {
+  .hidden-mobile {
+    display: initial !important;
+  }
 }
 
 /* Mesh Gradient Background */
@@ -70,9 +81,17 @@ body {
   backdrop-filter: blur(40px) saturate(200%);
   -webkit-backdrop-filter: blur(40px) saturate(200%);
   border: 1px solid var(--glass-border);
-  border-radius: 20px; /* Slightly smaller radius for better fit */
+  border-radius: 20px;
   transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+  margin-bottom: 8px;
+}
+
+@media (max-width: 767px) {
+  .glass-card {
+    border-radius: 16px;
+    padding: 2px; /* Subtle inner border effect */
+  }
 }
 
 @media (min-width: 768px) {
@@ -102,6 +121,18 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.1em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .flux-button-primary {
+    padding: 6px 16px;
+    border-radius: 10px;
+  }
 }
 
 .flux-button-primary:hover {
@@ -126,6 +157,18 @@ body {
   font-size: 11px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .flux-button-secondary {
+    padding: 6px 12px;
+    border-radius: 10px;
+  }
 }
 
 .flux-button-secondary:hover {
@@ -133,6 +176,11 @@ body {
   color: white;
   border-color: var(--glass-border-bright);
   transform: translateY(-1px);
+}
+
+.flux-button-secondary:active, .flux-button-primary:active {
+  transform: scale(0.95);
+  filter: brightness(0.9);
 }
 
 /* Animations */

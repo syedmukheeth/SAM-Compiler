@@ -319,8 +319,9 @@ builtins.input = input_shim
               <img src={logo} alt="Logo" className="h-full w-full rounded-[6px] md:rounded-[10px] object-cover" />
             </div>
             <div className="flex flex-col leading-tight">
-              <span className="text-[10px] md:text-[12px] font-black uppercase tracking-widest text-white/90">LiquidIDE</span>
+              <span className="text-[11px] md:text-[14px] font-black uppercase tracking-widest text-white/90">LiquidIDE</span>
               <span className="hidden md:block text-[8px] font-bold uppercase tracking-[0.2em] text-blue-400">Pro Cloud Edition</span>
+              <span className="md:hidden text-[7px] font-bold uppercase tracking-[0.1em] text-blue-400/80">Pro</span>
             </div>
           </div>
           
@@ -337,18 +338,24 @@ builtins.input = input_shim
           </nav>
         </div>
         
-        <div className="flex items-center gap-2 md:gap-5">
+        <div className="flex items-center gap-1.5 md:gap-5">
           {user ? (
-            <div className="flex items-center gap-2 md:gap-3 rounded-full border border-white/5 bg-white/5 py-1 md:py-1.5 pl-3 md:pl-4 pr-1 md:pr-1.5">
+            <div className="flex items-center gap-1.5 md:gap-3 rounded-full border border-white/5 bg-white/5 py-1 md:py-1.5 pl-2 md:pl-4 pr-1 md:pr-1.5">
               <span className="hidden sm:block text-[10px] md:text-[11px] font-bold text-white/80">{user.name}</span>
-              <div className="h-6 w-6 md:h-7 md:w-7 rounded-full border border-white/10 overflow-hidden shadow-lg">
+              <div className="h-5 w-5 md:h-7 md:w-7 rounded-full border border-white/10 overflow-hidden shadow-lg">
                 <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=007AFF&color=fff`} className="h-full w-full object-cover" alt="Avatar" />
               </div>
             </div>
           ) : (
-            <button onClick={() => setActiveModal('auth')} className="flux-button-secondary py-1 md:py-1.5 px-3 md:px-6 text-[10px] md:text-[13px]">Sign In</button>
+            <button onClick={() => setActiveModal('auth')} className="flux-button-secondary py-1 md:py-1.5 px-3 md:px-6 text-[9px] md:text-[13px]">
+              <svg className="md:hidden h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" /></svg>
+              <span className="hidden md:inline">Sign In</span>
+            </button>
           )}
-          <button onClick={() => setActiveModal('upgrade')} className="flux-button-primary animate-shimmer py-1 md:py-1.5 px-3 md:px-6 text-[10px] md:text-[13px]">Upgrade</button>
+          <button onClick={() => setActiveModal('upgrade')} className="flux-button-primary animate-shimmer py-1 md:py-1.5 px-3 md:px-6 text-[9px] md:text-[13px]">
+            <svg className="md:hidden h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <span className="hidden md:inline">Upgrade</span>
+          </button>
           
           <div className="flex md:hidden items-center gap-2">
              <button onClick={() => setActiveModal('history')} className="p-2 text-white/40 hover:text-white">
@@ -391,32 +398,35 @@ builtins.input = input_shim
               <div className="flex items-center gap-2 md:gap-5">
                 <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} isDarkMode={true} />
               </div>
-              <div className="flex items-center gap-2 md:gap-3">
+              <div className="flex items-center gap-1.5 md:gap-3">
                 <button 
                   onClick={onNewFile}
-                  className="flux-button-secondary h-7 px-3 md:px-4 text-[10px] md:text-[11px] flex items-center gap-2"
+                  title="New File"
+                  className="flux-button-secondary h-7 md:h-8 px-2 md:px-4 text-[10px] md:text-[11px] flex items-center gap-2"
                 >
-                  <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  <span>New File</span>
+                  <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                  <span className="hidden md:inline">New File</span>
                 </button>
                 <button 
                   onClick={() => setActiveModal('github')}
-                  className="flux-button-secondary h-7 px-3 md:px-4 text-[10px] md:text-[11px] flex items-center gap-2 border-emerald-500/20 text-emerald-400/80 hover:text-emerald-300 transition-all shadow-[0_0_15px_rgba(16,185,129,0.05)] hover:shadow-[0_0_20px_rgba(16,185,129,0.1)]"
+                  title="Push to GitHub"
+                  className="flux-button-secondary h-7 md:h-8 px-2 md:px-4 text-[10px] md:text-[11px] flex items-center gap-2 border-emerald-500/20 text-emerald-400/80 hover:text-emerald-300 transition-all"
                 >
-                  <svg className="h-3 w-3" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
-                  <span>Push to GitHub</span>
+                  <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
+                  <span className="hidden md:inline">Push</span>
                 </button>
                 <button 
                   onClick={onRun}
                   disabled={busy}
-                  className="flux-button-primary flex items-center gap-2 h-7 px-3 md:px-4 text-[10px] md:text-[11px]"
+                  className="flux-button-primary flex items-center gap-2 h-7 md:h-8 px-3 md:px-5 text-[10px] md:text-[11px]"
                 >
                   {busy ? (
                     <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />
                   ) : (
-                    <svg className="h-2.5 w-2.5 md:h-3 md:w-3" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
+                    <svg className="h-3 w-3 md:h-4 md:w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
                   )}
-                  <span>{busy ? "Executing" : "Run Code"}</span>
+                  <span className="hidden md:inline">{busy ? "Executing" : "Run Code"}</span>
+                  <span className="md:hidden">{busy ? "" : "Run"}</span>
                 </button>
               </div>
             </div>
