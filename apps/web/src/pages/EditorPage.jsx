@@ -31,6 +31,7 @@ export default function EditorPage() {
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
+  const [isApiOnline, setIsApiOnline] = useState(true);
   const [apiVersion, setApiVersion] = useState(null);
   
   const terminalRef = useRef(null);
@@ -45,6 +46,7 @@ export default function EditorPage() {
   useEffect(() => {
     const checkStatus = async () => {
       if (!navigator.onLine) {
+        setIsApiOnline(false);
         setIsWorkerOnline(false);
         return;
       }
@@ -52,12 +54,15 @@ export default function EditorPage() {
         const res = await fetch("/api/runs/health/queue");
         if (res.ok) {
           const data = await res.json();
+          setIsApiOnline(true);
           setIsWorkerOnline(data.workerOnline);
           setApiVersion(data.version);
         } else {
-           setIsWorkerOnline(false);
+          setIsApiOnline(false);
+          setIsWorkerOnline(false);
         }
       } catch (err) {
+        setIsApiOnline(false);
         setIsWorkerOnline(false);
       }
     };
@@ -216,7 +221,7 @@ builtins.input = input_shim
       await pyodide.runPythonAsync(code);
       setRunStatus("Succeeded");
     } catch (err) {
-      xtermRef.current.write(err.message + "\n");
+      xtermRef.current.write(err.message + "\r\n");
       setRunStatus("Failed");
     }
   }
@@ -236,7 +241,7 @@ builtins.input = input_shim
         setBusy(false);
         return;
       } catch (err) {
-        xtermRef.current.write(err.message + "\n");
+        xtermRef.current.write(err.message + "\r\n");
         setRunStatus("Failed");
         setBusy(false);
         return;
@@ -250,8 +255,6 @@ builtins.input = input_shim
 
       const socket = getSocket();
       if (!socket.connected) {
-        setRunStatus("Warning: Offline");
-        xtermRef.current.write("⚠️ Terminal socket disconnected. Attempting to reconnect...\n");
         socket.connect();
       }
       socket.emit("subscribe", { jobId });
@@ -299,7 +302,7 @@ builtins.input = input_shim
       saveHistory(code, activeConfig.name, activeLangId);
     } catch (e) {
       setRunStatus("Failed");
-      xtermRef.current.write((e?.message || String(e)) + "\n");
+      xtermRef.current.write((e?.message || String(e)) + "\r\n");
     } finally {
       setBusy(false);
     }
@@ -506,9 +509,9 @@ builtins.input = input_shim
       <footer className="relative z-20 flex h-11 md:h-12 shrink-0 items-center justify-between border-t border-white/5 bg-black md:bg-black/80 px-4 md:px-8 md:backdrop-blur-3xl">
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
-            <div className={`h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentcolor] ${isWorkerOnline ? "text-emerald-500 bg-emerald-500" : "text-rose-500 bg-rose-500"}`} />
-            <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${isWorkerOnline ? "text-emerald-500/70" : "text-rose-500/70"}`}>
-              {isWorkerOnline ? "Online" : "Offline"}
+            <div className={`h-1.5 w-1.5 rounded-full shadow-[0_0_8px_currentcolor] ${isApiOnline ? "text-emerald-500 bg-emerald-500" : "text-rose-500 bg-rose-500"}`} />
+            <span className={`text-[9px] md:text-[10px] font-bold uppercase tracking-widest ${isApiOnline ? "text-emerald-500/70" : "text-rose-500/70"}`}>
+              {isApiOnline ? "Online" : "Offline"}
             </span>
           </div>
         </div>
