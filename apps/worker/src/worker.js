@@ -61,12 +61,19 @@ async function main() {
       run.startedAt = new Date();
       await run.save();
 
+      const logChannel = `run:logs:${run._id}`;
+      const publishLog = (type, chunk) => {
+        redisClient.publish(logChannel, JSON.stringify({ type, chunk })).catch(err => {
+          logger.error({ err, runId: run._id }, "Failed to publish log to Redis");
+        });
+      };
+
       try {
         const { stdout, stderr, exitCode } = await executeRun({
           language: run.runtime,
           files: run.files,
           entrypoint: run.entrypoint
-        });
+        }, publishLog);
 
         run.stdout = stdout;
         run.stderr = stderr;
@@ -78,9 +85,11 @@ async function main() {
         const msg = err instanceof Error ? err.stack || err.message : String(err);
         run.stderr = (run.stderr ?? "") + "\n" + msg;
         run.exitCode = run.exitCode ?? 1;
+        publishLog("stderr", msg);
       } finally {
         run.finishedAt = new Date();
         await run.save();
+        publishLog("end", { status: run.status });
         logger.info({ runId: run._id, status: run.status }, "Job finished");
       }
     },

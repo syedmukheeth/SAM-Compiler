@@ -36,7 +36,7 @@ const LANGUAGE_CONFIGS = {
   }
 };
 
-async function executeRun(opts) {
+async function executeRun(opts, onLog) {
   const { language, files, entrypoint } = opts;
   const config = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS.javascript;
   
@@ -60,7 +60,7 @@ async function executeRun(opts) {
         config.image,
         ...config.command(entry, files.find(f => f.path === entrypoint)?.content || "")
       ];
-      return await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000);
+      return await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000, { onLog });
     } catch (dockerErr) {
       if (dockerErr.code !== "ENOENT") throw dockerErr;
       
@@ -115,7 +115,7 @@ async function executeRun(opts) {
           exitCode: 127
         };
       }
-      return await execWithTimeout(cmd, args, env.RUN_TIMEOUT_MS || 10000, { cwd: runDir });
+      return await execWithTimeout(cmd, args, env.RUN_TIMEOUT_MS || 10000, { cwd: runDir, onLog });
     }
   } catch (err) {
     return { stdout: "", stderr: `Execution Error: ${err.message}`, exitCode: 1 };
@@ -143,14 +143,27 @@ function sanitizeRelPath(p) {
 }
 
 function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
+  const { onLog, ...spawnOpts } = opts;
   return new Promise((resolve, reject) => {
     try {
-      const child = spawn(cmd, args, { ...opts, windowsHide: true });
+      const child = spawn(cmd, args, { ...spawnOpts, windowsHide: true });
       let stdout = "";
       let stderr = "";
       
-      if (child.stdout) child.stdout.on("data", (d) => (stdout += d.toString()));
-      if (child.stderr) child.stderr.on("data", (d) => (stderr += d.toString()));
+      if (child.stdout) {
+        child.stdout.on("data", (d) => {
+          const chunk = d.toString();
+          stdout += chunk;
+          if (onLog) onLog("stdout", chunk);
+        });
+      }
+      if (child.stderr) {
+        child.stderr.on("data", (d) => {
+          const chunk = d.toString();
+          stderr += chunk;
+          if (onLog) onLog("stderr", chunk);
+        });
+      }
 
       const timeout = setTimeout(() => {
         try { child.kill("SIGKILL"); } catch (e) { /* ignore kill error */ void e; }

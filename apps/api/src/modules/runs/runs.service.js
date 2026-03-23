@@ -117,7 +117,6 @@ async function createRun(input) {
           });
         }
         
-        if (emitLog) emitLog(run._id.toString(), "end", { status: run.status });
         return;
       }
       run.finishedAt = new Date();
