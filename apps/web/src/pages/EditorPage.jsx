@@ -15,11 +15,11 @@ import UpgradeModal from "../components/UpgradeModal";
 import { useAuth } from "../hooks/useAuth";
 
 const languageConfigs = {
-  cpp: { name: "solution.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: `#include <iostream>\n\nint main() {\n  // Write your code here\n  std::cout << "Hello from LiquidIDE C++" << std::endl;\n  return 0;\n}\n`, lang: "cpp" },
-  c: { name: "solution.c", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg", template: `#include <stdio.h>\n\nint main() {\n  // Write your code here\n  printf("Hello from LiquidIDE C\\n");\n  return 0;\n}\n`, lang: "c" },
-  python: { name: "solution.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: `print("Hello from LiquidIDE Python")\n`, lang: "python" },
-  javascript: { name: "solution.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg", template: `// Write your code here\nconsole.log("Hello from LiquidIDE JS");\n`, lang: "javascript" },
-  java: { name: "Solution.java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg", template: `import java.util.*;\n\npublic class Solution {\n  public static void main(String[] args) {\n    // Write your code here\n    System.out.println("Hello from LiquidIDE Java");\n  }\n}\n`, lang: "java" }
+  cpp: { name: "solution.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: "", lang: "cpp" },
+  c: { name: "solution.c", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg", template: "", lang: "c" },
+  python: { name: "solution.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: "", lang: "python" },
+  javascript: { name: "solution.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg", template: "", lang: "javascript" },
+  java: { name: "Solution.java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg", template: "", lang: "java" }
 };
 
 export default function EditorPage() {
@@ -311,8 +311,9 @@ builtins.input = input_shim
   };
 
   const onNewFile = () => {
-    if (confirm("Are you sure? This will clear the current code.")) {
+    if (confirm("Create new file? This will clear everything for this language.")) {
       setBuffers(prev => ({ ...prev, [activeLangId]: "" }));
+      setFileNames(prev => ({ ...prev, [activeLangId]: languageConfigs[activeLangId].name }));
     }
   };
 
@@ -421,13 +422,22 @@ builtins.input = input_shim
                     className="bg-transparent border-none outline-none text-[9px] md:text-[11px] font-mono text-white/80 w-20 md:w-32 py-1"
                     placeholder="filename..."
                   />
-                  <button 
-                    onClick={onNewFile}
-                    title="Clear Content"
-                    className="p-1 text-white/40 hover:text-white transition-colors"
-                  >
-                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                  </button>
+                  <div className="flex items-center gap-1 border-l border-white/10 pl-2">
+                    <button 
+                      onClick={onNewFile}
+                      title="New File"
+                      className="p-1 text-white/40 hover:text-white transition-colors"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
+                    </button>
+                    <button 
+                      onClick={() => setBuffers(prev => ({ ...prev, [activeLangId]: "" }))}
+                      title="Clear Content"
+                      className="p-1 text-white/40 hover:text-red-400 transition-colors"
+                    >
+                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    </button>
+                  </div>
                 </div>
                 <button 
                   onClick={() => setActiveModal('github')}
@@ -540,7 +550,15 @@ builtins.input = input_shim
         onSwitch={(id) => setActiveLangId(id)}
         onPushFile={(id) => { setActiveLangId(id); setActiveModal('github'); }}
       />
-      <GithubModal isOpen={activeModal === 'github'} onClose={() => setActiveModal(null)} code={buffers[activeLangId]} isDarkMode={true} filename={fileNames[activeLangId]} user={user} />
+      <GithubModal 
+        key={fileNames[activeLangId]}
+        isOpen={activeModal === 'github'} 
+        onClose={() => setActiveModal(null)} 
+        code={buffers[activeLangId]} 
+        isDarkMode={true} 
+        filename={fileNames[activeLangId]} 
+        user={user} 
+      />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
     </div>
   );
