@@ -48,5 +48,8 @@ if (!result.success) {
   env = result.data;
 }
 
-module.exports = { env };
+const isVercel = !!process.env.VERCEL;
+const isProduction = process.env.NODE_ENV === "production";
+
+module.exports = { env, isVercel, isProduction };
 

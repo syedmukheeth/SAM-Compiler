@@ -1,8 +1,10 @@
 const mongoose = require("mongoose");
 const { RunModel } = require("./runs.model");
 const { executeDirectly, isToolAvailable } = require("./directExecutor");
+const { executeViaPiston } = require("./pistonExecutor");
 const { logger } = require("../../config/logger");
 const { emitLog } = require("./socketHandler");
+const { env, isVercel } = require("../../config/env");
 const { getRunsQueue, getRedisClient, WORKER_HEARTBEAT_KEY } = require("./runs.queue");
 
 /**
@@ -92,22 +94,29 @@ async function createRun(input) {
           await queue.add("execute", { runId: run._id.toString() });
           run.status = "queued";
         } else {
-          const isVercel = !!process.env.VERCEL;
-          const toolName = hostTool === 'javac' ? 'JDK' : hostTool === 'g++' ? 'G++' : hostTool === 'gcc' ? 'GCC' : 'Compiler';
-          
-          let errMsg = `❌ \x1b[1;31mError: ${hostTool || "Compiler"} not found.\x1b[0m\n`;
-          
-          if (isVercel) {
-            errMsg += `💡 \x1b[1;36mLiquidIDE Vercel requires an external worker for compiled languages (${hostTool}).\x1b[0m\n` +
-                      `💡 \x1b[1;36mPlease start your LiquidIDE worker locally to process this run.\x1b[0m\n\r\n`;
-          } else {
-            errMsg += `💡 \x1b[1;36mIf running locally, ensure ${toolName} is installed and in your PATH.\x1b[0m\n` +
-                      `💡 \x1b[1;36mOtherwise, start your LiquidIDE worker to handle compiled languages.\x1b[0m\n\r\n`;
-          }
+          // 🚀 SENIOR FIX: Piston API Fallback for Cloud Sandbox
+          try {
+            const result = await executeViaPiston(runData, emitLog);
+            run.stdout = result.stdout;
+            run.stderr = result.stderr;
+            run.exitCode = result.exitCode;
+            run.status = result.status;
+          } catch (pistonErr) {
+            const toolName = hostTool === 'javac' ? 'JDK' : hostTool === 'g++' ? 'G++' : hostTool === 'gcc' ? 'GCC' : 'Compiler';
+            let errMsg = `❌ \x1b[1;31mError: ${hostTool || "Compiler"} not found.\x1b[0m\n`;
+            
+            if (isVercel) {
+              errMsg += `💡 \x1b[1;36mCloud Sandbox: Fallback execution failed.\x1b[0m\n` +
+                        `💡 \x1b[1;36mPlease start your LiquidIDE worker locally for high-performance runs.\x1b[0m\n\r\n`;
+            } else {
+              errMsg += `💡 \x1b[1;36mIf running locally, ensure ${toolName} is installed and in your PATH.\x1b[0m\n` +
+                        `💡 \x1b[1;36mOtherwise, start your LiquidIDE worker.\x1b[0m\n\r\n`;
+            }
 
-          if (emitLog) emitLog(run._id.toString(), "stderr", errMsg);
-          run.status = "failed";
-          run.stderr = isVercel ? "Worker offline (Required for Vercel)" : "Compiler not found";
+            if (emitLog) emitLog(run._id.toString(), "stderr", errMsg);
+            run.status = "failed";
+            run.stderr = `Piston Fallback Failed: ${pistonErr.message}`;
+          }
         }
 
         if (useMongo) {
@@ -191,12 +200,12 @@ async function getQueueStatus() {
     online: true, // API is online
     workerOnline, // Actual worker status
     version: "0.6.0-STABLE",
-    mode: isCloud ? "cloud-native" : "hybrid-distributed",
-    message: isCloud 
-      ? "Engine is running in Cloud-Native mode (All compilers active)."
+    mode: isVercel ? "cloud-native" : "hybrid-distributed",
+    message: isVercel
+      ? "Engine is running in Cloud-Native mode (Piston fallback active)."
       : (workerOnline 
           ? "Worker is online and ready for compiled languages." 
-          : "Worker is offline. Compiled languages (C++/Java) will be queued."),
+          : "Worker is offline. Local compilers or Piston fallback will be used."),
     timestamp: new Date().toISOString()
   };
 }
