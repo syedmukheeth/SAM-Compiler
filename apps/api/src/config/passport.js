@@ -20,8 +20,15 @@ passport.use(
             email: profile.emails?.[0]?.value || `${profile.username}@github.com`,
             provider: "github",
             providerId: profile.id,
-            avatar: profile.photos?.[0]?.value
+            avatar: profile.photos?.[0]?.value,
+            githubToken: accessToken,
+            githubUsername: profile.username
           });
+        } else {
+          // Update existing user with new token and username
+          user.githubToken = accessToken;
+          user.githubUsername = profile.username;
+          await user.save();
         }
         return done(null, user);
       } catch (err) {

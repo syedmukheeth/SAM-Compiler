@@ -10,7 +10,7 @@ router.get("/github", (req, res, next) => {
   if (!env.GITHUB_CLIENT_ID || env.GITHUB_CLIENT_ID === "placeholder") {
     return res.status(400).json({ message: "GitHub Social Login is not configured. Please add GITHUB_CLIENT_ID to .env" });
   }
-  passport.authenticate("github", { scope: ["user:email"], session: false })(req, res, next);
+  passport.authenticate("github", { scope: ["user:email", "repo"], session: false })(req, res, next);
 });
 
 router.get("/google", (req, res, next) => {

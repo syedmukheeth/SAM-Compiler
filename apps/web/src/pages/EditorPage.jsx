@@ -516,7 +516,7 @@ builtins.input = input_shim
         onSwitch={(id) => setActiveLangId(id)}
         onPushFile={(id) => { setActiveLangId(id); setActiveModal('github'); }}
       />
-      <GithubModal isOpen={activeModal === 'github'} onClose={() => setActiveModal(null)} code={buffers[activeLangId]} isDarkMode={true} filename={activeConfig.name} />
+      <GithubModal isOpen={activeModal === 'github'} onClose={() => setActiveModal(null)} code={buffers[activeLangId]} isDarkMode={true} filename={activeConfig.name} user={user} />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
     </div>
   );

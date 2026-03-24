@@ -1,11 +1,19 @@
-async function pushToGithub({ token, repo, path, content, message }) {
+async function pushToGithub({ token, repo, path, content, message, user: authUser }) {
   const { Octokit } = await import("@octokit/rest");
-  const octokit = new Octokit({ auth: token });
+  
+  // Use provided token or fallback to user's stored OAuth token
+  const githubToken = token || authUser?.githubToken;
+  if (!githubToken) {
+    throw new Error("GitHub Authentication required. Please provide a PAT or link your GitHub account.");
+  }
+
+  const octokit = new Octokit({ auth: githubToken });
 
   try {
-    // 1. Get current user's login
-    const { data: user } = await octokit.rest.users.getAuthenticated();
-    const owner = user.login;
+    // 1. Get current user's login (owner)
+    // Preference: use the token to get the actual owner of the token
+    const { data: ghUser } = await octokit.rest.users.getAuthenticated();
+    const owner = ghUser.login;
 
     // 2. Try to get the file to see if it exists (for SHA)
     let sha;

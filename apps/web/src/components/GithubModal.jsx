@@ -1,13 +1,15 @@
 import React, { useState } from "react";
 import Modal from "./Modal";
 
-export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "solution.txt" }) {
+export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "solution.txt", user }) {
   const [token, setToken] = useState(localStorage.getItem("gh_token") || "");
   const [repo, setRepo] = useState(localStorage.getItem("gh_repo") || "");
   const [path, setPath] = useState(filename);
   const [message, setMessage] = useState(`Update ${filename} via LiquidIDE`);
   const [status, setStatus] = useState("Ready");
   const [error, setError] = useState(null);
+
+  const isConnected = !!user?.githubToken;
 
   // Sync path and message when filename changes
   React.useEffect(() => {
@@ -47,16 +49,51 @@ export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "sol
     <Modal isOpen={isOpen} onClose={onClose} title="Push to GitHub" isDarkMode={isDarkMode}>
       <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="space-y-4">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Personal Access Token</label>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              placeholder="ghp_xxxxxxxxxxxx"
-              className="w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-[13px] text-white outline-none focus:border-blue-500/50"
-            />
-          </div>
+          {isConnected ? (
+            <div className="flex items-center gap-3 rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-4">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                <GithubLogo />
+              </div>
+              <div className="flex-1">
+                <p className="text-[11px] font-black uppercase tracking-wider text-emerald-400">Connected to GitHub</p>
+                <p className="text-[12px] font-bold text-white/60">Pushing as <span className="text-white">@{user.githubUsername}</span></p>
+              </div>
+              <button 
+                onClick={() => window.location.href = "/api/auth/github"}
+                className="text-[10px] font-bold text-white/40 hover:text-white transition-colors"
+                title="Reconnect Account"
+              >
+                Reconnect
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4 text-center">
+                 <p className="text-[11px] font-bold text-white/60 mb-3">Link your account for direct push</p>
+                 <button 
+                  onClick={() => window.location.href = "/api/auth/github"}
+                  className="liquid-button-secondary w-full py-2 text-[10px]"
+                >
+                  Connect GitHub
+                </button>
+              </div>
+              <div className="relative text-center">
+                <span className="absolute inset-0 flex items-center"><span className="w-full border-t border-white/5"></span></span>
+                <span className="relative bg-[#111] px-2 text-[8px] font-bold uppercase tracking-widest text-white/20">or use manual token</span>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Personal Access Token</label>
+                <input
+                  type="password"
+                  value={token}
+                  onChange={(e) => setToken(e.target.value)}
+                  placeholder="ghp_xxxxxxxxxxxx"
+                  className="w-full rounded-xl border border-white/5 bg-white/5 px-4 py-3 text-[13px] text-white outline-none focus:border-blue-500/50"
+                />
+              </div>
+            </div>
+          )}
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-[10px] font-black uppercase tracking-widest text-white/40">Repository Name</label>

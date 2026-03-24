@@ -8,6 +8,8 @@ const UserSchema = new mongoose.Schema({
   avatar: { type: String },
   provider: { type: String, enum: ['email', 'github', 'google'], default: 'email' },
   providerId: { type: String },
+  githubToken: { type: String },
+  githubUsername: { type: String },
   isVerified: { type: Boolean, default: false },
   role: { type: String, enum: ['user', 'admin'], default: 'user' }
 }, {
