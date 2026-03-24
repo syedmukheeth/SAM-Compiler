@@ -17,6 +17,7 @@ async function connectMongo() {
     cachedConn = mongoose.connect(env.MONGO_URI, {
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      maxPoolSize: 100, // Handle up to 100 concurrent DB operations
     });
 
     await cachedConn;

@@ -1,3 +1,5 @@
+const compression = require("compression");
+const rateLimit = require("express-rate-limit");
 const cors = require("cors");
 const express = require("express");
 const helmet = require("helmet");
@@ -11,7 +13,27 @@ const { authRouter } = require("./modules/auth/auth.routes");
 function createApp() {
   const app = express();
 
-  // Handle /api prefix transparency - MUST BE FIRST
+  // Rate Limiting - Global & Run Specific
+  const globalLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // Limit each IP to 100 requests per window
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many requests from this IP, please try again later." }
+  });
+
+  const runLimiter = rateLimit({
+    windowMs: 1 * 60 * 1000, // 1 minute
+    max: 10, // Limit each IP to 10 runs per minute
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many code executions. Please wait a minute." }
+  });
+
+  app.use(compression()); // Compress all responses
+  app.use(globalLimiter);
+
+  // Handle /api prefix transparency - MUST BE FIRST (after middleware)
   app.use((req, _res, next) => {
     const oldPath = req.url;
     if (req.url.startsWith("/api/")) {
@@ -52,7 +74,7 @@ function createApp() {
   
   // Standard routes handled at root (prefix stripping done in entry point)
   const routes = express.Router();
-  routes.use("/runs", runsRouter);
+  routes.use("/runs", runLimiter, runsRouter);
   routes.use("/github", githubRouter);
   routes.use("/auth", authRouter);
   routes.get("/health", (_req, res) => res.json({ status: "ok", origin: "api-router" }));

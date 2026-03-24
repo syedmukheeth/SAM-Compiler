@@ -93,7 +93,7 @@ async function main() {
         logger.info({ runId: run._id, status: run.status }, "Job finished");
       }
     },
-    { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: 10 }
+    { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "20") }
   );
 
   worker.on("failed", (job, err) => {
