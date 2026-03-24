@@ -27,7 +27,18 @@ export default function EditorPage() {
   const [buffers, setBuffers] = useState(
     Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.template]))
   );
+  const [fileNames, setFileNames] = useState(
+    Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.name]))
+  );
   const [runStatus, setRunStatus] = useState("Ready");
+
+  // Pre-connect socket for performance
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket.connected) {
+      socket.connect();
+    }
+  }, []);
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
@@ -235,11 +246,16 @@ builtins.input = input_shim
       const { jobId } = await submitRun({ language, code });
       runRef.current.jobId = jobId;
 
+      // Ensure socket is connected before subscribing
       const socket = getSocket();
+      const sendSubscription = () => socket.emit("subscribe", { jobId });
+      
       if (!socket.connected) {
+        socket.once("connect", sendSubscription);
         socket.connect();
+      } else {
+        sendSubscription();
       }
-      socket.emit("subscribe", { jobId });
 
       const onLog = (evt) => {
         if (!evt || runRef.current.jobId !== jobId) return;
@@ -296,7 +312,7 @@ builtins.input = input_shim
 
   const onNewFile = () => {
     if (confirm("Are you sure? This will clear the current code.")) {
-      setBuffers(prev => ({ ...prev, [activeLangId]: languageConfigs[activeLangId].template }));
+      setBuffers(prev => ({ ...prev, [activeLangId]: "" }));
     }
   };
 
@@ -397,14 +413,22 @@ builtins.input = input_shim
                 <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} isDarkMode={true} />
               </div>
               <div className="flex items-center gap-1.5 md:gap-3">
-                <button 
-                  onClick={onNewFile}
-                  title="New File"
-                  className="liquid-button-secondary h-7 md:h-8 px-2 md:px-4 text-[10px] md:text-[11px] flex items-center gap-2"
-                >
-                  <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                  <span className="hidden md:inline">New File</span>
-                </button>
+                <div className="flex items-center bg-white/5 rounded-lg border border-white/10 px-2 gap-2 mr-1 md:mr-2">
+                   <input 
+                    type="text"
+                    value={fileNames[activeLangId]}
+                    onChange={(e) => setFileNames(prev => ({ ...prev, [activeLangId]: e.target.value }))}
+                    className="bg-transparent border-none outline-none text-[9px] md:text-[11px] font-mono text-white/80 w-20 md:w-32 py-1"
+                    placeholder="filename..."
+                  />
+                  <button 
+                    onClick={onNewFile}
+                    title="Clear Content"
+                    className="p-1 text-white/40 hover:text-white transition-colors"
+                  >
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                  </button>
+                </div>
                 <button 
                   onClick={() => setActiveModal('github')}
                   title="Push to GitHub"
@@ -516,7 +540,7 @@ builtins.input = input_shim
         onSwitch={(id) => setActiveLangId(id)}
         onPushFile={(id) => { setActiveLangId(id); setActiveModal('github'); }}
       />
-      <GithubModal isOpen={activeModal === 'github'} onClose={() => setActiveModal(null)} code={buffers[activeLangId]} isDarkMode={true} filename={activeConfig.name} user={user} />
+      <GithubModal isOpen={activeModal === 'github'} onClose={() => setActiveModal(null)} code={buffers[activeLangId]} isDarkMode={true} filename={fileNames[activeLangId]} user={user} />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
     </div>
   );

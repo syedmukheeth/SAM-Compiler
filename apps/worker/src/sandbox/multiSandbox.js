@@ -115,20 +115,32 @@ async function executeRun(opts, onLog) {
       
       // Verify the command or the first part of the shell script exists
       try {
-        const checkCmd = isWin ? `where ${cmd}` : `command -v ${cmd}`;
         const { execSync } = require("node:child_process");
-        execSync(checkCmd, { stdio: "ignore" });
+        const checkCmd = isWin ? `where ${cmd}` : `command -v ${cmd}`;
+        try {
+          execSync(checkCmd, { stdio: "ignore" });
+        } catch (err) {
+          console.warn(`Warning: Shell command '${cmd}' not found in PATH via '${checkCmd}'. Attempting execution anyway...`);
+        }
         
         // If it's a compiler command, also check the compiler itself inside the shell script
         if (language === "cpp" || language === "c" || language === "java") {
             const tool = language === "cpp" ? "g++" : language === "c" ? "gcc" : "javac";
             const checkTool = isWin ? `where ${tool}` : `command -v ${tool}`;
-            execSync(checkTool, { stdio: "ignore" });
+            try {
+              execSync(checkTool, { stdio: "ignore" });
+            } catch (err) {
+               // If it's Java, we can be more specific
+               if (language === "java") {
+                 throw new Error(`javac (Java Compiler) not found. Please ensure JDK is installed and in your PATH.\n- PATH searched: ${process.env.PATH}`);
+               }
+               throw new Error(`${tool} not found. Please install the ${language.toUpperCase()} compiler.`);
+            }
         }
       } catch (e) {
         return {
           stdout: "",
-          stderr: `LiquidIDE Worker Error:\n- ${language} compiler/runtime is not installed on this local machine.\n- PATH: ${process.env.PATH}\n\nPlease install ${language === "cpp" ? "G++ (MinGW/GCC)" : language === "java" ? "JDK" : language} to continue.`,
+          stderr: `LiquidIDE Worker Error:\n- ${e.message}\n\n💡 If running locally, ensure the compiler is installed and in your PATH.\n💡 Otherwise, use the Cloud Sandbox (Docker).`,
           exitCode: 127
         };
       }
