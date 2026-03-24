@@ -15,11 +15,36 @@ import UpgradeModal from "../components/UpgradeModal";
 import { useAuth } from "../hooks/useAuth";
 
 const languageConfigs = {
-  cpp: { name: "solution.cpp", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg", template: "", lang: "cpp" },
-  c: { name: "solution.c", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg", template: "", lang: "c" },
-  python: { name: "solution.py", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg", template: "", lang: "python" },
-  javascript: { name: "solution.js", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg", template: "", lang: "javascript" },
-  java: { name: "Solution.java", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg", template: "", lang: "java" }
+  cpp: {
+    name: "solution.cpp",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg",
+    template: "#include <iostream>\n\nint main() {\n    std::cout << \"Hello, LiquidIDE!\" << std::endl;\n    return 0;\n}",
+    lang: "cpp"
+  },
+  c: {
+    name: "solution.c",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg",
+    template: "#include <stdio.h>\n\nint main() {\n    printf(\"Hello, LiquidIDE!\\n\");\n    return 0;\n}",
+    lang: "c"
+  },
+  python: {
+    name: "solution.py",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
+    template: "print(\"Hello, LiquidIDE!\")",
+    lang: "python"
+  },
+  javascript: {
+    name: "solution.js",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
+    template: "console.log(\"Hello, LiquidIDE!\");",
+    lang: "javascript"
+  },
+  java: {
+    name: "Solution.java",
+    icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
+    template: "public class Solution {\n    public static void main(String[] args) {\n        System.out.println(\"Hello, LiquidIDE!\");\n    }\n}",
+    lang: "java"
+  }
 };
 
 export default function EditorPage() {
@@ -311,8 +336,8 @@ builtins.input = input_shim
   };
 
   const onNewFile = () => {
-    if (confirm("Create new file? This will clear everything for this language.")) {
-      setBuffers(prev => ({ ...prev, [activeLangId]: "" }));
+    if (confirm("Create new file? This will reset the code for this language.")) {
+      setBuffers(prev => ({ ...prev, [activeLangId]: languageConfigs[activeLangId].template }));
       setFileNames(prev => ({ ...prev, [activeLangId]: languageConfigs[activeLangId].name }));
     }
   };
