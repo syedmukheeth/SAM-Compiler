@@ -1,6 +1,7 @@
 const express = require("express");
 const { pushToGithub } = require("./github.service");
 const { authMiddleware } = require("../../middleware/auth.middleware");
+const { getUserById } = require("../auth/auth.service");
 const router = express.Router();
 
 router.post("/push", authMiddleware, async (req, res, next) => {
@@ -11,13 +12,16 @@ router.post("/push", authMiddleware, async (req, res, next) => {
   }
 
   try {
+    // Fetch full user to get githubToken (not stored in JWT)
+    const fullUser = await getUserById(req.user.id);
+    
     const result = await pushToGithub({ 
-      token: token || req.user.githubToken, 
+      token: token || fullUser?.githubToken, 
       repo, 
       path, 
       content, 
       message,
-      user: req.user 
+      user: fullUser 
     });
     res.json(result);
   } catch (err) {
