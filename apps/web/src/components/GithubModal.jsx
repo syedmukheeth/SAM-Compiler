@@ -1,8 +1,7 @@
 import React, { useState } from "react";
 import Modal from "./Modal";
 
-export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "solution.txt", user }) {
-  const [token, setToken] = useState(localStorage.getItem("gh_token") || "");
+export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "solution.txt", user, authToken }) {
   const [repo, setRepo] = useState(localStorage.getItem("gh_repo") || "");
   const [path, setPath] = useState(filename);
   const [message, setMessage] = useState(`Update ${filename} via LiquidIDE`);
@@ -18,17 +17,24 @@ export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "sol
   }, [filename]);
 
   const onPush = async () => {
+    if (!repo.trim()) {
+      setError("Repository name is required");
+      return;
+    }
+
     setStatus("Pushing...");
     setError(null);
-    localStorage.setItem("gh_token", token);
     localStorage.setItem("gh_repo", repo);
     localStorage.setItem("gh_path", path);
 
     try {
       const res = await fetch("/api/github/push", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ token, repo, path, content: code, message }),
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${authToken}`
+        },
+        body: JSON.stringify({ repo, path, content: code, message }),
       });
 
       const data = await res.json();

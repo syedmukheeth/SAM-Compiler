@@ -75,7 +75,7 @@ export default function EditorPage() {
   const fitAddonRef = useRef(null);
   const [activeMobileTab, setActiveMobileTab] = useState("editor"); // "editor" or "terminal"
   
-  const { user, loginUser, logoutUser } = useAuth();
+  const { user, token: authToken, loginUser, logoutUser } = useAuth();
 
 
   // Poll worker status
@@ -591,6 +591,7 @@ builtins.input = input_shim
         isDarkMode={true} 
         filename={fileNames[activeLangId]} 
         user={user} 
+        authToken={authToken}
       />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
     </div>
