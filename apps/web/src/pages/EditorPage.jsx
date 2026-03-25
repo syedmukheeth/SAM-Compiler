@@ -349,12 +349,12 @@ builtins.input = input_shim
 
       <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between border-b border-white/5 bg-black md:bg-black/20 px-4 md:px-8 md:backdrop-blur-2xl">
         <div className="flex items-center gap-4 md:gap-10">
-          <div className="flex items-center gap-2 md:gap-3 transition-transform hover:scale-[1.02]">
+          <div className="flex items-center gap-2 md:gap-3 transition-transform hover:scale-[1.02] shrink-0">
             <div className="flex h-7 w-7 md:h-9 md:w-9 overflow-hidden rounded-lg md:rounded-xl border border-white/10 bg-gradient-to-br from-blue-600 to-indigo-700 p-0.5 shadow-2xl">
               <img src={logo} alt="Logo" className="h-full w-full rounded-[6px] md:rounded-[10px] object-cover" />
             </div>
-            <div className="hidden sm:flex flex-col leading-tight">
-              <span className="text-[11px] md:text-[14px] font-black uppercase tracking-widest text-white/90">LiquidIDE</span>
+            <div className="flex flex-col leading-tight">
+              <span className="text-[10px] md:text-[14px] font-black uppercase tracking-widest text-white/90">LiquidIDE</span>
               <span className="hidden md:block text-[8px] font-bold uppercase tracking-[0.2em] text-blue-400">Pro Cloud Edition</span>
             </div>
           </div>
@@ -374,8 +374,8 @@ builtins.input = input_shim
         
         <div className="flex items-center gap-1.5 md:gap-5">
           {user ? (
-            <div className="flex items-center gap-1.5 md:gap-3 rounded-full border border-white/5 bg-white/5 py-1 md:py-1.5 pl-2 md:pl-4 pr-1 md:pr-1.5">
-              <span className="hidden sm:block text-[10px] md:text-[11px] font-bold text-white/80">{user.name}</span>
+            <div className="flex items-center gap-1.5 md:gap-3 rounded-full border border-white/5 bg-white/5 py-1 md:py-1.5 pl-2 md:pl-4 pr-1 md:pr-1.5 shrink-0">
+              <span className="hidden lg:block text-[10px] md:text-[11px] font-bold text-white/80">{user.name}</span>
               <div className="h-6 w-6 md:h-7 md:w-7 rounded-full border border-white/10 overflow-hidden shadow-lg">
                 <img src={user.avatar || `https://ui-avatars.com/api/?name=${user.name}&background=007AFF&color=fff`} className="h-full w-full object-cover" alt="Avatar" />
               </div>
@@ -383,18 +383,18 @@ builtins.input = input_shim
           ) : (
             <button 
               onClick={() => setActiveModal('auth')} 
-              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 pr-4 transition-all hover:bg-white/10"
+              className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 pr-3 md:pr-4 transition-all hover:bg-white/10 shrink-0"
               title="Sign In"
             >
-              <div className="h-7 w-7 md:h-8 md:w-8 overflow-hidden rounded-full border border-white/20 bg-blue-600/20">
+              <div className="h-6 w-6 md:h-8 md:w-8 overflow-hidden rounded-full border border-white/20 bg-blue-600/20">
                 <img src={logo} alt="Login" className="h-full w-full object-cover" />
               </div>
-              <span className="text-[10px] md:text-[12px] font-black uppercase tracking-widest text-white/80">Sign In</span>
+              <span className="text-[9px] md:text-[12px] font-black uppercase tracking-widest text-white/80">Sign In</span>
             </button>
           )}
-          <button onClick={() => setActiveModal('upgrade')} className="liquid-button-primary animate-shimmer py-1.5 md:py-1.5 px-3 md:px-6 text-[10px] md:text-[13px]">
-            <svg className="h-4 w-4 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            <span className="hidden md:inline">Upgrade</span>
+          <button onClick={() => setActiveModal('upgrade')} className="liquid-button-primary animate-shimmer py-1 px-3 md:py-1.5 md:px-6 text-[9px] md:text-[13px] shrink-0">
+            <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <span className="hidden sm:inline">Upgrade</span>
           </button>
           
           <div className="flex md:hidden items-center gap-2">
@@ -439,13 +439,13 @@ builtins.input = input_shim
                 <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} isDarkMode={true} />
               </div>
               <div className="flex items-center gap-1.5 md:gap-3">
-                <div className="flex items-center bg-white/5 rounded-lg border border-white/10 px-2 gap-2 mr-1 md:mr-2">
+                <div className="flex items-center bg-white/5 rounded-lg border border-white/10 px-1.5 md:px-2 gap-1 md:gap-2 mr-1 md:mr-2">
                    <input 
                     type="text"
                     value={fileNames[activeLangId]}
                     onChange={(e) => setFileNames(prev => ({ ...prev, [activeLangId]: e.target.value }))}
-                    className="bg-transparent border-none outline-none text-[9px] md:text-[11px] font-mono text-white/80 w-20 md:w-32 py-1"
-                    placeholder="filename..."
+                    className="bg-transparent border-none outline-none text-[8px] md:text-[11px] font-mono text-white/80 w-16 md:w-32 py-1"
+                    placeholder="name..."
                   />
                   <div className="flex items-center gap-1 border-l border-white/10 pl-2">
                     <button 
@@ -467,7 +467,7 @@ builtins.input = input_shim
                 <button 
                   onClick={() => setActiveModal('github')}
                   title="Push to GitHub"
-                  className="liquid-button-secondary h-7 md:h-8 px-2 md:px-4 text-[10px] md:text-[11px] flex items-center gap-2 border-emerald-500/20 text-emerald-400/80 hover:text-emerald-300 transition-all"
+                  className="liquid-button-secondary h-7 md:h-8 px-1.5 md:px-4 text-[10px] md:text-[11px] flex items-center gap-1.5 border-emerald-500/20 text-emerald-400/80 hover:text-emerald-300 transition-all"
                 >
                   <svg className="h-3.5 w-3.5 md:h-4 md:w-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"/></svg>
                   <span className="hidden md:inline">Push</span>
@@ -475,7 +475,7 @@ builtins.input = input_shim
                 <button 
                   onClick={onRun}
                   disabled={busy}
-                  className="liquid-button-primary flex items-center gap-2 h-7 md:h-8 px-3 md:px-5 text-[10px] md:text-[11px]"
+                  className="liquid-button-primary flex items-center gap-1.5 h-7 md:h-8 px-2 md:px-5 text-[10px] md:text-[11px]"
                 >
                   {busy ? (
                     <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />
@@ -483,7 +483,7 @@ builtins.input = input_shim
                     <svg className="h-3 w-3 md:h-4 md:w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
                   )}
                   <span className="hidden md:inline">{busy ? "Executing" : "Run Code"}</span>
-                  <span className="md:hidden">{busy ? "" : "Run"}</span>
+                  <span className="md:hidden truncate">{busy ? "..." : "Run"}</span>
                 </button>
               </div>
             </div>

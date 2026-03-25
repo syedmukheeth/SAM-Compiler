@@ -9,7 +9,7 @@ const languages = [
 
 export default function ActivityBar({ activeLanguage, onLanguageChange }) {
   return (
-    <div className="liquid-glass m-4 flex w-[70px] flex-col items-center rounded-3xl py-6 shadow-2xl">
+    <div className="liquid-glass m-4 hidden w-[70px] flex-col items-center rounded-3xl py-6 shadow-2xl md:flex">
       <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-600 shadow-lg shadow-blue-500/20" title="LiquidIDE">
         <span className="text-sm font-black text-white">L</span>
       </div>
