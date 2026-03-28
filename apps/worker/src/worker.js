@@ -69,7 +69,7 @@ async function main() {
       };
 
       try {
-        const { stdout, stderr, exitCode } = await executeRun({
+        const { stdout, stderr, exitCode, metrics } = await executeRun({
           language: run.runtime,
           files: run.files,
           entrypoint: run.entrypoint
@@ -78,6 +78,7 @@ async function main() {
         run.stdout = stdout;
         run.stderr = stderr;
         run.exitCode = exitCode;
+        run.metrics = metrics || {};
         run.status = exitCode === 0 ? "succeeded" : "failed";
       } catch (err) {
         run.status = "failed";
@@ -89,7 +90,7 @@ async function main() {
       } finally {
         run.finishedAt = new Date();
         await run.save();
-        publishLog("end", { status: run.status });
+        publishLog("end", { status: run.status, metrics: run.metrics });
         logger.info({ runId: run._id, status: run.status }, "Job finished");
       }
     },

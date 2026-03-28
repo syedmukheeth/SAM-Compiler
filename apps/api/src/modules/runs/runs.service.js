@@ -78,6 +78,7 @@ async function createRun(input) {
         run.stdout = result.stdout;
         run.stderr = result.stderr;
         run.exitCode = result.exitCode;
+        run.metrics = result.metrics || {};
         run.status = result.exitCode === 0 ? "succeeded" : "failed";
       } else {
         const queue = getRunsQueue();
@@ -143,6 +144,7 @@ async function createRun(input) {
           stdout: run.stdout,
           stderr: run.stderr,
           exitCode: run.exitCode,
+          metrics: run.metrics || {},
           status: run.status,
           startedAt: run.startedAt,
           finishedAt: run.finishedAt
@@ -153,7 +155,7 @@ async function createRun(input) {
     }
     
     // Notify frontend that it's done via socket
-    emitLog(run._id.toString(), "end", { status: run.status });
+    emitLog(run._id.toString(), "end", { status: run.status, metrics: run.metrics });
   };
 
   // Trigger background task

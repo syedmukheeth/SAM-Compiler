@@ -18,6 +18,7 @@ const RunSchema = new Schema(
     stdout: { type: String, default: "" },
     stderr: { type: String, default: "" },
     exitCode: { type: Number, required: false, default: null },
+    metrics: { type: Schema.Types.Mixed, default: {} },
     startedAt: { type: Date, required: false, default: null },
     finishedAt: { type: Date, required: false, default: null }
   },

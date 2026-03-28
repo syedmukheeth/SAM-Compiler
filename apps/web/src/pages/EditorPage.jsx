@@ -56,6 +56,7 @@ export default function EditorPage() {
     Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.name]))
   );
   const [runStatus, setRunStatus] = useState("Ready");
+  const [metrics, setMetrics] = useState(null);
 
   // Pre-connect socket for performance
   useEffect(() => {
@@ -252,6 +253,7 @@ builtins.input = input_shim
     setBusy(true);
     xtermRef.current.clear();
     setRunStatus("Running");
+    setMetrics(null);
 
     if (activeLangId === "python") {
       try {
@@ -291,6 +293,9 @@ builtins.input = input_shim
         }
         if (evt.type === "end") {
           setRunStatus(evt.status === "succeeded" ? "Succeeded" : "Failed");
+          if (evt.chunk?.metrics) {
+            setMetrics(evt.chunk.metrics);
+          }
           setBusy(false);
         }
       };
@@ -526,6 +531,16 @@ builtins.input = input_shim
                 <span className="text-[9px] md:text-[10px] font-black uppercase tracking-[0.2em] md:tracking-[0.25em] text-white/50 font-mono">
                   {isWorkerOnline ? "Terminal" : "Cloud Sandbox"}
                 </span>
+                {metrics && (
+                  <div className="flex items-center gap-2 ml-2 pl-2 border-l border-white/10">
+                    <span className="text-[9px] font-bold text-blue-400/80 tracking-widest uppercase">
+                      {metrics.sandbox?.replace("docker-", "")}
+                    </span>
+                    <span className="text-[9px] font-bold text-white/30 tracking-widest uppercase">
+                      {metrics.durationMs}ms
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="text-[8px] md:text-[9px] font-bold tracking-widest text-white/30 uppercase">{runStatus}</div>
             </div>

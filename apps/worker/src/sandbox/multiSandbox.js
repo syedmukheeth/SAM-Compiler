@@ -17,23 +17,23 @@ function getJavaMainClass(code) {
 
 const LANGUAGE_CONFIGS = {
   javascript: {
-    image: "node:20-alpine",
+    image: env.SANDBOX_NODE_IMAGE,
     command: (entry) => ["node", entry]
   },
   python: {
-    image: "python:3.11-alpine",
+    image: env.SANDBOX_PYTHON_IMAGE,
     command: (entry) => ["python", entry]
   },
   cpp: {
-    image: "gcc:latest",
+    image: env.SANDBOX_GCC_IMAGE,
     command: (entry) => ["sh", "-c", `g++ ${entry} -o main && ./main`]
   },
   c: {
-    image: "gcc:latest",
+    image: env.SANDBOX_GCC_IMAGE,
     command: (entry) => ["sh", "-c", `gcc ${entry} -o main && ./main`]
   },
   java: {
-    image: "openjdk:17-slim",
+    image: env.SANDBOX_OPENJDK_IMAGE,
     command: (entry, code) => {
       const className = getJavaMainClass(code);
       return ["sh", "-c", `javac ${className}.java && java ${className}`];
@@ -63,7 +63,7 @@ async function executeRun(opts, onLog) {
 
     await materializeFiles(runDir, materializedFiles);
     
-    // 1. Try Docker first
+    // 1. Try Docker first (Hardened Sandbox)
     try {
       const dockerArgs = [
         "run", "--rm", "--network", "none",
@@ -71,18 +71,37 @@ async function executeRun(opts, onLog) {
         "--cpus", env.RUN_CPUS || "0.5",
         "--pids-limit", String(env.RUN_PIDS_LIMIT || 32),
         "--read-only",
+        "--cap-drop", "ALL",
+        "--security-opt", "no-new-privileges",
         "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
-        "-v", `${runDir}:/workspace:rw`,
+        "--tmpfs", "/workspace:rw,noexec,nosuid,size=128m",
+        "-v", `${runDir}:/workspace-host:ro`,
         "-w", "/workspace",
         "-u", "1000:1000",
         config.image,
-        ...config.command(entry, files.find(f => f.path === entrypoint)?.content || "")
+        "sh", "-c", `cp -r /workspace-host/. /workspace/ && ${config.command(entry, files.find(f => f.path === entrypoint)?.content || "").join(" ")}`
       ];
-      return await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000, { onLog });
+
+      const start = Date.now();
+      const result = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 10000, { onLog });
+      const duration = Date.now() - start;
+
+      return { 
+        ...result, 
+        metrics: { durationMs: duration, sandbox: "docker-hardened" } 
+      };
     } catch (dockerErr) {
+      if (env.SECURITY_STRICT) {
+         return {
+           stdout: "",
+           stderr: `Security Error: Docker is unavailable and SECURITY_STRICT is enabled.\n${dockerErr.message}`,
+           exitCode: 1,
+           metrics: { sandbox: "failed" }
+         };
+      }
       if (dockerErr.code !== "ENOENT") throw dockerErr;
       
-      // 2. Fallback to Local execution if Docker is missing
+      // 2. Fallback to Local execution if Docker is missing (and not in strict mode)
       console.warn(`Docker not found. Falling back to local execution for ${language}`);
       
       const isWin = process.platform === "win32";

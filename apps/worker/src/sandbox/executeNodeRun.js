@@ -23,21 +23,27 @@ async function executeNodeRun(opts) {
       "--pids-limit",
       String(env.RUN_PIDS_LIMIT),
       "--read-only",
-      "--tmpfs",
-      "/tmp:rw,noexec,nosuid,size=64m",
-      "-v",
-      `${runDir}:/workspace:rw`,
-      "-w",
-      "/workspace",
-      "-u",
-      "1000:1000",
+      "--cap-drop", "ALL",
+      "--security-opt", "no-new-privileges",
+      "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+      "--tmpfs", "/workspace:rw,noexec,nosuid,size=128m",
+      "-v", `${runDir}:/workspace-host:ro`,
+      "-w", "/workspace",
+      "-u", "1000:1000",
       env.SANDBOX_NODE_IMAGE,
-      "node",
-      entry
+      "sh", "-c", `cp -r /workspace-host/. /workspace/ && node ${entry}`
     ];
 
+    const start = Date.now();
     const { stdout, stderr, exitCode } = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS);
-    return { stdout, stderr, exitCode };
+    const duration = Date.now() - start;
+
+    return { 
+      stdout, 
+      stderr, 
+      exitCode,
+      metrics: { durationMs: duration, sandbox: "docker-hardened-node" }
+    };
   } catch (err) {
     if (err.code === "ENOENT") {
       return {

@@ -51,6 +51,7 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
       let stdout = "";
       let stderr = "";
       let killed = false;
+      const startTime = Date.now();
 
       const ptyMod = getPty();
       if (ptyMod && !spawnOpts.noPty) {
@@ -104,8 +105,12 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
             clearTimeout(timeout);
             if (jobId) process.off(`run:input:${jobId}`, inputHandler);
             if (killed) return;
-            if (onLog) onLog(jobId, "end", { status: exitCode === 0 ? "succeeded" : "failed" });
-            resolve({ stdout, stderr, exitCode });
+            
+            const durationMs = Date.now() - startTime;
+            const metrics = { durationMs, sandbox: "local-host-pty" };
+            
+            if (onLog) onLog(jobId, "end", { status: exitCode === 0 ? "succeeded" : "failed", metrics });
+            resolve({ stdout, stderr, exitCode, metrics });
           });
           return;
         } catch (e) {
@@ -159,8 +164,12 @@ async function execWithTimeout(cmd, args, timeoutMs, jobId, onLog, spawnOpts = {
         clearTimeout(timeout);
         if (jobId) process.off(`run:input:${jobId}`, inputHandler);
         if (killed) return;
-        if (onLog) onLog(jobId, "end", { status: code === 0 ? "succeeded" : "failed" });
-        resolve({ stdout, stderr, exitCode: code ?? 1 });
+        
+        const durationMs = Date.now() - startTime;
+        const metrics = { durationMs, sandbox: "local-host" };
+        
+        if (onLog) onLog(jobId, "end", { status: code === 0 ? "succeeded" : "failed", metrics });
+        resolve({ stdout, stderr, exitCode: code ?? 1, metrics });
       });
 
       child.on("error", (err) => {
