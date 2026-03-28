@@ -56,7 +56,7 @@ LiquidIDE doesn't just run code; it isolates it.
 - **Fail-Safe execution**: `SECURITY_STRICT` mode ensures that no code runs on the host if the container engine is compromised.
 
 ### 🤝 2. Distributed State (Collaboration)
-Using **Yjs CRDTs**, LiquidIDE provides a Google-caliber multi-player experience. 
+Using **Yjs CRDTs**, LiquidIDE provides a world-class multi-player experience. 
 - **Conflict Resolution**: Mathematical state merging ensures no "save conflicts."
 - **Binary Persistence**: The shared state is snapshotted to MongoDB as binary updates, allowing sessions to hibernate and resume instantly.
 - **Anonymous Presence**: Awareness protocol tracks cursors and selections with anonymous identities.
@@ -105,6 +105,6 @@ The platform surfaces its internal state via a premium **SRE Dashboard**.
 ---
 
 <div align="center">
-  <b>Built for Google-grade Engineering by Syed Mukheeth</b><br>
+  <b>Built by <a href="https://linkedin.com/in/syedmukheeth" target="_blank" rel="noopener noreferrer">Syed Mukheeth</a></b><br>
   <i>Solving high-scale distributed systems problems, one commit at a time.</i>
 </div>

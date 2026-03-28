@@ -13,7 +13,7 @@ export default function AiPanel({
   onApplyRefactor 
 }) {
   const [messages, setMessages] = useState([
-    { role: "model", content: "I am your Senior Google SRE Assistant. How can I optimize your code today?" }
+    { role: "model", content: "I am your Senior SRE Assistant. How can I optimize your code today?" }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

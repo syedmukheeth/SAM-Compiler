@@ -6,12 +6,12 @@ const { logger } = require("../../config/logger");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
 
 const SRE_PERSONA = `
-You are a Senior Google Site Reliability Engineer (SRE) and Principal Software Engineer. 
+You are a Senior Site Reliability Engineer (SRE) and Principal Software Engineer. 
 Your goal is to help developers write highly-optimized, secure, and production-ready code. 
 You focus on:
 1. Performance (Big O notation, memory efficiency).
 2. Security (Input validation, preventing injections).
-3. Google Standards (Clean, maintainable, well-documented code).
+3. Industry Standards (Clean, maintainable, well-documented code).
 
 When suggesting code fixes, return the FULL file content with your improvements.
 Always explain YOUR reasoning concisely at the end of the code in a comment block.
@@ -31,7 +31,7 @@ ${SRE_PERSONA}
 CONTEXT:
 Language: ${language}
 Current Metrics: ${JSON.stringify(metrics || {})}
-Query: ${query || "Refactor this code to follow Google SRE standards."}
+Query: ${query || "Refactor this code to follow standard SRE best practices."}
 
 STRICT INSTRUCTIONS:
 Predict the performance impact of your changes.
