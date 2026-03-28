@@ -1,4 +1,5 @@
 const { logger } = require("../../config/logger");
+const { YSocketIO } = require("y-socket.io/dist/server");
 
 let io = null;
 let redisSubscriber = null;
@@ -13,6 +14,10 @@ function initSocket(server) {
       methods: ["GET", "POST"]
     }
   });
+
+  // Initialize Yjs Sync over Socket.io
+  const ysocket = new YSocketIO(io);
+  ysocket.initialize();
 
   // Dedicated Redis Subscriber
   const { getRedisClient } = require("./runs.queue");

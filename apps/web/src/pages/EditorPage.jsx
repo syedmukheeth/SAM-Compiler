@@ -13,7 +13,8 @@ import SettingsModal from "../components/SettingsModal";
 import FilesModal from "../components/FilesModal";
 import UpgradeModal from "../components/UpgradeModal";
 import { useAuth } from "../hooks/useAuth";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { Share2, Copy, Check } from "lucide-react";
 
 const languageConfigs = {
   cpp: {
@@ -58,6 +59,11 @@ export default function EditorPage() {
   );
   const [runStatus, setRunStatus] = useState("Ready");
   const [metrics, setMetrics] = useState(null);
+  
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sessionId = searchParams.get("session") || "default";
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Pre-connect socket for performance
   useEffect(() => {
@@ -419,6 +425,34 @@ builtins.input = input_shim
               <span className="text-[9px] md:text-[12px] font-black uppercase tracking-widest text-white/80">Sign In</span>
             </button>
           )}
+          <button 
+            onClick={onRun}
+            disabled={busy}
+            className="liquid-button-primary flex items-center gap-1.5 h-7 md:h-8 px-2 md:px-5 text-[10px] md:text-[11px]"
+          >
+            {busy ? (
+              <div className="h-3 w-3 animate-spin rounded-full border-2 border-white/20 border-t-white" />
+            ) : (
+              <svg className="h-3 w-3 md:h-4 md:w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
+            )}
+            <span className="hidden md:inline">{busy ? "Executing" : "Run Code"}</span>
+            <span className="md:hidden truncate">{busy ? "..." : "Run"}</span>
+          </button>
+
+          <button 
+            onClick={() => {
+              if (!searchParams.get("session")) {
+                const newSession = Math.random().toString(36).substring(7);
+                setSearchParams({ session: newSession });
+              }
+              setShowShareModal(true);
+            }}
+            className="group flex h-7 md:h-8 items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-2 md:px-4 transition-all hover:bg-white/10 active:scale-95"
+          >
+            <Share2 className="h-3.5 w-3.5 text-white/40 group-hover:text-white/60" />
+            <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest text-white/40 group-hover:text-white/60">Collaborate</span>
+          </button>
+
           <button onClick={() => setActiveModal('upgrade')} className="liquid-button-primary animate-shimmer py-1 px-3 md:py-1.5 md:px-6 text-[9px] md:text-[13px] shrink-0">
             <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             <span className="hidden sm:inline">Upgrade</span>
@@ -520,6 +554,8 @@ builtins.input = input_shim
                 language={activeLangId}
                 value={buffers[activeLangId]}
                 onChange={onCodeChange}
+                sessionId={sessionId}
+                userName={user?.name}
                 theme="vs-dark"
                 options={{
                   fontSize: settings.fontSize,
@@ -623,6 +659,58 @@ builtins.input = input_shim
         authToken={authToken}
       />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
+
+      {/* Share Modal */}
+      <AnimatePresence>
+        {showShareModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="w-full max-w-md overflow-hidden rounded-[24px] border border-white/10 bg-[#0a0a0c] shadow-2xl"
+            >
+              <div className="relative p-6 md:p-8">
+                <div className="mb-6 flex flex-col items-center text-center">
+                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600/20 text-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.2)]">
+                    <Share2 className="h-6 w-6" />
+                  </div>
+                  <h3 className="text-lg font-black uppercase tracking-widest text-white">Collaborative Session</h3>
+                  <p className="mt-2 text-[11px] font-medium leading-relaxed text-white/40">
+                    Share this link with your pair-programming partner. 
+                    They will see your cursors and code edits in real-time.
+                  </p>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <div className="group relative flex h-12 w-full items-center gap-3 overflow-hidden rounded-xl border border-white/5 bg-white/5 px-4 transition-all hover:bg-white/8">
+                    <div className="flex-1 truncate text-[10px] font-mono text-white/60">
+                      {window.location.href}
+                    </div>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText(window.location.href);
+                        setCopied(true);
+                        setTimeout(() => setCopied(false), 2000);
+                      }}
+                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/10 text-blue-500 transition-all hover:bg-blue-600/20 active:scale-90"
+                    >
+                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={() => setShowShareModal(false)}
+                  className="mt-8 flex h-12 w-full items-center justify-center rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 active:scale-95"
+                >
+                  Close
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
