@@ -13,9 +13,13 @@ export function getSocket() {
 
   socket = io(endpoint, {
     path: "/socket.io", 
-    reconnectionDelayMax: 10000,
+    reconnection: true,
+    reconnectionAttempts: 25, // More attempts for Render wake up
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    timeout: 60000, // 60s for Render to wake up
     autoConnect: true,
-    transports: ["polling", "websocket"],
+    transports: ["websocket", "polling"], // WebSocket first
     secure: endpoint.startsWith("https:")
   });
 

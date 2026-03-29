@@ -53,7 +53,7 @@ export default function CodeEditor({
 
     const provider = new SocketIOProvider(endpoint, sessionId, ydoc, {
       autoConnect: true,
-      transports: ["polling", "websocket"]
+      transports: ["websocket", "polling"] // Align with socketClient.js
     });
 
     const ytext = ydoc.getText("monaco");
@@ -81,13 +81,17 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // If initial value exists and doc is currently empty (and we are the first one), populate it
-    // We add a tiny delay to ensure we've synced with others first if possible
-    setTimeout(() => {
-      if (value && ytext.toString() === "") {
+    // Only insert initial value if we are the one who created the content (ydoc is empty after sync)
+    provider.on('sync', (isSynced) => {
+      if (isSynced && value && ytext.toString() === "") {
         ytext.insert(0, value);
       }
-    }, 500);
+    });
+
+    // Fallback for extremely fast connections where sync might happen before listener
+    if (provider.synced && value && ytext.toString() === "") {
+      ytext.insert(0, value);
+    }
 
   }, [sessionId, localName, localColor, onCursorChange, value]);
 
