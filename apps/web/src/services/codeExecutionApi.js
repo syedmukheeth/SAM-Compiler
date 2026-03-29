@@ -65,6 +65,22 @@ export async function pollUntilDone(jobId, { onUpdate, pollMs = 500 } = {}) {
   }
 }
 
+export async function fetchHistory() {
+  const token = localStorage.getItem("liquid_token");
+  if (!token) return [];
+
+  const res = await fetch(`${API_BASE}/history`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+
+  if (!res.ok) {
+     if (res.status === 401) return [];
+     throw new Error("Failed to fetch history");
+  }
+
+  return await res.json();
+}
+
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }

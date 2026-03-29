@@ -1,7 +1,8 @@
 const { Router } = require("express");
 const { z } = require("zod");
-const { createRun, getRun, getQueueStatus } = require("./runs.service");
+const { createRun, getRun, getQueueStatus, getUserHistory } = require("./runs.service");
 const { getExecutionStats, getThroughputChart } = require("../analytics/analytics.service");
+const { authMiddleware, optionalAuth } = require("../../middleware/auth.middleware");
 
 const runsRouter = Router();
 
@@ -10,14 +11,16 @@ const CreateRunSchema = z.object({
   code: z.string().min(1)
 });
 
-runsRouter.post("/", async (req, res, next) => {
+runsRouter.post("/", optionalAuth, async (req, res, next) => {
   try {
     const { language, code } = CreateRunSchema.parse(req.body);
+    const userId = req.user ? req.user.id : null;
     const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
     
     // Transform simplified payload to existing internal run format
     const run = await createRun({
       projectId: "playground",
+      userId,
       runtime: runtime,
       entrypoint: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js",
       files: [{
@@ -45,6 +48,15 @@ runsRouter.get("/:runId", async (req, res, next) => {
       startedAt: run.startedAt ? new Date(run.startedAt).toISOString() : null,
       finishedAt: run.finishedAt ? new Date(run.finishedAt).toISOString() : null
     });
+  } catch (err) {
+    next(err);
+  }
+});
+
+runsRouter.get("/history", authMiddleware, async (req, res, next) => {
+  try {
+    const history = await getUserHistory(req.user.id);
+    res.json(history);
   } catch (err) {
     next(err);
   }

@@ -6,18 +6,15 @@ import { GithubModal } from '../components/GithubModal';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
-import { getSocket } from "../services/socketClient";
-import AuthModal from "../components/AuthModal";
-import SettingsModal from "../components/SettingsModal";
-import FilesModal from "../components/FilesModal";
 import UpgradeModal from "../components/UpgradeModal";
 import AiPanel from "../components/AiPanel";
+import HistoryPanel from "../components/HistoryPanel";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Share2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import ActivityBar from "../components/ActivityBar";
+import { pollUntilDone, submitRun, fetchHistory } from "../services/codeExecutionApi";
 
 const languageConfigs = {
   cpp: {
@@ -67,6 +64,8 @@ export default function EditorPage() {
   const sessionId = searchParams.get("session") || "default";
   const [showShareModal, setShowShareModal] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [history, setHistory] = useState([]);
   const [copied, setCopied] = useState(false);
 
   // Pre-connect socket for performance
@@ -118,6 +117,24 @@ export default function EditorPage() {
     const timer = setInterval(checkStatus, 15000);
     return () => clearInterval(timer);
   }, []);
+
+  // Fetch History
+  const loadHistory = useCallback(async () => {
+    if (user) {
+      try {
+        const data = await fetchHistory();
+        setHistory(data);
+      } catch (err) {
+        console.error("Failed to load history:", err);
+      }
+    } else {
+      setHistory([]);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    loadHistory();
+  }, [loadHistory]);
 
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("liquid_settings");
@@ -308,6 +325,7 @@ builtins.input = input_shim
             setMetrics(evt.chunk.metrics);
           }
           setBusy(false);
+          loadHistory(); // Refresh history after run
         }
       };
 
@@ -371,7 +389,6 @@ builtins.input = input_shim
             </div>
             <div className="flex flex-col leading-tight">
               <span className="text-[10px] md:text-[14px] font-black uppercase tracking-widest text-white/90">LiquidIDE</span>
-              <span className="hidden md:block text-[8px] font-bold uppercase tracking-[0.2em] text-blue-400">Pro Cloud Edition</span>
             </div>
           </div>
           
@@ -448,11 +465,6 @@ builtins.input = input_shim
             <span className="hidden md:inline">{busy ? "Executing" : "Run Code"}</span>
             <span className="md:hidden truncate">{busy ? "..." : "Run"}</span>
           </button>
-
-          <button onClick={() => setActiveModal('upgrade')} className="liquid-button-primary animate-shimmer h-8 px-3 md:px-6 text-[9px] md:text-[11px] shrink-0">
-            <svg className="h-3 w-3 md:h-4 md:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
-            <span className="hidden sm:inline">Upgrade</span>
-          </button>
           
           <div className="flex md:hidden items-center gap-2">
              <button onClick={() => setActiveModal('files')} className="p-2 text-white/40 hover:text-white">
@@ -501,6 +513,8 @@ builtins.input = input_shim
             }
             setShowShareModal(true);
           }}
+          onOpenHistory={() => setShowHistory(!showHistory)}
+          historyActive={showHistory}
           onOpenSettings={() => setActiveModal('settings')}
         />
         <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex md:flex-[7]`}>
@@ -657,10 +671,24 @@ builtins.input = input_shim
         metrics={metrics}
         onApplyRefactor={(newCode) => {
           setBuffers(prev => ({ ...prev, [activeLangId]: newCode }));
-          // Note: Binary sync will automatically handle the distribution
           setShowAiPanel(false);
         }}
       />
+
+      <AnimatePresence>
+        {showHistory && (
+          <HistoryPanel 
+            history={history} 
+            onClose={() => setShowHistory(false)}
+            onSelect={(item) => {
+              const lang = Object.entries(languageConfigs).find(([_, cfg]) => cfg.lang === item.runtime)?.[0] || item.runtime;
+              setActiveLangId(lang);
+              setBuffers(prev => ({ ...prev, [lang]: item.files[0].content }));
+              setShowHistory(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
 
       {/* Share Modal */}
       <AnimatePresence>

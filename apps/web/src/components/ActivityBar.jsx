@@ -1,5 +1,5 @@
 import React from "react";
-import { Share2, Sparkles, Settings } from "lucide-react";
+import { Share2, Sparkles, Settings, Clock } from "lucide-react";
 
 const languages = [
   { id: "cpp", label: "C++", icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg" },
@@ -14,7 +14,9 @@ export default function ActivityBar({
   onOpenAI, 
   onOpenCollaborate, 
   aiActive,
-  onOpenSettings
+  onOpenSettings,
+  onOpenHistory,
+  historyActive
 }) {
   return (
     <div className="liquid-glass m-4 hidden w-[70px] flex-col items-center rounded-3xl py-6 shadow-2xl md:flex">
@@ -67,6 +69,15 @@ export default function ActivityBar({
         >
           {aiActive && <div className="absolute inset-0 animate-pulse rounded-xl bg-blue-500/10" />}
           <Sparkles className="h-5 w-5 transition-transform group-hover:scale-110 group-hover:rotate-12" />
+        </button>
+
+        <button 
+          onClick={onOpenHistory}
+          className={`group relative flex h-12 w-12 items-center justify-center transition-all ${historyActive ? "text-emerald-400" : "text-white/30 hover:text-emerald-400 hover:bg-emerald-500/5 rounded-xl"}`} 
+          title="Execution History"
+        >
+          {historyActive && <div className="absolute inset-0 animate-pulse rounded-xl bg-emerald-500/10" />}
+          <Clock className="h-5 w-5 transition-transform group-hover:scale-110" />
         </button>
       </div>
 

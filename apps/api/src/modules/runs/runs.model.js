@@ -11,6 +11,7 @@ const FileSchema = new Schema(
 const RunSchema = new Schema(
   {
     projectId: { type: String, required: true, index: true },
+    userId: { type: Schema.Types.ObjectId, ref: "User", index: true, required: false },
     runtime: { type: String, required: true },
     status: { type: String, required: true, index: true },
     entrypoint: { type: String, required: true },

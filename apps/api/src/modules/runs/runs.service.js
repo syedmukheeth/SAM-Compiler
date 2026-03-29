@@ -12,6 +12,7 @@ const { getRunsQueue, getRedisClient, WORKER_HEARTBEAT_KEY } = require("./runs.q
  * ALL languages are executed inline — no queue/worker dependency.
  */
 async function createRun(input) {
+  const { userId } = input;
   if (!input.runtime) throw new Error("Runtime/Language is required");
   if (!input.code && (!input.files || input.files.length === 0)) {
     throw new Error("No code or files provided for execution");
@@ -25,6 +26,7 @@ async function createRun(input) {
     try {
       run = await RunModel.create({
         projectId: input.projectId,
+        userId: userId,
         runtime: input.runtime,
         status: "running",
         entrypoint: input.entrypoint,
@@ -227,4 +229,19 @@ async function getQueueStatus() {
   };
 }
 
-module.exports = { createRun, getRun, getQueueStatus };
+async function getUserHistory(userId) {
+  const state = mongoose.connection.readyState;
+  if (state >= 1) {
+    try {
+      return await RunModel.find({ userId })
+        .sort({ createdAt: -1 })
+        .limit(20)
+        .lean();
+    } catch (err) {
+      logger.error({ err, userId }, "Database error during getUserHistory");
+    }
+  }
+  return [];
+}
+
+module.exports = { createRun, getRun, getQueueStatus, getUserHistory };
