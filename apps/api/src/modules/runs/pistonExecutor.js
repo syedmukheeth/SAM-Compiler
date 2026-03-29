@@ -31,7 +31,8 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
   }
 
   if (onLog) {
-    onLog(jobId, "stdout", `☁️ \x1b[1;36mCloud Sandbox: Executing via Judge0 API...\x1b[0m\n\r\n`);
+    onLog(jobId, "stdout", `📡 \x1b[1;36mConnecting to LiquidIDE Cloud Sandbox (Judge0)...\x1b[0m\n\r`);
+    onLog(jobId, "stdout", `🔨 \x1b[1;33mCompiling & Preparing Environment...\x1b[0m\n\r`);
   }
 
   let finalCode = code;
@@ -63,6 +64,10 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
         try {
           const result = JSON.parse(data);
           
+          if (onLog) {
+            onLog(jobId, "stdout", `🚀 \x1b[1;32mExecution Started\x1b[0m\n\r\n`);
+          }
+
           let stdout = result.stdout || "";
           let stderr = result.stderr || result.compile_output || "";
           let exitCode = result.status?.id === 3 ? 0 : 1; // 3 is "Accepted"

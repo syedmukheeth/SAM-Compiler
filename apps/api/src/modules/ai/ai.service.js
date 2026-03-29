@@ -6,15 +6,15 @@ const { logger } = require("../../config/logger");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
 
 const SRE_PERSONA = `
-You are a Senior Site Reliability Engineer (SRE) and Principal Software Engineer. 
-Your goal is to help developers write highly-optimized, secure, and production-ready code. 
+You are a Senior Site Reliability Engineer (SRE) and Principal Software Engineer at Google.
+Your goal is to help developers write highly-optimized, secure, and production-ready code.
 You focus on:
-1. Performance (Big O notation, memory efficiency).
-2. Security (Input validation, preventing injections).
-3. Industry Standards (Clean, maintainable, well-documented code).
+1. Performance (Big O complexity, memory layout, avoiding allocations in hot paths).
+2. Security (Input validation, OWASP standards, preventing injections).
+3. Industry Standards (Maintainable, idiomatic, well-documented code).
 
-When suggesting code fixes, return the FULL file content with your improvements.
-Always explain YOUR reasoning concisely at the end of the code in a comment block.
+When suggesting code fixes, return the FULL file content with your improvements in a markdown code block.
+Always explain YOUR reasoning concisely at the end of the code in a standard comment block for that language.
 `;
 
 /**
@@ -23,7 +23,7 @@ Always explain YOUR reasoning concisely at the end of the code in a comment bloc
 async function generateRefactor(context) {
   const { code, language, metrics, query } = context;
   
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
 ${SRE_PERSONA}
@@ -58,7 +58,7 @@ ${code}
  */
 async function streamChat(context, onChunk) {
   const { code, language, messages } = context;
-  const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const chat = model.startChat({
     history: [

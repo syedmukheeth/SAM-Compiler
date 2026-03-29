@@ -1,19 +1,22 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap');
 
 :root {
-  --app-bg: #000000;
-  --glass-bg: rgba(10, 10, 12, 0.45);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-border-bright: rgba(255, 255, 255, 0.15);
-  --accent-primary: #007AFF; /* Apple Blue */
-  --accent-glow: rgba(0, 122, 255, 0.5);
+  --app-bg: #030303;
+  --glass-bg: rgba(10, 10, 12, 0.4);
+  --glass-border: rgba(255, 255, 255, 0.06);
+  --glass-border-bright: rgba(255, 255, 255, 0.12);
+  --accent-primary: #007AFF; 
+  --accent-glow: rgba(0, 122, 255, 0.4);
   --text-main: #FFFFFF;
   --text-muted: rgba(255, 255, 255, 0.5);
-  --text-dim: rgba(255, 255, 255, 0.3);
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --text-dim: rgba(255, 255, 255, 0.25);
+  --font-sans: 'Outfit', 'Inter', -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+::selection {
+  background: rgba(0, 122, 255, 0.3);
+  color: white;
 }
 
 * {
@@ -110,9 +113,9 @@ body {
 
 .glass-card:hover {
   border-color: var(--glass-border-bright);
-  background: rgba(25, 25, 30, 0.55);
-  transform: translateY(-4px) scale(1.005);
-  box-shadow: 0 30px 60px -12px rgba(0, 0, 0, 0.8);
+  background: rgba(25, 25, 30, 0.5);
+  transform: translateY(-2px);
+  box-shadow: 0 40px 80px -20px rgba(0, 0, 0, 0.9);
 }
 
 /* Specific UI Components */
@@ -227,12 +230,13 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
 }
 
 /* Typography Helpers */

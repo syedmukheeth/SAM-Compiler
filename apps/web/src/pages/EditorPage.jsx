@@ -526,7 +526,7 @@ builtins.input = input_shim
                     type="text"
                     value={fileNames[activeLangId]}
                     onChange={(e) => setFileNames(prev => ({ ...prev, [activeLangId]: e.target.value }))}
-                    className="bg-transparent border-none outline-none text-[8px] md:text-[11px] font-mono text-white/80 w-16 md:w-32 py-1"
+                    className="bg-white/5 border border-white/10 rounded px-2 py-0.5 outline-none text-[8px] md:text-[11px] font-mono text-blue-400 w-24 md:w-40 focus:border-blue-500/50 transition-all"
                     placeholder="name..."
                   />
                   <div className="flex items-center gap-1 border-l border-white/10 pl-2">
@@ -551,10 +551,11 @@ builtins.input = input_shim
             
             <div className="flex-1 overflow-hidden relative">
               <CodeEditor
+                key={`${sessionId}-${activeLangId}`}
                 language={activeLangId}
                 value={buffers[activeLangId]}
                 onChange={onCodeChange}
-                sessionId={sessionId}
+                sessionId={`${sessionId}-${activeLangId}`}
                 userName={user?.name}
                 theme="vs-dark"
                 options={{

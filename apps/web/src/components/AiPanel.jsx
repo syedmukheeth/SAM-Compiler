@@ -132,8 +132,8 @@ export default function AiPanel({
                   <div>
                     <h2 className="text-sm font-black uppercase tracking-widest text-white">SRE Assistant</h2>
                     <div className="flex items-center gap-1.5 text-[9px] font-bold text-emerald-500 uppercase tracking-widest">
-                       <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                       Gemini 1.5 Pro Active
+                       <div className="h-1 w-1 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)] animate-pulse" />
+                       Gemini 2.0 Flash Active
                     </div>
                   </div>
                 </div>
@@ -152,10 +152,10 @@ export default function AiPanel({
                       animate={{ opacity: 1, y: 0 }}
                       className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
                     >
-                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed ${
+                      <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-xs leading-relaxed shadow-lg ${
                         msg.role === "user" 
-                          ? "bg-blue-600/20 text-blue-100 border border-blue-600/20" 
-                          : "bg-white/[0.03] text-white/80 border border-white/5"
+                          ? "bg-blue-600/10 text-blue-200 border border-blue-500/20" 
+                          : "bg-white/[0.04] text-white/90 border border-white/5 backdrop-blur-md"
                       }`}>
                         {msg.content.includes("```") ? (
                           <div className="flex flex-col gap-3">
