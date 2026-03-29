@@ -35,6 +35,7 @@ export default function CodeEditor({
   const editorRef = useRef(null);
   const bindingRef = useRef(null);
   const providerRef = useRef(null);
+  const hasInitializedRef = useRef(false);
 
   const monacoLanguage = useMemo(() => LANGUAGE_TO_MONACO[language] ?? "javascript", [language]);
 
@@ -44,7 +45,7 @@ export default function CodeEditor({
   const handleMount = useCallback((editor) => {
     editorRef.current = editor;
 
-    // Use a ref to ensure we only initialize once per sessionId
+    // Use a ref to ensure we only initialize once per instance
     if (providerRef.current) return;
 
     // Initialize Yjs
@@ -81,17 +82,13 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // Only insert initial value if we are the one who created the content (ydoc is empty after sync)
-    provider.on('sync', (isSynced) => {
-      if (isSynced && value && ytext.toString() === "") {
+    // CRITICAL FIX: Only insert initial value ONCE when the doc is synced and empty
+    provider.on('sync', () => {
+      if (!hasInitializedRef.current && value && ytext.toString() === "") {
+        hasInitializedRef.current = true;
         ytext.insert(0, value);
       }
     });
-
-    // Fallback for extremely fast connections where sync might happen before listener
-    if (provider.synced && value && ytext.toString() === "") {
-      ytext.insert(0, value);
-    }
 
   }, [sessionId, localName, localColor, onCursorChange, value]);
 

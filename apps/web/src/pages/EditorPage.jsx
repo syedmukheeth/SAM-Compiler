@@ -381,8 +381,9 @@ builtins.input = input_shim
                   <Link 
                     key={tab}
                     to="/dashboard"
-                    className="text-[10px] font-bold uppercase tracking-[0.15em] text-white/40 transition-all hover:text-white"
+                    className="group relative flex items-center gap-2 rounded-full border border-white/5 bg-white/5 px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-white/40 transition-all hover:bg-white/10 hover:text-white"
                   >
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500/50 group-hover:bg-blue-500 group-hover:shadow-[0_0_8px_#3b82f6]" />
                     Dashboard
                   </Link>
                 );
@@ -416,7 +417,7 @@ builtins.input = input_shim
               </div>
               <button 
                 onClick={() => confirm("Are you sure you want to log out?") && logoutUser()}
-                className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white/30 hover:text-rose-400 transition-colors px-2 py-1"
+                className="ml-2 rounded-full border border-rose-500/20 bg-rose-500/5 px-4 py-1.5 text-[9px] md:text-[10px] font-black uppercase tracking-widest text-rose-500/60 transition-all hover:bg-rose-500/20 hover:text-rose-400 active:scale-95"
               >
                 Log Out
               </button>
@@ -424,13 +425,13 @@ builtins.input = input_shim
           ) : (
             <button 
               onClick={() => setActiveModal('auth')} 
-              className="group flex items-center gap-2 rounded-full border border-white/10 bg-white/5 p-1 pr-3 md:pr-4 transition-all hover:bg-white/10 shrink-0"
+              className="group flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/5 p-1 pr-3 md:pr-5 transition-all hover:bg-blue-500/10 active:scale-95 shrink-0"
               title="Sign In"
             >
-              <div className="h-6 w-6 md:h-8 md:w-8 overflow-hidden rounded-full border border-white/20 bg-blue-600/20 shrink-0">
+              <div className="h-6 w-6 md:h-8 md:w-8 overflow-hidden rounded-full border border-blue-500/30 bg-blue-600/20 shrink-0">
                 <img src={logo} alt="Login" className="h-full w-full object-cover" style={{ width: '100%', height: '100%' }} />
               </div>
-              <span className="text-[9px] md:text-[12px] font-black uppercase tracking-widest text-white/80">Sign In</span>
+              <span className="text-[9px] md:text-[12px] font-black uppercase tracking-widest text-blue-400">Sign In</span>
             </button>
           )}
           <button 

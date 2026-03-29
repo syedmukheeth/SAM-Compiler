@@ -14,7 +14,11 @@ function initSocket(server) {
     cors: {
       origin: "*", 
       methods: ["GET", "POST"]
-    }
+    },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ["websocket", "polling"], // Align with client
+    allowEIO3: true
   });
 
   // Initialize Yjs Sync over Socket.io

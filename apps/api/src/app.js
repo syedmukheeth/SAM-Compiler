@@ -14,6 +14,9 @@ const { aiRouter } = require("./modules/ai/ai.routes");
 function createApp() {
   const app = express();
 
+  // Enable trust proxy for correct IP detection behind Vercel/Render
+  app.set("trust proxy", 1);
+
   // Rate Limiting - Global & Run Specific
   const globalLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
@@ -25,7 +28,7 @@ function createApp() {
 
   const runLimiter = rateLimit({
     windowMs: 1 * 60 * 1000, // 1 minute
-    max: 30, // Limit each IP to 30 runs per minute
+    max: 100, // Increased limit to 100 runs per minute as requested
     standardHeaders: true,
     legacyHeaders: false,
     message: { message: "Too many code executions. Please wait a minute." }
