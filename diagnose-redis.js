@@ -4,7 +4,7 @@ require("dotenv").config({ path: "./apps/api/.env" });
 
 const redisUrl = process.env.REDIS_URL || "redis://localhost:6379";
 
-console.log("🔍 LiquidIDE Redis Diagnostic Tool");
+console.log("🔍 SAM Compiler Redis Diagnostic Tool");
 console.log("-----------------------------------");
 console.log(`URL: ${redisUrl.replace(/:[^:@]+@/, ":****@")}`);
 
@@ -33,8 +33,8 @@ async function diagnostic() {
       console.log(`✅ Success! Ping received in ${Date.now() - start}ms`);
       
       console.log("2. Testing Write/Read...");
-      await redis.set("liquid-diag", "ok", "EX", 10);
-      const val = await redis.get("liquid-diag");
+      await redis.set("sam-diag", "ok", "EX", 10);
+      const val = await redis.get("sam-diag");
       console.log(`✅ Success! Data roundtrip verified: ${val}`);
       
     } catch (err) {

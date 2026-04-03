@@ -23,6 +23,6 @@ COPY apps/worker ./apps/worker
 COPY packages/shared ./packages/shared
 
 # Install only worker workspace deps
-RUN npm ci --workspace=@liquidide/worker --ignore-scripts
+RUN npm ci --workspace=@sam/worker --ignore-scripts
 
 CMD ["node", "apps/worker/src/worker.js"]

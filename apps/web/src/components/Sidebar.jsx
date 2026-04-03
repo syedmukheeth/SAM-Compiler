@@ -33,7 +33,7 @@ export default function Sidebar({ files, activePath, onOpen }) {
       </div>
 
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="text-label text-[#00D4FF]">LIQUIDIDE</div>
+        <div className="text-label text-[#00D4FF]">SAM</div>
         <div className="text-[9px] text-[#dde2f1]/30 uppercase tracking-widest font-bold">local</div>
       </div>
 

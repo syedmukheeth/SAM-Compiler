@@ -11,7 +11,7 @@ COPY packages/shared packages/shared
 COPY apps/api apps/api
 
 # Install dependencies (only what's needed for api)
-RUN npm ci --workspace=@liquidide/api --workspace=@liquidide/shared
+RUN npm ci --workspace=@sam/api --workspace=@sam/shared --ignore-scripts
 
 # Production stage
 FROM node:20-slim AS runner
@@ -32,4 +32,4 @@ COPY --from=builder /app /app
 
 EXPOSE 8080
 
-CMD ["npm", "start", "-w", "@liquidide/api"]
+CMD ["npm", "start", "-w", "@sam/api"]

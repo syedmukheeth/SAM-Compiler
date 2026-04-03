@@ -1,9 +1,9 @@
-# LiquidIDE Deployment Guide: Cloud-Native Execution 🚀
+# SAM Compiler Deployment Guide: Cloud-Native Execution 🚀
 
-To achieve a professional, cloud-only experience (like Programiz) where you don't need to run a local worker for C++, Java, or C, you must deploy the API as a **Docker Container**.
+To achieve a professional, cloud-only experience where you don't need to run a local worker for C++, Java, or C, you must deploy the API as a **Docker Container**.
 
 ## Why Docker?
-Vercel Serverless is great for JS/Node, but it **does not contain compilers** (g++, gcc). Our Dockerfile is pre-configured with all these tools, allowing the API to execute code directly in the cloud.
+Vercel Serverless is great for JS/Node, but it **does not contain compilers** (g++, gcc, javac). Our Dockerfile is pre-configured with all these tools, allowing the SAM API to execute code directly in the cloud.
 
 ---
 
@@ -12,12 +12,12 @@ Render is the easiest way to deploy a Dockerized monorepo.
 
 1.  **Create a New Web Service** on Render.
 2.  **Connect your GitHub Repository**.
-3.  **Root Directory**: Leave as root or set to `apps/api` (if you only want the API).
+3.  **Root Directory**: Leave as root or set to `apps/api`.
 4.  **Language**: Select **Docker**.
 5.  **Docker Command**: Render will automatically find the `Dockerfile` in `apps/api`.
 6.  **Environment Variables**:
-    *   `PORT`: 5000
-    *   `MONGODB_URI`: Your MongoDB Connection String
+    *   `PORT`: 8080
+    *   `MONGO_URI`: Your MongoDB Connection String (e.g., MongoDB Atlas)
     *   `REDIS_URL`: Your Redis Connection String (Upstash/Aiven)
     *   `NODE_ENV`: production
 
@@ -33,24 +33,24 @@ Railway is also excellent for monorepos.
 
 ---
 
-## Option 3: Local "Hybrid" Mode (Current)
-If you prefer to stay on Vercel, you **must** run the worker on your local machine to handle compiled languages:
+## Option 3: Local "Hybrid" Mode (Dev/Testing)
+If you prefer to stay on Vercel for the frontend, you **must** run the worker on your local machine to handle compiled languages (C++, Java, C):
 
 ```bash
 cd apps/worker
 npm start
 ```
 
-Ensure your `REDIS_URL` is the same for both the Vercel API and your local worker.
+Ensure your `REDIS_URL` is the same for both the cloud API and your local worker.
 
 ---
 
 ## Verifying Cloud Execution
-Once deployed on a container platform, try running this C++ code:
+Once deployed on a container platform (Render/Railway), try running this C++ code:
 ```cpp
 #include <iostream>
 int main() {
-    std::cout << "Hello from the Cloud!" << std::endl;
+    std::cout << "Hello from the SAM Cloud!" << std::endl;
     return 0;
 }
 ```
@@ -58,7 +58,7 @@ int main() {
 
 ## 🔐 Authentication & Environment Variables
 
-For social logins and full functionality, ensure the following environment variables are set in your production environment (Vercel/Render/Railway).
+For social logins and full functionality, ensure the following environment variables are set in your production environment.
 
 ### Social Auth Setup (GitHub & Google)
 1. **GitHub**: Create an OAuth App in [GitHub Developer Settings](https://github.com/settings/developers).
@@ -88,6 +88,6 @@ GOOGLE_CLIENT_SECRET=...
 ---
 
 <div align="center">
-  <b>LiquidIDE Deployment Guide</b><br>
+  <b>SAM Compiler Deployment Guide</b><br>
   <i>Ensuring a seamless, professional cloud-hosting experience.</i>
 </div>

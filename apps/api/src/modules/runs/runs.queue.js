@@ -1,8 +1,8 @@
 const { env } = require("../../config/env");
 const { logger } = require("../../config/logger");
 
-const RUNS_QUEUE_NAME = "liquidide-runs";
-const WORKER_HEARTBEAT_KEY = "liquidide:worker:heartbeat";
+const RUNS_QUEUE_NAME = "sam-runs";
+const WORKER_HEARTBEAT_KEY = "sam:worker:heartbeat";
 
 let _runsQueue = null;
 let _redisClient = null;

@@ -3,7 +3,7 @@ import ENDPOINTS from "./endpoints";
 const API_BASE = `${ENDPOINTS.API_BASE_URL}/api/runs`;
 
 export async function submitRun({ language, code }) {
-  const token = localStorage.getItem("liquid_token");
+  const token = localStorage.getItem("sam_token");
   const headers = { "content-type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
@@ -66,7 +66,7 @@ export async function pollUntilDone(jobId, { onUpdate, pollMs = 500 } = {}) {
 }
 
 export async function fetchHistory() {
-  const token = localStorage.getItem("liquid_token");
+  const token = localStorage.getItem("sam_token");
   if (!token) return [];
 
   const res = await fetch(`${API_BASE}/history`, {

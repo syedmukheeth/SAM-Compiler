@@ -7,7 +7,7 @@ export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "sol
   const [repo, setRepo] = useState(localStorage.getItem("gh_repo") || "");
   const [branch, setBranch] = useState(localStorage.getItem("gh_branch") || "main");
   const [path, setPath] = useState(filename);
-  const [message, setMessage] = useState(`Update ${filename} via LiquidIDE`);
+  const [message, setMessage] = useState(`Update ${filename} via SAM Compiler`);
   const [status, setStatus] = useState("Ready");
   const [error, setError] = useState(null);
   const [resultUrl, setResultUrl] = useState(null);
@@ -18,7 +18,7 @@ export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "sol
   // Sync path and message when filename changes
   useEffect(() => {
     setPath(filename);
-    setMessage(`Update ${filename} via LiquidIDE`);
+    setMessage(`Update ${filename} via SAM Compiler`);
   }, [filename]);
 
   // Fetch repositories
@@ -96,10 +96,10 @@ export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "sol
                  <GithubLogo />
                </div>
                <h3 className="mb-2 text-sm font-black uppercase tracking-tight text-white">GitHub Integration</h3>
-               <p className="mb-6 text-[11px] font-bold leading-relaxed text-white/40 px-4">Link your GitHub account to directly push code to your repositories from LiquidIDE.</p>
+               <p className="mb-6 text-[11px] font-bold leading-relaxed text-white/40 px-4">Link your GitHub account to directly push code to your repositories from SAM Compiler.</p>
                <button 
                 onClick={() => window.location.href = "/api/auth/github"}
-                className="liquid-button-primary w-full py-3 text-[10px] font-black uppercase tracking-widest"
+                className="sam-button-primary w-full py-3 text-[10px] font-black uppercase tracking-widest"
                >
                 Connect GitHub Account
               </button>
@@ -232,7 +232,7 @@ export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "sol
           <button
             onClick={onPush}
             disabled={status === "Pushing..." || !isConnected}
-            className={`liquid-button-primary w-full py-4 text-[11px] font-black uppercase tracking-widest animate-shimmer ${!isConnected ? "opacity-30 cursor-not-allowed" : ""}`}
+            className={`sam-button-primary w-full py-4 text-[11px] font-black uppercase tracking-widest animate-shimmer ${!isConnected ? "opacity-30 cursor-not-allowed" : ""}`}
           >
             {status === "Pushing..." ? (
               <div className="flex items-center justify-center gap-2">

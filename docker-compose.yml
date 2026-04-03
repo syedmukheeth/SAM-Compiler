@@ -1,7 +1,7 @@
 services:
   mongo:
     image: mongo:7
-    container_name: liquidide-mongo
+    container_name: sam-mongo
     ports:
       - "27017:27017"
     environment:
@@ -18,7 +18,7 @@ services:
 
   redis:
     image: redis:7-alpine
-    container_name: liquidide-redis
+    container_name: sam-redis
     ports:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
@@ -35,12 +35,12 @@ services:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
-    container_name: liquidide-api
+    container_name: sam-api
     ports:
       - "8080:8080"
     environment:
       - PORT=8080
-      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/liquidide?authSource=admin
+      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/sam?authSource=admin
       - REDIS_URL=redis://redis:6379
       - WEB_ORIGIN=http://localhost
     depends_on:
@@ -54,9 +54,9 @@ services:
     build:
       context: .
       dockerfile: apps/worker/Dockerfile
-    container_name: liquidide-worker
+    container_name: sam-worker
     environment:
-      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/liquidide?authSource=admin
+      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/sam?authSource=admin
       - REDIS_URL=redis://redis:6379
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
@@ -71,7 +71,7 @@ services:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
-    container_name: liquidide-web
+    container_name: sam-web
     ports:
       - "80:80"
     depends_on:

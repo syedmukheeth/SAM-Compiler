@@ -28,7 +28,7 @@ router.get("/github/callback",
   (req, res) => {
     const token = generateToken(req.user);
     const frontendUrl = process.env.NODE_ENV === "production" 
-      ? "https://liquid-ide-web.vercel.app" 
+      ? "https://sam-compiler-web.vercel.app" 
       : env.WEB_ORIGIN;
     res.redirect(`${frontendUrl}/?token=${token}`);
   }
@@ -39,7 +39,7 @@ router.get("/google/callback",
   (req, res) => {
     const token = generateToken(req.user);
     const frontendUrl = process.env.NODE_ENV === "production" 
-      ? "https://liquid-ide-web.vercel.app" 
+      ? "https://sam-compiler-web.vercel.app" 
       : env.WEB_ORIGIN;
     res.redirect(`${frontendUrl}/?token=${token}`);
   }

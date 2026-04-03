@@ -1,5 +1,5 @@
 /**
- * Centralized endpoint configuration for LiquidIDE
+ * Centralized endpoint configuration for SAM Compiler
  * Ensures that API and WebSocket traffic are routed correctly
  * between Vercel (REST) and Render (WebSockets).
  */

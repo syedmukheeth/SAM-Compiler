@@ -110,10 +110,10 @@ async function createRun(input) {
             
             if (isVercel) {
               errMsg += `💡 \x1b[1;36mCloud Sandbox: Fallback execution failed.\x1b[0m\n` +
-                        `💡 \x1b[1;36mPlease start your LiquidIDE worker locally for high-performance runs.\x1b[0m\n\r\n`;
+                        `💡 \x1b[1;36mPlease start your SAM worker locally for high-performance runs.\x1b[0m\n\r\n`;
             } else {
               errMsg += `💡 \x1b[1;36mIf running locally, ensure ${toolName} is installed and in your PATH.\x1b[0m\n` +
-                        `💡 \x1b[1;36mOtherwise, start your LiquidIDE worker.\x1b[0m\n\r\n`;
+                        `💡 \x1b[1;36mOtherwise, start your SAM worker.\x1b[0m\n\r\n`;
             }
 
             if (emitLog) emitLog(run._id.toString(), "stderr", errMsg);

@@ -65,7 +65,7 @@ function createApp() {
   app.use(passport.initialize());
 
   app.get("/", (_req, res) => res.json({ 
-    message: "LiquidIDE API - Professional Multi-Language Execution Engine",
+    message: "SAM Compiler API - Professional Multi-Language Execution Engine",
     version: "1.0.0",
     status: "ready",
     endpoints: ["/runs", "/auth", "/github", "/health"]

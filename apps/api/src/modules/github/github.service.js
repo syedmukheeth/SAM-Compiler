@@ -60,7 +60,7 @@ async function pushToGithub({ token, repo, path, content, message, branch, user:
       owner,
       repo: repoName,
       path,
-      message: message || `Update ${path} via LiquidIDE`,
+      message: message || `Update ${path} via SAM Compiler`,
       content: Buffer.from(content).toString("base64"),
       sha,
       branch

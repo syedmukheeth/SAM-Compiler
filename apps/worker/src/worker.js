@@ -9,7 +9,7 @@ const { RUNS_QUEUE_NAME } = require("./queue/constants");
 const { executeRun } = require("./sandbox/multiSandbox");
 
 async function startHeartbeat(redisClient, getWorkerStats) {
-  const HEARTBEAT_KEY = "liquidide:worker:heartbeat";
+  const HEARTBEAT_KEY = "sam:worker:heartbeat";
   const interval = 5000; // 5 seconds for more "real-time" feel
 
   const update = async () => {
@@ -54,7 +54,7 @@ async function main() {
   startHealthServer();
   await connectMongo();
 
-  logger.info("LiquidIDE worker connected. Waiting for jobs...");
+  logger.info("SAM Compiler worker connected. Waiting for jobs...");
 
   let activeJobs = 0;
 

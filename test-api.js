@@ -2,7 +2,7 @@ const http = require('http');
 
 const data = JSON.stringify({
   language: 'python',
-  code: 'print("Liquid Flux is Alive and Stable")'
+  code: 'print("SAM Compiler is Alive and Stable")'
 });
 
 const options = {

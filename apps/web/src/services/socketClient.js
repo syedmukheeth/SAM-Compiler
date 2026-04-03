@@ -9,7 +9,7 @@ export function getSocket() {
   // Use centralized production/dev endpoint
   const endpoint = ENDPOINTS.WS_ENDPOINT;
 
-  console.log(`📡 [LiquidIDE] Initializing WebSocket @ ${endpoint}`);
+  console.log(`📡 [SAM Compiler] Initializing WebSocket @ ${endpoint}`);
 
   socket = io(endpoint, {
     path: "/socket.io", 
@@ -19,15 +19,15 @@ export function getSocket() {
   });
 
   socket.on("connect", () => {
-    console.log("✅ [LiquidIDE] WebSocket Connected to", endpoint);
+    console.log("✅ [SAM Compiler] WebSocket Connected to", endpoint);
   });
 
   socket.on("connect_error", (err) => {
-    console.error("❌ [LiquidIDE] WebSocket Connection Error:", err.message);
+    console.error("❌ [SAM Compiler] WebSocket Connection Error:", err.message);
   });
 
   socket.on("disconnect", (reason) => {
-    console.warn("⚠️ [LiquidIDE] WebSocket Disconnected:", reason);
+    console.warn("⚠️ [SAM Compiler] WebSocket Disconnected:", reason);
   });
 
   return socket;

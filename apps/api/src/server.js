@@ -13,7 +13,7 @@ async function main() {
   initSocket(server);
 
   server.listen(env.PORT, () => {
-    logger.info(`LiquidIDE API listening on port ${env.PORT}`);
+    logger.info(`SAM Compiler API listening on port ${env.PORT}`);
     console.log(`🚀 API Server ready on http://localhost:${env.PORT}`);
     console.log(`📡 Environment: ${process.env.NODE_ENV || "development"}`);
   });

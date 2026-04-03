@@ -45,7 +45,7 @@ async function executeRun(opts, onLog) {
   const { language, files, entrypoint } = opts;
   const config = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS.javascript;
   
-  const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "liquidide-run-"));
+  const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "sam-run-"));
   try {
     const materializedFiles = [...files];
     let entry = path.posix.normalize(entrypoint).replace(/^(\.\.(\/|\\|$))+/, "");
@@ -125,7 +125,7 @@ async function executeRun(opts, onLog) {
       if (!cmdInfo) {
         return { 
           stdout: "", 
-          stderr: `LiquidIDE Execution Engine Error:\n- ${language} configuration is missing for this host.\n- Docker is not available for sandboxed execution.\n\nPlease install ${language} or start Docker to enable execution for this language.`, 
+          stderr: `SAM Compiler Execution Engine Error:\n- ${language} configuration is missing for this host.\n- Docker is not available for sandboxed execution.\n\nPlease install ${language} or start Docker to enable execution for this language.`, 
           exitCode: 127 
         };
       }
@@ -159,8 +159,8 @@ async function executeRun(opts, onLog) {
       } catch (e) {
         return {
           stdout: "",
-          stderr: `LiquidIDE Worker Error:\n- ${e.message}\n\n💡 If running locally, ensure the compiler is installed and in your PATH.\n💡 Otherwise, use the Cloud Sandbox (Docker).`,
-          exitCode: 127
+          stderr: `SAM Compiler Worker Error:\n- ${e.message}\n\n💡 If running locally, ensure the compiler is installed and in your PATH.\n💡 Otherwise, use the Cloud Sandbox (Docker).`,
+          exitCode: 127 
         };
       }
       return await execWithTimeout(cmd, args, env.RUN_TIMEOUT_MS || 10000, { cwd: runDir, onLog });

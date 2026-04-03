@@ -9,7 +9,7 @@ export default function StatusBar({ language = "JavaScript", position = "Ln 1, C
           <span className="text-emerald-500/80">{status}</span>
         </span>
         <span className="opacity-20">/</span>
-        <span>LiquidIDE Engine v2.0</span>
+        <span>SAM Engine v2.0</span>
       </div>
       <div className="flex items-center gap-4">
         <span>{position}</span>

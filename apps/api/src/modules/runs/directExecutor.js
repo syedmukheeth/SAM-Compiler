@@ -214,7 +214,7 @@ async function executeDirectly(run, onLog) {
     throw new Error("Unsupported language/runtime (Check model consistency)");
   }
 
-  const tempDir = path.join(os.tmpdir(), `liquid-${jobId}`);
+  const tempDir = path.join(os.tmpdir(), `sam-run-${jobId}`);
 
   try {
     await fs.mkdir(tempDir, { recursive: true });

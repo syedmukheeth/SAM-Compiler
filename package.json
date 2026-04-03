@@ -1,36 +1,38 @@
 {
-  "name": "liquidide",
+  "name": "sam-compiler",
   "private": true,
-  "version": "0.5.0",
-  "description": "LiquidIDE - browser-based IDE with sandboxed execution (MERN + BullMQ + Docker).",
+  "version": "0.6.0",
+  "description": "SAM Compiler - Syntax Analysis Machine IDE with cloud-native execution.",
   "workspaces": [
     "apps/*",
     "packages/*",
     "server"
   ],
   "scripts": {
-    "start": "npm start -w @liquidide/api",
-    "start:api": "npm start -w @liquidide/api",
-    "start:worker": "npm start -w @liquidide/worker",
-    "dev": "concurrently -n api,worker,web -c blue,magenta,green \"npm run dev -w @liquidide/api\" \"npm run dev -w @liquidide/worker\" \"npm run dev -w @liquidide/web\"",
+    "start": "npm start -w @sam/api",
+    "start:api": "npm start -w @sam/api",
+    "start:worker": "npm start -w @sam/worker",
+    "dev": "concurrently -n api,worker,web -c blue,magenta,green \"npm run dev -w @sam/api\" \"npm run dev -w @sam/worker\" \"npm run dev -w @sam/web\"",
     "build": "npm install && npm run build -ws",
     "lint": "npm run lint -ws"
   },
   "devDependencies": {
     "@eslint/js": "^8.57.0",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.20",
     "concurrently": "^9.0.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react": "^7.35.2",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.12",
-    "vite": "^5.4.1",
-    "@vitejs/plugin-react": "^4.3.1",
-    "autoprefixer": "^10.4.20",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^1.7.0",
     "postcss": "^8.4.41",
-    "tailwindcss": "^3.4.10"
+    "react-hot-toast": "^2.6.0",
+    "tailwindcss": "^3.4.10",
+    "vite": "^5.4.1"
   },
   "engines": {
     "node": ">=20.0.0"
   }
 }
-

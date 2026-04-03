@@ -21,9 +21,34 @@ import ENDPOINTS from "../services/endpoints";
 // Inline SAM logo SVG — no image file dependency
 function SamNavLogo() {
   return (
-    <svg width="32" height="32" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="36" height="36" rx="9" fill="var(--sam-accent)" />
-      <path d="M22 11.5C20.8 10.5 19.2 10 17.5 10C14.5 10 12 11.8 12 14.2C12 16.4 13.8 17.5 16.5 18.2L17.5 18.5C20.2 19.2 22 20.3 22 22.5C22 25 19.5 26.5 16.8 26.5C14.8 26.5 12.8 25.8 11.5 24.5" stroke="var(--sam-bg)" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+    <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-transform hover:scale-110">
+      {/* Eye Outer Brackets */}
+      <path d="M12 18L4 24L12 30" stroke="var(--sam-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M36 18L44 24L36 30" stroke="var(--sam-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+      
+      {/* Central Bolt (S/7 Shape) */}
+      <path d="M28 14L20 24H28L20 34" stroke="var(--sam-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+      
+      {/* Circuit Accents Top */}
+      <path d="M18 12L20 8" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="21" cy="7" r="1.5" fill="var(--sam-accent)" />
+      
+      <path d="M28 12L30 8" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="31" cy="7" r="1.5" fill="var(--sam-accent)" />
+      
+      {/* Circuit Accents Sides */}
+      <path d="M10 24H6" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="5" cy="24" r="1.5" fill="var(--sam-accent)" />
+      
+      <path d="M38 24H42" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="43" cy="24" r="1.5" fill="var(--sam-accent)" />
+
+      {/* Circuit Accents Bottom */}
+      <path d="M18 36L20 40" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="21" cy="41" r="1.5" fill="var(--sam-accent)" />
+      
+      <path d="M28 36L30 40" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
+      <circle cx="31" cy="41" r="1.5" fill="var(--sam-accent)" />
     </svg>
   );
 }
@@ -126,8 +151,14 @@ export default function EditorPage() {
 
 
   const [settings, setSettings] = useState(() => {
-    const saved = localStorage.getItem("sam_settings") || localStorage.getItem("liquid_settings");
-    return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
+    try {
+      const saved = localStorage.getItem("sam_settings") || localStorage.getItem("liquid_settings");
+      if (!saved) return { fontSize: 14, tabSize: 2 };
+      const parsed = JSON.parse(saved);
+      return (parsed && typeof parsed === 'object') ? parsed : { fontSize: 14, tabSize: 2 };
+    } catch (e) {
+      return { fontSize: 14, tabSize: 2 };
+    }
   });
   
   const onSettingsUpdate = (newSettings) => {
@@ -758,7 +789,7 @@ builtins.input = input_shim
       </AnimatePresence>
 
       <AuthModal isOpen={activeModal === 'auth'} onClose={() => setActiveModal(null)} onLogin={loginUser} />
-      <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} currentSettings={settings} onUpdate={onSettingsUpdate} />
+      <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} settings={settings} onSettingsChange={onSettingsUpdate} />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
       
       <Toaster position="bottom-right" reverseOrder={false} />

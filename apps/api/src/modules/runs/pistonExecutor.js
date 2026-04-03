@@ -2,7 +2,7 @@ const { logger } = require("../../config/logger");
 
 const JUDGE0_API_URL = "https://ce.judge0.com/submissions?base64_encoded=false&wait=true";
 
-// Mapping LiquidIDE language IDs to Judge0 language IDs
+// Mapping SAM Compiler language IDs to Judge0 language IDs
 const LANGUAGE_MAP = {
   python: 71,     // Python 3
   javascript: 63, // Node.js
@@ -31,7 +31,7 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
   }
 
   if (onLog) {
-    onLog(jobId, "stdout", `📡 \x1b[1;36mConnecting to LiquidIDE Cloud Sandbox (Judge0)...\x1b[0m\n\r`);
+    onLog(jobId, "stdout", `📡 \x1b[1;36mConnecting to SAM Compiler Cloud Sandbox (Judge0)...\x1b[0m\n\r`);
     onLog(jobId, "stdout", `🔨 \x1b[1;33mCompiling & Preparing Environment...\x1b[0m\n\r`);
   }
 

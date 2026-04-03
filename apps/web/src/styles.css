@@ -131,7 +131,6 @@ body {
 }
 
 /* === Glassmorphism Core === */
-.liquid-glass,
 .sam-glass {
   background: var(--sam-glass-bg);
   border: 1px solid var(--sam-glass-border);
@@ -156,7 +155,6 @@ body {
 
 /* === Buttons === */
 /* Primary — Monolith Black/White */
-.liquid-button-primary,
 .sam-button-primary {
   background: var(--sam-accent);
   color: var(--sam-bg);
@@ -176,14 +174,12 @@ body {
   cursor: pointer;
 }
 
-.liquid-button-primary:hover,
 .sam-button-primary:hover {
   transform: translateY(-1px);
   filter: brightness(0.95);
 }
 
 /* Secondary — Ghost glass */
-.liquid-button-secondary,
 .sam-button-secondary {
   background: transparent;
   border: 1px solid var(--sam-glass-border);
@@ -203,7 +199,6 @@ body {
   cursor: pointer;
 }
 
-.liquid-button-secondary:hover,
 .sam-button-secondary:hover {
   background: var(--sam-accent-muted);
   border-color: var(--sam-text-dim);

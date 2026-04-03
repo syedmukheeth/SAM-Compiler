@@ -8,7 +8,7 @@ const EnvSchema = z.object({
   MONGO_URI: z.string().optional(),
   REDIS_URL: z.string().optional(),
   WEB_ORIGIN: z.string().min(1).default("http://localhost:5173"),
-  JWT_SECRET: z.string().min(12).default("liquid_super_secret_standalone_key_2026"),
+  JWT_SECRET: z.string().min(12).default("sam_compiler_super_secret_key_2026"),
   JWT_EXPIRES_IN: z.string().default("7d"),
   
   // OAuth (Optional placeholders)
@@ -31,7 +31,7 @@ if (!result.success) {
       MONGO_URI: process.env.MONGO_URI,
       REDIS_URL: process.env.REDIS_URL,
       WEB_ORIGIN: process.env.WEB_ORIGIN || "http://localhost:5173",
-      JWT_SECRET: process.env.JWT_SECRET || "liquid-ide-super-secret-key-2026",
+      JWT_SECRET: process.env.JWT_SECRET || "sam-compiler-super-secret-key-2026",
       JWT_EXPIRES_IN: "7d",
       CALLBACK_URL_BASE: process.env.CALLBACK_URL_BASE || "http://localhost:8080/auth",
       GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,

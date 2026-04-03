@@ -1,4 +1,4 @@
-// LiquidIDE Vercel Entry Point
+// SAM Compiler Vercel Entry Point
 // Professional Serverless Stabilization
 
 // Note: Heavy requires are moved INSIDE the handler to prevent cold-start crashes
@@ -24,7 +24,7 @@ module.exports = async (req, res) => {
   // 🛡️ INITIALIZATION
   if (!app && !initializationError) {
     try {
-      console.log("☁️ Initializing LiquidIDE API on Vercel...");
+      console.log("☁️ Initializing SAM Compiler API on Vercel...");
       
       // Lazy load core modules
       const { connectMongo } = require("../src/config/mongo");

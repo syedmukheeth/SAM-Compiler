@@ -9,10 +9,10 @@ COPY package*.json ./
 COPY apps/web apps/web
 
 # Install dependencies
-RUN npm ci --workspace=@liquidide/web
+RUN npm ci --workspace=@sam/web
 
 # Build the app
-RUN npm run build -w @liquidide/web
+RUN npm run build -w @sam/web
 
 # Production stage
 FROM nginx:alpine AS runner

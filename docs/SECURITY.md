@@ -1,4 +1,4 @@
-# LiquidIDE sandbox security (baseline)
+# SAM Compiler sandbox security (baseline)
 
 This repo’s execution path is designed for **untrusted code**. The current scaffold enforces a baseline set of controls and is structured so additional hardening can be layered without changing the API contract.
 

@@ -6,7 +6,7 @@ const crypto = require("node:crypto");
 const { env } = require("../config/env");
 
 async function executeNodeRun(opts) {
-  const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "liquidide-run-"));
+  const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "sam-run-"));
   try {
     await materializeFiles(runDir, opts.files);
 

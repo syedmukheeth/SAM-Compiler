@@ -5,13 +5,13 @@ export default function UpgradeModal({ isOpen, onClose, isDarkMode }) {
 
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Unlock LiquidIDE Pro" isDarkMode={isDarkMode}>
+    <Modal isOpen={isOpen} onClose={onClose} title="Unlock SAM Pro" isDarkMode={isDarkMode}>
       <div className="space-y-10 py-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
         <div className="text-center space-y-4">
           <div className="inline-flex rounded-2xl bg-blue-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] text-blue-500 ring-1 ring-blue-500/20">Limited Time Offer</div>
           <h3 className={`text-2xl font-black ${isDarkMode ? "text-white" : "text-slate-900"}`}>Unlock the Full Potential</h3>
           <p className={`text-[11px] font-bold leading-6 ${isDarkMode ? "text-white/30" : "text-slate-400"}`}>
-            Get unlimited cloud executions, advanced sandboxing, and priority access to new LiquidIDE Engine features.
+            Get unlimited cloud executions, advanced sandboxing, and priority access to new SAM Engine features.
           </p>
         </div>
 

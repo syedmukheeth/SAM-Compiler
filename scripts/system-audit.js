@@ -70,7 +70,7 @@ async function checkCollaborationLayer() {
 
 async function runAudit() {
   console.log("==========================================");
-  console.log("   LIQUIDIDE ENTERPRISE SYSTEM AUDIT      ");
+  console.log("   SAM COMPILER ENTERPRISE SYSTEM AUDIT   ");
   console.log("==========================================\n");
   
   await checkHealth();
