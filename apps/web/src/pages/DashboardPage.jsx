@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { 
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell 
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell 
 } from "recharts";
 import { 
-  Activity, Cpu, Database, Globe, Zap, Clock, ShieldCheck, ArrowLeft, RefreshCw, AlertTriangle
+  Activity, Database, Globe, Zap, Clock, ShieldCheck, ArrowLeft, RefreshCw, AlertTriangle
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];

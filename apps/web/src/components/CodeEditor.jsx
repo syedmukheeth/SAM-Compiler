@@ -2,7 +2,6 @@ import React, { useCallback, useMemo, useRef, useEffect } from "react";
 import Editor from "@monaco-editor/react";
 import * as Y from "yjs";
 import { MonacoBinding } from "y-monaco";
-import { io } from "socket.io-client";
 import { SocketIOProvider } from "y-socket.io";
 
 const LANGUAGE_TO_MONACO = {

@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  Send, Sparkles, X, Zap, RefreshCw, Copy, MessageSquare, Terminal 
+  Send, Sparkles, X, Zap, RefreshCw, Copy, Check, Terminal 
 } from "lucide-react";
 
 export default function AiPanel({ 

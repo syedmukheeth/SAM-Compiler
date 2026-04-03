@@ -2,7 +2,6 @@ import React, { useRef, useState, useEffect } from "react";
 import CodeEditor from "../components/CodeEditor";
 import logo from "../assets/logo.jpg";
 import LanguageSelector from "../components/LanguageSelector";
-import { GithubModal } from '../components/GithubModal';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
@@ -10,7 +9,6 @@ import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
 import AuthModal from "../components/AuthModal";
 import SettingsModal from "../components/SettingsModal";
-import FilesModal from "../components/FilesModal";
 import UpgradeModal from "../components/UpgradeModal";
 import AiPanel from "../components/AiPanel";
 import { useAuth } from "../hooks/useAuth";
@@ -55,9 +53,6 @@ export default function EditorPage() {
   const [buffers, setBuffers] = useState(
     Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.template]))
   );
-  const [fileNames, setFileNames] = useState(
-    Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.name]))
-  );
   const [runStatus, setRunStatus] = useState("Ready");
   const [metrics, setMetrics] = useState(null);
   
@@ -82,7 +77,7 @@ export default function EditorPage() {
   const fitAddonRef = useRef(null);
   const [activeMobileTab, setActiveMobileTab] = useState("editor"); // "editor" or "terminal"
   
-  const { user, token: authToken, loginUser, logoutUser } = useAuth();
+  const { user, loginUser, logoutUser } = useAuth();
 
 
   // Poll worker status
@@ -347,12 +342,7 @@ builtins.input = input_shim
     setRunStatus("Ready");
   };
 
-  const onNewFile = () => {
-    if (confirm("Create new file? This will reset the code for this language.")) {
-      setBuffers(prev => ({ ...prev, [activeLangId]: languageConfigs[activeLangId].template }));
-      setFileNames(prev => ({ ...prev, [activeLangId]: languageConfigs[activeLangId].name }));
-    }
-  };
+
 
   return (
     <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden bg-black selection:bg-blue-500/30">
@@ -371,8 +361,8 @@ builtins.input = input_shim
           </div>
           
           <nav className="hidden md:flex items-center gap-8">
-            {['Editor', 'Files', 'Settings', 'Stats'].map((tab) => {
-              if (tab === 'Stats') {
+            {['Editor', 'Dashboard', 'Settings'].map((tab) => {
+              if (tab === 'Dashboard') {
                 return (
                   <Link 
                     key={tab}
@@ -445,9 +435,7 @@ builtins.input = input_shim
           </button>
           
           <div className="flex md:hidden items-center gap-2">
-             <button onClick={() => setActiveModal('files')} className="p-2 text-white/40 hover:text-white">
-                <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" /></svg>
-             </button>
+
              <button onClick={() => setActiveModal('settings')} className="p-2 text-white/40 hover:text-white">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
              </button>
@@ -489,33 +477,19 @@ builtins.input = input_shim
             <div className="flex h-11 shrink-0 items-center justify-between border-b border-white/5 px-3 md:px-5 bg-[#0a0a0c] md:bg-white/[0.02]">
               <div className="flex items-center gap-2 md:gap-5">
                 <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} isDarkMode={true} />
-              </div>
-              <div className="flex items-center gap-1.5 md:gap-3">
-                <div className="flex items-center bg-white/5 rounded-lg border border-white/10 px-1.5 md:px-2 gap-1 md:gap-2 mr-1 md:mr-2">
-                   <input 
-                    type="text"
-                    value={fileNames[activeLangId]}
-                    onChange={(e) => setFileNames(prev => ({ ...prev, [activeLangId]: e.target.value }))}
-                    className="bg-white/5 border border-white/10 rounded px-2 py-0.5 outline-none text-[8px] md:text-[11px] font-mono text-blue-400 w-24 md:w-40 focus:border-blue-500/50 transition-all"
-                    placeholder="name..."
-                  />
-                  <div className="flex items-center gap-1 border-l border-white/10 pl-2">
-                    <button 
-                      onClick={onNewFile}
-                      title="New File"
-                      className="p-1 text-white/40 hover:text-white transition-colors"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                    </button>
-                    <button 
-                      onClick={() => setBuffers(prev => ({ ...prev, [activeLangId]: "" }))}
-                      title="Clear Content"
-                      className="p-1 text-white/40 hover:text-red-400 transition-colors"
-                    >
-                      <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
-                  </div>
-                </div>
+                <div className="h-4 w-px bg-white/10 mx-1 hidden md:block" />
+                <button 
+                  onClick={onRun}
+                  disabled={busy}
+                  className="group flex items-center gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-3 py-1.5 transition-all hover:bg-emerald-500/10 active:scale-95 disabled:opacity-50 disabled:pointer-events-none"
+                >
+                  {busy ? (
+                    <div className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-emerald-500/20 border-t-emerald-500" />
+                  ) : (
+                    <svg className="h-3.5 w-3.5 text-emerald-500 transition-transform group-hover:scale-110" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
+                  )}
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/80 group-hover:text-emerald-400">Run</span>
+                </button>
               </div>
             </div>
             
@@ -610,25 +584,7 @@ builtins.input = input_shim
 
       <AuthModal isOpen={activeModal === 'auth'} onClose={() => setActiveModal(null)} isDarkMode={true} onLogin={loginUser} />
       <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} isDarkMode={true} settings={settings} onSettingsChange={onSettingsUpdate} />
-      <FilesModal 
-        isOpen={activeModal === 'files'} 
-        onClose={() => setActiveModal(null)} 
-        isDarkMode={true} 
-        buffers={buffers} 
-        activeLangId={activeLangId}
-        onSwitch={(id) => setActiveLangId(id)}
-        onPushFile={(id) => { setActiveLangId(id); setActiveModal('github'); }}
-      />
-      <GithubModal 
-        key={fileNames[activeLangId]}
-        isOpen={activeModal === 'github'} 
-        onClose={() => setActiveModal(null)} 
-        code={buffers[activeLangId]} 
-        isDarkMode={true} 
-        filename={fileNames[activeLangId]} 
-        user={user} 
-        authToken={authToken}
-      />
+
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} isDarkMode={true} />
       <AiPanel 
         isOpen={showAiPanel} 

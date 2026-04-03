@@ -2,24 +2,7 @@ import React from "react";
 import Modal from "./Modal";
 
 export default function UpgradeModal({ isOpen, onClose, isDarkMode }) {
-  const plans = [
-    {
-      name: "LiquidIDE Plus",
-      price: "$9",
-      period: "/month",
-      features: ["Unlimited Private Files", "GitHub Sync", "Custom Themes", "Priority Support"],
-      buttonText: "Upgrade to Plus",
-      recommended: false
-    },
-    {
-      name: "LiquidIDE Pro",
-      price: "$19",
-      period: "/month",
-      features: ["Everything in Plus", "Cloud Containers", "Direct SSH Access", "Advanced Debugger", "AI Autocomplete"],
-      buttonText: "Go Pro Now",
-      recommended: true
-    }
-  ];
+
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title="Unlock LiquidIDE Pro" isDarkMode={isDarkMode}>

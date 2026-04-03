@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import Modal from "./Modal";
-import { ExternalLink, GitBranch, Github as GithubIcon } from "lucide-react";
+import { ExternalLink, GitBranch, Github } from "lucide-react";
 
 export function GithubModal({ isOpen, onClose, code, isDarkMode, filename = "solution.txt", user, authToken }) {
   const [repos, setRepos] = useState([]);
