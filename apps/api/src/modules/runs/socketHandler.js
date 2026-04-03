@@ -28,7 +28,7 @@ function initSocket(server) {
   ysocket.on("document-update", async (doc, update) => {
     try {
       const sessionId = doc.name; // Room name
-      const binaryState = Y.encodeStateAsUpdate(doc);
+      const binaryState = Buffer.from(Y.encodeStateAsUpdate(doc));
       await ProjectStateModel.findOneAndUpdate(
         { sessionId },
         { binaryState, lastSaved: new Date() },

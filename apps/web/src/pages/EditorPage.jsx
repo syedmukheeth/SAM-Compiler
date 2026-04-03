@@ -15,6 +15,7 @@ import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
 import { Sparkles, History, Keyboard, Info } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
+import ENDPOINTS from "../services/endpoints";
 
 // Inline SAM logo SVG — no image file dependency
 function SamNavLogo() {
@@ -108,7 +109,7 @@ export default function EditorPage() {
         return;
       }
       try {
-        const res = await fetch("/api/runs/health/queue");
+        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/api/runs/health/queue`);
         if (res.ok) {
           const data = await res.json();
           setIsApiOnline(true);
