@@ -53,17 +53,25 @@ body {
 }
 
 /* Mesh Gradient Background */
+@keyframes bg-pulse {
+  0%, 100% { opacity: 0.8; transform: translate(0, 0) scale(1); }
+  33% { opacity: 1; transform: translate(2%, 1%) scale(1.05); }
+  66% { opacity: 0.9; transform: translate(-1%, 2%) scale(1.02); }
+}
+
 .bg-mesh {
   position: fixed;
-  inset: 0;
+  inset: -10%;
   z-index: -1;
   background-color: #000;
   background-image: 
-    radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 0%, rgba(88, 86, 214, 0.15) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(255, 59, 48, 0.05) 0px, transparent 50%),
-    radial-gradient(at 0% 100%, rgba(0, 122, 255, 0.1) 0px, transparent 50%),
-    radial-gradient(at 50% 50%, rgba(10, 10, 15, 1) 0px, transparent 80%);
+    radial-gradient(at 0% 0%, rgba(0, 122, 255, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 0%, rgba(88, 86, 214, 0.12) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(255, 59, 48, 0.03) 0px, transparent 50%),
+    radial-gradient(at 0% 100%, rgba(0, 122, 255, 0.08) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(5, 5, 10, 1) 0px, transparent 85%);
+  filter: blur(80px);
+  animation: bg-pulse 20s ease-in-out infinite;
 }
 
 .noise-overlay {
@@ -78,8 +86,11 @@ body {
 /* Glassmorphism */
 .liquid-glass {
   background: var(--glass-bg);
-  border: 1px solid var(--glass-border);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow: 
+    0 10px 40px -10px rgba(0, 0, 0, 0.8),
+    inset 0 0 20px rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px);
 }
 
 @media (min-width: 768px) {
@@ -124,21 +135,21 @@ body {
 
 /* Specific UI Components */
 .liquid-button-primary {
-  background: linear-gradient(135deg, var(--accent-primary) 0%, #4facfe 100%);
+  background: linear-gradient(135deg, #007AFF 0%, #0051FF 100%);
   color: white;
   font-weight: 800;
-  padding: 8px 24px;
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 15px var(--accent-glow);
-  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  padding: 10px 28px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 10px 30px -10px rgba(0, 122, 255, 0.5);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   white-space: nowrap;
 }
 
@@ -225,8 +236,8 @@ body {
 
 /* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 4px;
+  height: 4px;
 }
 
 ::-webkit-scrollbar-track {
@@ -234,9 +245,9 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  transition: background 0.3s ease;
 }
 
 ::-webkit-scrollbar-thumb:hover {

@@ -60,8 +60,8 @@ export default function DashboardPage() {
   const overallSuccessRate = stats?.executionStats?.reduce((acc, curr) => acc + curr.successRate, 0) / (stats?.executionStats?.length || 1);
 
   return (
-    <div className="relative min-h-screen w-full bg-[#050505] p-4 md:p-8 font-sans text-white overflow-x-hidden">
-      <div className="bg-mesh opacity-30" />
+    <div className="relative min-h-screen w-full bg-[#030303] p-4 md:p-8 font-sans text-white overflow-hidden selection:bg-blue-500/30">
+      <div className="bg-mesh" />
       <div className="noise-overlay" />
 
       {/* Header */}

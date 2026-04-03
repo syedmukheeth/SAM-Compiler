@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import CodeEditor from "../components/CodeEditor";
 import logo from "../assets/logo.jpg";
 import LanguageSelector from "../components/LanguageSelector";
@@ -6,18 +6,15 @@ import { GithubModal } from '../components/GithubModal';
 import { Terminal as XTerm } from 'xterm';
 import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
-import { pollUntilDone, submitRun, fetchHistory } from "../services/codeExecutionApi";
+import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
 import AuthModal from "../components/AuthModal";
 import SettingsModal from "../components/SettingsModal";
 import FilesModal from "../components/FilesModal";
 import UpgradeModal from "../components/UpgradeModal";
 import AiPanel from "../components/AiPanel";
-import HistoryPanel from "../components/HistoryPanel";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { Copy, Check, Share2 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import ActivityBar from "../components/ActivityBar";
 
 const languageConfigs = {
@@ -64,13 +61,9 @@ export default function EditorPage() {
   const [runStatus, setRunStatus] = useState("Ready");
   const [metrics, setMetrics] = useState(null);
   
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const sessionId = searchParams.get("session") || "default";
-  const [showShareModal, setShowShareModal] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
-  const [showHistory, setShowHistory] = useState(false);
-  const [history, setHistory] = useState([]);
-  const [copied, setCopied] = useState(false);
 
   // Pre-connect socket for performance
   useEffect(() => {
@@ -83,7 +76,6 @@ export default function EditorPage() {
   const [activeModal, setActiveModal] = useState(null); 
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(true);
-  const [apiVersion, setApiVersion] = useState(null);
   
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
@@ -107,7 +99,6 @@ export default function EditorPage() {
           const data = await res.json();
           setIsApiOnline(true);
           setIsWorkerOnline(data.workerOnline);
-          setApiVersion(data.version);
         } else {
           setIsApiOnline(false);
           setIsWorkerOnline(false);
@@ -122,23 +113,7 @@ export default function EditorPage() {
     return () => clearInterval(timer);
   }, []);
 
-  // Fetch History
-  const loadHistory = useCallback(async () => {
-    if (user) {
-      try {
-        const data = await fetchHistory();
-        setHistory(data);
-      } catch (err) {
-        console.error("Failed to load history:", err);
-      }
-    } else {
-      setHistory([]);
-    }
-  }, [user]);
 
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
 
   const [settings, setSettings] = useState(() => {
     const saved = localStorage.getItem("liquid_settings");
@@ -329,7 +304,6 @@ builtins.input = input_shim
             setMetrics(evt.chunk.metrics);
           }
           setBusy(false);
-          loadHistory(); // Refresh history after run
         }
       };
 
@@ -506,19 +480,8 @@ builtins.input = input_shim
 
       <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
         <ActivityBar 
-          activeLanguage={activeLangId} 
-          onLanguageChange={setActiveLangId}
           onOpenAI={() => setShowAiPanel(true)}
           aiActive={showAiPanel}
-          onOpenCollaborate={() => {
-            if (!searchParams.get("session")) {
-              const newSession = Math.random().toString(36).substring(7);
-              setSearchParams({ session: newSession });
-            }
-            setShowShareModal(true);
-          }}
-          onOpenHistory={() => setShowHistory(!showHistory)}
-          historyActive={showHistory}
           onOpenSettings={() => setActiveModal('settings')}
         />
         <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex md:flex-[7]`}>
@@ -679,72 +642,7 @@ builtins.input = input_shim
         }}
       />
 
-      <AnimatePresence>
-        {showHistory && (
-          <HistoryPanel 
-            history={history} 
-            onClose={() => setShowHistory(false)}
-            onSelect={(item) => {
-              const lang = Object.entries(languageConfigs).find(([_, cfg]) => cfg.lang === item.runtime)?.[0] || item.runtime;
-              setActiveLangId(lang);
-              setBuffers(prev => ({ ...prev, [lang]: item.files[0].content }));
-              setShowHistory(false);
-            }}
-          />
-        )}
-      </AnimatePresence>
 
-      {/* Share Modal */}
-      <AnimatePresence>
-        {showShareModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 backdrop-blur-md">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="w-full max-w-md overflow-hidden rounded-[24px] border border-white/10 bg-[#0a0a0c] shadow-2xl"
-            >
-              <div className="relative p-6 md:p-8">
-                <div className="mb-6 flex flex-col items-center text-center">
-                  <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-600/20 text-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.2)]">
-                    <Share2 className="h-6 w-6" />
-                  </div>
-                  <h3 className="text-lg font-black uppercase tracking-widest text-white">Collaborative Session</h3>
-                  <p className="mt-2 text-[11px] font-medium leading-relaxed text-white/40">
-                    Share this link with your pair-programming partner. 
-                    They will see your cursors and code edits in real-time.
-                  </p>
-                </div>
-
-                <div className="flex flex-col gap-3">
-                  <div className="group relative flex h-12 w-full items-center gap-3 overflow-hidden rounded-xl border border-white/5 bg-white/5 px-4 transition-all hover:bg-white/8">
-                    <div className="flex-1 truncate text-[10px] font-mono text-white/60">
-                      {window.location.href}
-                    </div>
-                    <button 
-                      onClick={() => {
-                        navigator.clipboard.writeText(window.location.href);
-                        setCopied(true);
-                        setTimeout(() => setCopied(false), 2000);
-                      }}
-                      className="flex h-8 w-8 items-center justify-center rounded-lg bg-blue-600/10 text-blue-500 transition-all hover:bg-blue-600/20 active:scale-90"
-                    >
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                    </button>
-                  </div>
-                </div>
-
-                <button 
-                  onClick={() => setShowShareModal(false)}
-                  className="mt-8 flex h-12 w-full items-center justify-center rounded-xl bg-white/5 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all hover:bg-white/10 active:scale-95"
-                >
-                  Close
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }

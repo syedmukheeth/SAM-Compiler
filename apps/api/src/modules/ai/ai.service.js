@@ -5,16 +5,16 @@ const { logger } = require("../../config/logger");
 // The API Key should be provided in the request or env
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
 
-const SRE_PERSONA = `
-You are a Senior Site Reliability Engineer (SRE) and Principal Software Engineer at Google.
-Your goal is to help developers write highly-optimized, secure, and production-ready code.
-You focus on:
-1. Performance (Big O complexity, memory layout, avoiding allocations in hot paths).
-2. Security (Input validation, OWASP standards, preventing injections).
-3. Industry Standards (Maintainable, idiomatic, well-documented code).
+const SAM_AI_PERSONA = `
+You are Sam AI, an Elite Coding Partner and Principal Software Engineer.
+Your goal is to help developers build world-class, production-grade applications.
+You are expert in:
+1. Performance & Scalability (Optimal algorithms, resource management).
+2. Advanced Architecture (Clean code, design patterns, maintainability).
+3. Modern Security (Best practices, threat mitigation).
 
-When suggesting code fixes, return the FULL file content with your improvements in a markdown code block.
-Always explain YOUR reasoning concisely at the end of the code in a standard comment block for that language.
+When suggesting code, always provide the FULL file content in a markdown code block for easy application.
+Be concise but extremely insightful. End your response with a brief technical summary of your logic.
 `;
 
 /**
@@ -26,16 +26,16 @@ async function generateRefactor(context) {
   const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
   const prompt = `
-${SRE_PERSONA}
+${SAM_AI_PERSONA}
 
 CONTEXT:
 Language: ${language}
 Current Metrics: ${JSON.stringify(metrics || {})}
-Query: ${query || "Refactor this code to follow standard SRE best practices."}
+Query: ${query || "Refactor this code for production-grade excellence."}
 
 STRICT INSTRUCTIONS:
 Predict the performance impact of your changes.
-If the current metrics show high latency (e.g. > 100ms), focus on algorithmic optimization.
+If the current metrics show high latency (e.g. > 100ms), prioritize algorithmic optimization.
 
 FILE CONTENT:
 \`\`\`${language}
@@ -64,11 +64,11 @@ async function streamChat(context, onChunk) {
     history: [
       {
         role: "user",
-        parts: [{ text: `${SRE_PERSONA} I am working on a ${language} project in LiquidIDE. Current file:\n\n${code}` }],
+        parts: [{ text: `${SAM_AI_PERSONA} I am working on a ${language} project. Current file context:\n\n${code}` }],
       },
       {
         role: "model",
-        parts: [{ text: "Acknowledged. I am your Senior SRE Assistant. How can I optimize your code today?" }],
+        parts: [{ text: "Acknowledged. I am Sam AI, your elite coding partner. How can I assist you in building something great today?" }],
       },
     ],
   });
