@@ -61,16 +61,19 @@ export default function AiPanel({
           if (line.startsWith("data: ")) {
             const dataStr = line.replace("data: ", "");
             if (dataStr === "[DONE]") break;
+            let parsed;
             try {
-              const { chunk: text, error } = JSON.parse(dataStr);
-              if (error) throw new Error(error);
-              assistantMsg.content += text;
-              setMessages(prev => {
-                const newMsgs = [...prev];
-                newMsgs[newMsgs.length - 1] = { ...assistantMsg };
-                return newMsgs;
-              });
-            } catch (e) { /* ignore parse errors for partial chunks */ }
+              parsed = JSON.parse(dataStr);
+            } catch (e) {
+              continue; // ignore incomplete chunks
+            }
+            if (parsed.error) throw new Error(parsed.error);
+            assistantMsg.content += parsed.chunk;
+            setMessages(prev => {
+              const newMsgs = [...prev];
+              newMsgs[newMsgs.length - 1] = { ...assistantMsg };
+              return newMsgs;
+            });
           }
         }
       }
