@@ -4,7 +4,7 @@
  * between Vercel (REST) and Render (WebSockets).
  */
 
-const isProduction = window.location.hostname !== "localhost" && !window.location.hostname.includes("127.0.0.1");
+const isProduction = import.meta.env.PROD;
 const isVercel = window.location.hostname.includes("vercel.app");
 
 export const ENDPOINTS = {
@@ -12,12 +12,12 @@ export const ENDPOINTS = {
   // ALIGNMENT: In production, route ALL traffic to Render to avoid Vercel proxy issues
   API_BASE_URL: isProduction 
     ? "https://liquid-ide.onrender.com" 
-    : window.location.origin,
+    : "",
 
   // WebSocket Endpoint 
   WS_ENDPOINT: isProduction 
     ? "https://liquid-ide.onrender.com" 
-    : window.location.origin.replace(":3000", ":3001"),
+    : window.location.protocol + "//" + window.location.hostname + ":8080",
 
   // SOCKET_OPTIONS: Polling first for max reliability on Render free-tier
   SOCKET_OPTIONS: {

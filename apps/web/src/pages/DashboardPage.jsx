@@ -128,7 +128,7 @@ export default function DashboardPage() {
                 <span className="text-[10px] text-white/30">Last 7 Days</span>
              </div>
              <div className="flex-1">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <AreaChart data={stats?.throughput}>
                     <defs>
                       <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
@@ -176,7 +176,7 @@ export default function DashboardPage() {
             <section className="glass-card flex flex-col p-6 h-[300px]">
                <h3 className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-white/60">Duration by runtime (ms)</h3>
                <div className="flex-1">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={stats?.executionStats}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
                       <XAxis dataKey="language" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} />
@@ -198,7 +198,7 @@ export default function DashboardPage() {
             <section className="glass-card flex flex-col p-6 h-[300px]">
                <h3 className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-white/60">Success Rate (%)</h3>
                <div className="flex-1">
-                  <ResponsiveContainer width="100%" height="100%">
+                  <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={stats?.executionStats} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" horizontal={false} />
                       <XAxis type="number" hide />

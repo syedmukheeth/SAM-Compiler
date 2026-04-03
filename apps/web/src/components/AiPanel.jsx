@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { 
   Send, Sparkles, X, Zap, RefreshCw, Copy, Check, Terminal 
 } from "lucide-react";
+import ENDPOINTS from "../services/endpoints";
 
 export default function AiPanel({ 
   isOpen, 
@@ -35,7 +36,7 @@ export default function AiPanel({
     setLoading(true);
 
     try {
-      const response = await fetch("/api/ai/chat", {
+      const response = await fetch(`${ENDPOINTS.API_BASE_URL}/api/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: currentCode, language, messages: [...messages, userMsg] })
@@ -86,7 +87,7 @@ export default function AiPanel({
     setMessages(prev => [...prev, { role: "user", content: query }]);
 
     try {
-      const res = await fetch("/api/ai/refactor", {
+      const res = await fetch(`${ENDPOINTS.API_BASE_URL}/api/ai/refactor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: currentCode, language, metrics, query })

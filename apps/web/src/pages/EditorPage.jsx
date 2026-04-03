@@ -12,7 +12,7 @@ import UpgradeModal from "../components/UpgradeModal";
 import AiPanel from "../components/AiPanel";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import ActivityBar from "../components/ActivityBar";
+import { Sparkles } from "lucide-react";
 
 // Inline SAM logo SVG — no image file dependency
 function SamNavLogo() {
@@ -461,21 +461,15 @@ builtins.input = input_shim
             >Sign In</button>
           )}
 
-          {/* Run Button */}
+          {/* AI Assistant Button */}
           <button
-            id="run-code-btn"
-            onClick={onRun}
-            disabled={busy}
-            className="liquid-button-primary"
-            style={{ height: 36, padding: '0 20px', fontSize: 11, gap: 8 }}
+            onClick={() => setShowAiPanel(true)}
+            className="liquid-button-primary group"
+            style={{ height: 36, padding: '0 20px', fontSize: 11, gap: 8, background: 'linear-gradient(to right, #00D4FF, #8B5CF6)', color: '#0e131e', border: 'none', boxShadow: '0 0 15px rgba(0,212,255,0.4)' }}
           >
-            {busy ? (
-              <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(0,31,39,0.3)', borderTopColor: '#001f27', animation: 'spin 0.8s linear infinite' }} />
-            ) : (
-              <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
-            )}
-            <span className="hidden md:inline">{busy ? "Compiling..." : "Run Code"}</span>
-            <span className="md:hidden">{busy ? "..." : "Run"}</span>
+            <Sparkles size={14} className="fill-current animate-pulse group-hover:scale-110 transition-transform" />
+            <span className="hidden md:inline font-black tracking-widest uppercase">SAM AI</span>
+            <span className="md:hidden font-black tracking-widest uppercase">AI</span>
           </button>
 
           <div className="flex md:hidden">
@@ -522,11 +516,6 @@ builtins.input = input_shim
       </div>
 
       <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-2 md:gap-4">
-        <ActivityBar 
-          onOpenAI={() => setShowAiPanel(true)}
-          aiActive={showAiPanel}
-          onOpenSettings={() => setActiveModal('settings')}
-        />
         <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex md:flex-[7]`}>
           <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16 }}>
             <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'rgba(14,19,30,0.4)', borderBottom: '1px solid rgba(0,212,255,0.05)' }}>
