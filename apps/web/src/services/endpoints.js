@@ -15,9 +15,9 @@ export const ENDPOINTS = {
   // WebSocket Endpoint 
   WS_ENDPOINT: (import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || (isProduction ? "" : window.location.protocol + "//" + window.location.hostname + ":8080")).replace(/\/+$/, ""),
 
-  // SOCKET_OPTIONS: Polling first for max reliability on Vercel serverless free-tier
+  // SOCKET_OPTIONS: WebSocket first for max performance on Render container
   SOCKET_OPTIONS: {
-     transports: ["polling"], // Forced to polling exclusively to prevent Vercel socket drop-offs
+     transports: ["websocket", "polling"], // Standard upgrade sequence
      reconnection: true,
      reconnectionAttempts: 50,
      timeout: 30000
