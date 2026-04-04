@@ -7,11 +7,15 @@ WORKDIR /app
 COPY package*.json ./
 # Copy shared package
 COPY packages/shared packages/shared
-# Copy api app
+# Copy api app and web app
 COPY apps/api apps/api
+COPY apps/web apps/web
 
-# Install dependencies (only what's needed for api)
-RUN npm ci --workspace=@sam/api --workspace=@sam/shared --ignore-scripts
+# Install dependencies (workspaces handle root hoisting)
+RUN npm ci --ignore-scripts
+
+# Build the frontend
+RUN npm run build -w @sam/web
 
 # Production stage
 FROM node:20-slim AS runner

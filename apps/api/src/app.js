@@ -10,6 +10,7 @@ const { runsRouter } = require("./modules/runs/runs.routes");
 const { githubRouter } = require("./modules/github/github.routes");
 const { authRouter } = require("./modules/auth/auth.routes");
 const { aiRouter } = require("./modules/ai/ai.routes");
+const path = require("path");
 
 function createApp() {
   const app = express();
@@ -64,25 +65,20 @@ function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(passport.initialize());
 
-  app.get("/", (_req, res) => res.json({ 
-    message: "SAM Compiler API - Professional Multi-Language Execution Engine",
-    version: "1.0.0",
-    status: "ready",
-    endpoints: ["/runs", "/auth", "/github", "/health"]
-  }));
-
-  // Prevent favicon 404 noise in logs
-  app.get(["/favicon.ico", "/favicon.png"], (req, res) => res.status(204).end());
-
+  // Serve Static Frontend Assets (Monolith Mode)
+  const distPath = path.join(__dirname, "../../../web/dist");
+  app.use(express.static(distPath));
+  
+  // Health check - moved from root to avoid conflict with frontend
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
   
-  // Standard routes handled at root
+  // Prevent favicon 404 noise in logs
+  app.get(["/favicon.ico", "/favicon.png"], (req, res) => res.status(204).end());
+  
+  // Standard API routes
   const routes = express.Router();
   
-  // 1. Un-limited Health checks
-  routes.get("/health", (_req, res) => res.json({ status: "ok", origin: "api-router" }));
-  
-  // We explicitly match the health/queue path BEFORE the rate-limited group
+  // Match health/queue path specifically
   routes.get("/runs/health/queue", async (req, res, next) => {
     try {
       const { getQueueStatus } = require("./modules/runs/runs.service");
@@ -93,13 +89,20 @@ function createApp() {
     }
   });
   
-  // 2. Rate-limited execution routes
+  // Rate-limited execution routes
   routes.use("/runs", runLimiter, runsRouter);
   routes.use("/github", githubRouter);
   routes.use("/auth", authRouter);
   routes.use("/ai", aiRouter);
 
   app.use("/", routes);
+
+  // Catch-all: Route anything else to index.html for React Router support (SPA)
+  app.get("*", (req, res) => {
+    // Skip if it's an API request that 404'd
+    if (req.url.startsWith("/api/")) return res.status(404).json({ message: "API endpoint not found" });
+    res.sendFile(path.join(distPath, "index.html"));
+  });
 
   // Global Error Handler
   // eslint-disable-next-line no-unused-vars
