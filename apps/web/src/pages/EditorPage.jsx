@@ -13,7 +13,7 @@ import AiPanel from "../components/AiPanel";
 import HistoryModal from "../components/HistoryModal";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { Sparkles, History, Keyboard, Info } from "lucide-react";
+import { Sparkles, History, Keyboard, Info, Linkedin } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
@@ -527,16 +527,36 @@ builtins.input = input_shim
       <div className="noise-overlay" />
 
       <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 border-b-0 sam-glass" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-glass-bg)', backdropFilter: 'blur(30px)' }}>
-        <div className="flex items-center gap-4 md:gap-10">
-          <div className="flex items-center gap-3 transition-transform hover:scale-105 shrink-0">
-            <SamNavLogo />
-            <div className="flex flex-col leading-tight">
-              <span className="sam-headline tracking-tighter" style={{ fontSize: 13, color: 'var(--sam-text)' }}>SAM</span>
-              <span className="text-label" style={{ fontSize: 8, color: 'var(--sam-text-muted)', lineHeight: 1 }}>Compiler</span>
+        <div className="flex items-center gap-4 md:gap-14">
+          <div className="flex items-center gap-5 shrink-0">
+            <div className="flex items-center gap-3 transition-all hover:scale-105">
+              <SamNavLogo />
+              <div className="flex flex-col leading-none">
+                <span className="font-black tracking-[0.2em] text-[13px] text-white uppercase italic" style={{ fontFamily: 'var(--font-mono)' }}>SAM</span>
+                <span className="text-[9px] font-bold text-white/40 uppercase tracking-[0.4em] mt-0.5">Compiler</span>
+              </div>
             </div>
+
+            <div className="h-8 w-[1px] bg-white/5 hidden lg:block" />
+
+            {/* LinkedIn Style Author Badge */}
+            <a 
+              href="https://linkedin.com/in/syedmukheeth" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hidden lg:flex items-center gap-3 group px-4 py-2 rounded-xl transition-all duration-500 border border-transparent hover:border-white/10 hover:bg-white/[0.02]"
+            >
+              <div className="flex flex-col items-start leading-none gap-0.5">
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-white/30 group-hover:text-white/60 transition-colors">Built by</span>
+                <span className="text-[11px] font-black tracking-tight text-white/70 group-hover:text-white transition-colors">Syed Mukheeth</span>
+              </div>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/5 group-hover:bg-[#0077b5] group-hover:shadow-[0_0_15px_rgba(0,119,181,0.3)] transition-all duration-500">
+                <Linkedin size={14} className="text-white group-hover:scale-110 transition-transform" />
+              </div>
+            </a>
           </div>
           
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden xl:flex items-center gap-8">
             {['Editor', 'Dashboard', 'Settings'].map((tab) => {
               if (tab === 'Dashboard') {
                 if (user?.role !== 'admin') return null;
