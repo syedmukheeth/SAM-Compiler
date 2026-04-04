@@ -21,11 +21,15 @@ import ENDPOINTS from "../services/endpoints";
 // Inline SAM logo SVG — no image file dependency
 function SamNavLogo() {
   return (
-    <div className="relative flex h-8 w-8 items-center justify-center transition-transform hover:scale-110">
-      <svg width="40" height="40" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 18L4 24L12 30" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M36 18L44 24L36 30" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M28 14L20 24H28L20 34" stroke="currentColor" strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round" />
+    <div className="relative flex h-10 w-10 items-center justify-center transition-all duration-500 hover:scale-110">
+      <svg width="42" height="42" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Bolt Center */}
+        <path d="M21 12L15 24H23L17 36" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Brackets */}
+        <path d="M12 18L4 24L12 30" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M36 18L44 24L36 30" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        {/* Circuit Accents */}
+        <path d="M19 12V8M29 12V8M19 36V40M29 36V40" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -574,9 +578,9 @@ builtins.input = input_shim
           <div className="flex items-center gap-5 shrink-0">
             <div className="flex items-center gap-3 transition-all hover:scale-105">
               <SamNavLogo />
-              <div className="flex flex-col leading-none">
-                <span className="font-black tracking-[0.2em] text-[13px] uppercase italic" style={{ fontFamily: 'var(--font-mono)', color: 'var(--sam-text)' }}>SAM</span>
-                <span className="text-[9px] font-bold uppercase tracking-[0.4em] mt-0.5" style={{ color: 'var(--sam-text-dim)' }}>Compiler</span>
+            <div className="flex flex-col leading-[0.9] mt-1 relative">
+                <span className="font-black tracking-tight text-[18px] uppercase italic" style={{ fontFamily: 'var(--font-display)', color: 'var(--sam-text)' }}>SAM</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.35em] opacity-40 ml-0.5" style={{ color: 'var(--sam-text)' }}>Compiler</span>
               </div>
             </div>
 
