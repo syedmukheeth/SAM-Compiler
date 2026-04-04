@@ -110,6 +110,11 @@ export default function CodeEditor({
 
     const ytext = ydoc.getText("monaco");
 
+    // Assign to refs IMMEDIATELY for event visibility
+    ydocRef.current = ydoc;
+    ytextRef.current = ytext;
+    providerRef.current = provider;
+
     // Bind Monaco to Yjs
     const binding = new MonacoBinding(
       ytext,
@@ -117,18 +122,13 @@ export default function CodeEditor({
       new Set([editor]),
       provider.awareness
     );
+    bindingRef.current = binding;
 
     // Set local awareness (Cursors/Presence)
     provider.awareness.setLocalStateField("user", {
       name: localName,
       color: localColor
     });
-
-    // Assign to refs for stability across renders and events
-    ydocRef.current = ydoc;
-    ytextRef.current = ytext;
-    bindingRef.current = binding;
-    providerRef.current = provider;
 
     editor.onDidChangeCursorPosition(() => {
       const pos = editor.getPosition();
@@ -141,18 +141,24 @@ export default function CodeEditor({
       if (isSynced !== false && !hasInitializedRef.current) {
         hasInitializedRef.current = true;
         
-        ydoc.transact(() => {
-          const text = ytext.toString();
-          const identifier = "Welcome to SAM Compiler!";
-          const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
-          
-          if (occurrences > 1) {
-            ytext.delete(0, ytext.length);
-            if (value) {
-              ytext.insert(0, value + "\n");
+        // Defensive check: only transact if refs are still valid in current mount
+        const currentYdoc = ydocRef.current;
+        const currentYtext = ytextRef.current;
+        
+        if (currentYdoc && currentYtext) {
+          currentYdoc.transact(() => {
+            const text = currentYtext.toString();
+            const identifier = "Welcome to SAM Compiler!";
+            const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
+            
+            if (occurrences > 1) {
+              currentYtext.delete(0, currentYtext.length);
+              if (value) {
+                currentYtext.insert(0, value + "\n");
+              }
             }
-          }
-        });
+          });
+        }
       }
     });
     
