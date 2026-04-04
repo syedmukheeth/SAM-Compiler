@@ -64,9 +64,9 @@
   --sam-surface-top:   #CBD5E1;
   --sam-bright:        #94A3B8;
 
-  --sam-accent:        #2563EB; /* Premium SaaS Blue */
-  --sam-accent-dim:    #1D4ED8;
-  --sam-accent-muted:  rgba(37,99,235,0.08);
+  --sam-accent:        #000000; /* Strict Black Action */
+  --sam-accent-dim:    #334155;
+  --sam-accent-muted:  rgba(0,0,0,0.06);
 
   --sam-glass-bg:      rgba(255,255,255,0.95);
   --sam-glass-border:  #E2E8F0;

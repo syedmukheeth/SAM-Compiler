@@ -102,8 +102,8 @@ function ThemeToggle({ theme, toggle }) {
         className="absolute left-1 flex h-5 w-5 items-center justify-center rounded-full shadow-lg"
         animate={{ 
           x: theme === 'dark' ? 0 : 20,
-          background: theme === 'dark' ? '#FFFFFF' : '#00D4FF',
-          boxShadow: theme === 'dark' ? '0 0 15px rgba(255,255,255,0.2)' : '0 0 15px rgba(0,212,255,0.3)'
+          background: theme === 'dark' ? '#FFFFFF' : '#000000',
+          boxShadow: theme === 'dark' ? '0 0 10px rgba(255,255,255,0.1)' : '0 0 10px rgba(0,0,0,0.1)'
         }}
         transition={{ 
           type: "spring",
@@ -539,7 +539,7 @@ builtins.input = input_shim
                   onClick={() => setActiveModal(tab === 'Editor' ? null : tab.toLowerCase())}
                   style={{
                     fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em',
-                    color: isActive ? (theme === 'light' ? '#2563EB' : '#00D4FF') : (theme === 'light' ? '#64748B' : 'rgba(221,226,241,0.4)'),
+                    color: isActive ? 'var(--sam-accent)' : 'var(--sam-text-dim)',
                     background: 'none', border: 'none', cursor: 'pointer',
                     transition: 'color 0.2s', position: 'relative',
                     padding: '8px 0',
@@ -551,7 +551,7 @@ builtins.input = input_shim
                     <motion.div
                       layoutId="activeTab"
                       className="absolute bottom-0 left-0 right-0 h-0.5"
-                      style={{ background: theme === 'light' ? '#2563EB' : '#00D4FF' }}
+                      style={{ background: 'var(--sam-accent)' }}
                     />
                   )}
                 </button>
@@ -717,9 +717,9 @@ builtins.input = input_shim
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 24px', borderRadius: 8,
                     background: busy ? 'var(--sam-accent-dim)' : 'var(--sam-accent)',
-                    color: '#FFFFFF',
+                    color: theme === 'light' ? '#FFFFFF' : '#000000',
                     fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
-                    boxShadow: theme === 'light' ? '0 4px 14px rgba(37,99,235,0.3)' : '0 4px 14px rgba(0,212,255,0.2)',
+                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
                     cursor: busy ? 'not-allowed' : 'pointer',
                     opacity: busy ? 0.8 : 1,
                     transition: 'all 0.2s',

@@ -43,55 +43,55 @@ export default function CodeEditor({
   const handleMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
 
-    // Define Monolith Dark Theme (Professional High-Scale Aesthetic)
+    // Define Monolith Dark Theme (Strict Monochromatic Matrix)
     monaco.editor.defineTheme('monolith-dark', {
       base: 'vs-dark',
       inherit: true,
       rules: [
-        { token: '', foreground: 'dde2f1', background: '000000' },
-        { token: 'comment', foreground: '555555', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '00D4FF', fontStyle: 'bold' },
-        { token: 'string', foreground: '22c55e' },
-        { token: 'number', foreground: 'f59e0b' },
-        { token: 'type', foreground: '0ea5e9' },
-        { token: 'operator', foreground: '00D4FF' },
-        { token: 'delimiter', foreground: 'dde2f1' },
-        { token: 'function', foreground: '8b5cf6' },
-        { token: 'identifier', foreground: 'dde2f1' },
+        { token: '', foreground: 'FFFFFF', background: '000000' },
+        { token: 'comment', foreground: '525252', fontStyle: 'italic' },
+        { token: 'keyword', foreground: 'FFFFFF', fontStyle: 'bold' },
+        { token: 'string', foreground: 'A3A3A3' },
+        { token: 'number', foreground: 'D1D1D1' },
+        { token: 'type', foreground: 'FFFFFF' },
+        { token: 'operator', foreground: 'FFFFFF' },
+        { token: 'delimiter', foreground: '737373' },
+        { token: 'function', foreground: 'FFFFFF' },
+        { token: 'identifier', foreground: 'FFFFFF' },
       ],
       colors: {
         'editor.background': '#000000',
-        'editor.foreground': '#dde2f1',
-        'editorLineNumber.foreground': '#222222',
-        'editorLineNumber.activeForeground': '#00D4FF',
-        'editorIndentGuide.background': '#111111',
-        'editor.selectionBackground': '#00D4FF22',
-        'editorCursor.foreground': '#00D4FF',
+        'editor.foreground': '#FFFFFF',
+        'editorLineNumber.foreground': '#262626',
+        'editorLineNumber.activeForeground': '#FFFFFF',
+        'editorIndentGuide.background': '#171717',
+        'editor.selectionBackground': '#FFFFFF22',
+        'editorCursor.foreground': '#FFFFFF',
       }
     });
 
-    // Define Monolith Light Theme (Premium Paper-Glass Aesthetic)
+    // Define Monolith Light Theme (Premium Monochrome Aesthetic)
     monaco.editor.defineTheme('monolith-light', {
       base: 'vs',
       inherit: true,
       rules: [
-        { token: '', foreground: '0F172A', background: 'FFFFFF' },
-        { token: 'comment', foreground: '64748B', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '2563EB', fontStyle: 'bold' },
-        { token: 'string', foreground: '059669' },
-        { token: 'number', foreground: 'D97706' },
-        { token: 'type', foreground: '0284C7' },
-        { token: 'operator', foreground: '2563EB' },
-        { token: 'function', foreground: '7C3AED' },
+        { token: '', foreground: '000000', background: 'FFFFFF' },
+        { token: 'comment', foreground: '94A3B8', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '000000', fontStyle: 'bold' },
+        { token: 'string', foreground: '404040' },
+        { token: 'number', foreground: '525252' },
+        { token: 'type', foreground: '000000' },
+        { token: 'operator', foreground: '000000' },
+        { token: 'function', foreground: '000000' },
       ],
       colors: {
         'editor.background': '#FFFFFF',
-        'editor.foreground': '#0F172A',
-        'editorLineNumber.foreground': '#CBD5E1',
-        'editorLineNumber.activeForeground': '#2563EB',
+        'editor.foreground': '#000000',
+        'editorLineNumber.foreground': '#E2E8F0',
+        'editorLineNumber.activeForeground': '#000000',
         'editorIndentGuide.background': '#F1F5F9',
-        'editor.selectionBackground': '#BFDBFE66',
-        'editorCursor.foreground': '#2563EB',
+        'editor.selectionBackground': '#00000022',
+        'editorCursor.foreground': '#000000',
       }
     });
 
