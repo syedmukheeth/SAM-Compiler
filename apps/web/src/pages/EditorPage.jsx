@@ -788,27 +788,27 @@ builtins.input = input_shim
                     onClick={onClear}
                     title="Clear Output"
                     style={{ padding: '5px', background: 'none', border: 'none', color: 'rgba(221,226,241,0.25)', cursor: 'pointer', borderRadius: 6, transition: 'all 0.2s' }}
-                    onMouseEnter={(e) => { e.currentTarget.style.color = '#00D4FF'; e.currentTarget.style.background = 'rgba(0,212,255,0.06)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.color = 'rgba(221,226,241,0.25)'; e.currentTarget.style.background = 'none'; }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--sam-text)'; e.currentTarget.style.background = 'var(--sam-glass-border)'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--sam-text-dim)'; e.currentTarget.style.background = 'none'; }}
                   >
                     <svg width="13" height="13" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                   </button>
                   <div style={{
                     width: 7, height: 7, borderRadius: '50%',
-                    background: runStatus === 'Succeeded' ? '#22c55e' : runStatus === 'Failed' ? '#f43f5e' : busy ? '#00D4FF' : 'rgba(221,226,241,0.2)',
-                    boxShadow: runStatus === 'Succeeded' ? '0 0 10px #22c55e' : runStatus === 'Failed' ? '0 0 10px #f43f5e' : busy ? '0 0 10px #00D4FF' : 'none',
+                    background: runStatus === 'Succeeded' ? '#22c55e' : runStatus === 'Failed' ? '#f43f5e' : busy ? 'var(--sam-accent)' : 'var(--sam-glass-border)',
+                    boxShadow: runStatus === 'Succeeded' ? '0 0 10px #22c55e' : runStatus === 'Failed' ? '0 0 10px #f43f5e' : busy ? '0 0 10px var(--sam-accent)' : 'none',
                     animation: busy ? 'sam-pulse 1s infinite' : 'none',
                     transition: 'all 0.5s',
                   }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(221,226,241,0.4)', fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>
                     {isWorkerOnline ? 'Terminal' : 'Cloud Output'}
                   </span>
                   {metrics && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid rgba(0,212,255,0.1)' }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: '#00D4FF', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid var(--sam-glass-border)' }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>
                         {metrics.sandbox?.replace('docker-', '')}
                       </span>
-                      <span style={{ fontSize: 9, fontWeight: 600, color: 'rgba(221,226,241,0.3)', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>
                         {metrics.durationMs}ms
                       </span>
                     </div>

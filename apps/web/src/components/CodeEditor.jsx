@@ -131,12 +131,31 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // BROWSER PASSIVE MODE (The Absolute Fix)
-    // We NO LONGER check for emptiness or insert boilerplate here.
-    // The Backend is now the Sole Source of Truth and handles all initialization.
-    // This prevents the race condition where multiple browsing sessions insert boilerplate.
+    // BROWSER SANITATION GUARD (The Final Hammer)
+    // We strictly wait for the backend-initialized state to sync.
+    // If the server-state was poisoned (from old bugs), we heal it locally too.
+    provider.on('sync', (isSynced) => {
+      if (isSynced !== false && !hasInitializedRef.current) {
+        hasInitializedRef.current = true;
+        
+        ydoc.transact(() => {
+          const text = ytext.toString();
+          const identifier = "Welcome to SAM Compiler!";
+          const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
+          
+          if (occurrences > 1) {
+            // Heal the document: wipe and restore a clean single copy.
+            ytext.delete(0, ytext.length);
+            // We use the 'value' passed from the parent as the definitive template.
+            if (value) {
+              ytext.insert(0, value + "\n");
+            }
+          }
+        });
+      }
+    });
     
-  }, [localName, localColor, onCursorChange]); // Removed sessionId and value from dependencies
+  }, [localName, localColor, onCursorChange, value]); // Re-added value to dependencies for the guard
 
   // THEME PERSISTENCE: Use vs-dark for dark mode as requested
   const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);
