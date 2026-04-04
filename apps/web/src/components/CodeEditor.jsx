@@ -131,16 +131,26 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // BOILERPLATE GUARD: Only insert if the document is completely empty
+    // SELF-HEALING: EXTREME DEDUPLICATION for legacy corrupted rooms.
+    // If the room contains multiple copies of the SAM Welcome message, it is corrupted.
+    // Reset it to a single clean copy. 
     provider.on('sync', (isSynced) => {
-      if (isSynced !== false && !hasInitializedRef.current) {
+      if (isSynced !== false && !hasInitializedRef.current && value) {
         hasInitializedRef.current = true;
-        const text = ytext.toString().trim();
-        if (text === "" && value) {
-          ydoc.transact(() => {
-            ytext.insert(0, value);
-          });
-        }
+        
+        ydoc.transact(() => {
+          const text = ytext.toString();
+          const identifier = "Welcome to SAM Compiler!";
+          const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
+          
+          if (occurrences > 1) {
+            ytext.delete(0, ytext.length);
+            ytext.insert(0, value + "\n");
+          } else if (occurrences === 0 && text.trim() === "") {
+             // Fallback for brand new rooms if backend-init didn't catch it
+             ytext.insert(0, value + "\n");
+          }
+        });
       }
     });
 

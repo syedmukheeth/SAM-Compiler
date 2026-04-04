@@ -148,8 +148,11 @@ export default function EditorPage() {
   const [metrics, setMetrics] = useState(null);
   
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session") || "default";
+  const rawSessionId = searchParams.get("session") || "default";
   
+  // FIX: Isolate sessions by language to prevent cross-language code duplication
+  const sessionId = `${rawSessionId}_${activeLangId}`;
+
   const [theme, setTheme] = useState(localStorage.getItem("sam-theme") || "dark");
   
   const [showAiPanel, setShowAiPanel] = useState(false);
@@ -734,6 +737,7 @@ builtins.input = input_shim
               
               <div className="flex-1 overflow-hidden relative">
                 <CodeEditor
+                  key={sessionId}
                   language={activeLangId}
                   value={buffers[activeLangId]}
                   onChange={onCodeChange}

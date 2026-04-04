@@ -49,21 +49,24 @@ function initSocket(server) {
         Y.applyUpdate(doc, state.binaryState);
         logger.info({ sessionId }, "Yjs document loaded from MongoDB");
       } else {
-        // DETERMINISTIC BACKEND INITIALIZATION (Root Cause Fix)
+        // DETERMINISTIC BACKEND INITIALIZATION (The Root Cause Fix)
         // If room is brand new, populate it with the correct language template
         const langId = sessionId.split('_').pop();
         const templates = {
-          cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}',
-          c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}',
-          python: 'print("Welcome to SAM Compiler!")',
-          nodejs: 'console.log("Welcome to SAM Compiler!");',
-          java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}'
+          cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
+          c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}\n',
+          python: 'print("Welcome to SAM Compiler!")\n',
+          javascript: 'console.log("Welcome to SAM Compiler!");\n',
+          java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}\n'
         };
         
         if (templates[langId]) {
           const ytext = doc.getText("monaco");
-          ytext.insert(0, templates[langId]);
-          logger.info({ sessionId, langId }, "Yjs document initialized on backend");
+          // Double check it's still empty before inserting
+          if (ytext.toString().trim() === "") {
+            ytext.insert(0, templates[langId]);
+            logger.info({ sessionId, langId }, "Yjs document initialized on backend");
+          }
         }
       }
     } catch (err) {
