@@ -558,7 +558,7 @@ builtins.input = input_shim
 
 
   return (
-    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10" style={{ background: 'var(--sam-bg)' }}>
+    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10 pb-12" style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -929,33 +929,78 @@ builtins.input = input_shim
         </main>
       </div>
 
-      <footer className={`relative z-20 flex h-10 shrink-0 items-center justify-between px-4 md:px-6 border-t mt-2 transition-colors ${
-        theme === 'dark' ? 'bg-[#0a0a0a]/80 border-white/5' : 'bg-white border-slate-200'
+      {/* Fixed Terminal Dashboard Footer */}
+      <footer className={`fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between px-6 transition-all duration-300 border-t ${
+        theme === 'dark' 
+          ? 'bg-black/90 border-[#ff3b3b]/10 backdrop-blur-md' 
+          : 'bg-white/95 border-blue-100 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.1)] backdrop-blur-md'
       }`}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <div style={{
-              width: 6, height: 6, borderRadius: '50%',
-              background: isApiOnline ? 'var(--sam-green)' : 'var(--sam-red)',
-              boxShadow: isApiOnline ? '0 0 8px var(--sam-green)' : '0 0 8px var(--sam-red)',
-            }} />
-            <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: isApiOnline ? 'var(--sam-text)' : 'var(--sam-text-dim)', fontFamily: 'var(--font-body)' }}>
-              {isApiOnline ? 'Online' : 'Offline'}
+        {/* Top Accent Bar */}
+        <div className={`absolute top-0 left-0 right-0 h-[2px] ${
+          theme === 'dark' 
+            ? 'bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_12px_rgba(255,59,59,0.4)]' 
+            : 'bg-gradient-to-r from-transparent via-blue-500 to-transparent'
+        }`} />
+
+        <div className="flex items-center gap-6 h-full">
+          <div className="flex items-center gap-3">
+            <div className={`relative flex items-center justify-center`}>
+              <div className={`absolute h-2.5 w-2.5 animate-ping rounded-full opacity-40 ${isApiOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              <div className={`h-1.5 w-1.5 rounded-full ${isApiOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
+            </div>
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
+              theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+            }`}>
+              {isApiOnline ? 'ONLINE' : 'OFFLINE'}
             </span>
           </div>
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-text-muted)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>
-            {activeLangId}
-          </span>
+
+          <div className={`h-4 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-200'}`} />
+
+          <div className="hidden items-center gap-3 md:flex">
+             <div className={`h-1.5 w-1.5 rounded-full ${
+               theme === 'dark' ? 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.6)]' : 'bg-amber-600'
+             }`} />
+             <span className={`text-[10px] font-bold uppercase tracking-widest ${
+               theme === 'dark' ? 'text-amber-400/80' : 'text-amber-700'
+             }`}>
+               {activeLangId}
+             </span>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span className="hidden sm:inline" style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-text-dim)', textTransform: 'uppercase', letterSpacing: '0.1em', fontFamily: 'var(--font-body)' }}>
-            Built by{' '}
-            <a href="https://linkedin.com/in/syedmukheeth" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--sam-text-muted)', textDecoration: 'none' }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--sam-text)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--sam-text-muted)'}
-            >Syed Mukheeth</a>
+
+        <div className="flex items-center gap-8">
+          <a 
+            href="https://linkedin.com/in/syedmukheeth" 
+            target="_blank" 
+            rel="noopener noreferrer" 
+            className={`group flex items-center gap-3 transition-all active:scale-95`}
+          >
+            <span className={`hidden text-[9px] font-black uppercase tracking-[0.15em] opacity-40 group-hover:opacity-100 transition-opacity lg:inline ${
+              theme === 'dark' ? 'text-white' : 'text-slate-900'
+            }`}>
+              BUILT BY
+            </span>
+            <div className={`flex items-center gap-2 rounded-lg py-1.5 px-3 transition-colors ${
+               theme === 'dark' 
+                 ? 'bg-white/5 border border-white/5 hover:bg-[#ff3b3b]/10 hover:border-[#ff3b3b]/20 hover:text-[#ff3b3b]' 
+                 : 'bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white'
+            }`}>
+              {/* Linkedin SVG Placeholder */}
+              <svg className={`h-3 w-3 ${theme === 'dark' ? 'text-[#ff3b3b]' : 'text-blue-500'} fill-current group-hover:text-inherit`} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              <span className={`text-[10px] font-black uppercase tracking-wider`}>
+                SYED MUKHEETH
+              </span>
+            </div>
+          </a>
+
+          <div className={`h-4 w-[1px] hidden sm:block ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-200'}`} />
+
+          <span className={`hidden text-[9px] font-black uppercase tracking-[0.2em] opacity-30 sm:block ${
+            theme === 'dark' ? 'text-white' : 'text-slate-900'
+          }`}>
+            SAM © 2026
           </span>
-          <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-text-dim)', fontFamily: 'var(--font-body)' }}>SAM © 2026</span>
         </div>
       </footer>
 
