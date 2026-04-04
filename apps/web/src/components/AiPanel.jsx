@@ -110,6 +110,16 @@ export default function AiPanel({
   };
 
   const MarkdownComponents = {
+    h1: ({ children }) => <h1 className={`text-xl font-black mb-4 tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{children}</h1>,
+    h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 tracking-tight ${theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}>{children}</h2>,
+    p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+    ul: ({ children }) => <ul className="mb-4 space-y-1.5 list-none">{children}</ul>,
+    li: ({ children }) => (
+      <li className="flex items-start gap-2">
+        <span className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${theme === 'dark' ? 'bg-white/40' : 'bg-slate-400'}`} />
+        <span>{children}</span>
+      </li>
+    ),
     code({ node, inline, className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || "");
       const codeStr = String(children).replace(/\n$/, "");

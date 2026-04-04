@@ -21,35 +21,28 @@ import ENDPOINTS from "../services/endpoints";
 // Inline SAM logo SVG — no image file dependency
 function SamNavLogo() {
   return (
-    <svg width="36" height="36" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" className="transition-transform hover:scale-110">
-      {/* Eye Outer Brackets */}
-      <path d="M12 18L4 24L12 30" stroke="var(--sam-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M36 18L44 24L36 30" stroke="var(--sam-accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-      
-      {/* Central Bolt (S/7 Shape) */}
-      <path d="M28 14L20 24H28L20 34" stroke="var(--sam-accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-      
-      {/* Circuit Accents Top */}
-      <path d="M18 12L20 8" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="21" cy="7" r="1.5" fill="var(--sam-accent)" />
-      
-      <path d="M28 12L30 8" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="31" cy="7" r="1.5" fill="var(--sam-accent)" />
-      
-      {/* Circuit Accents Sides */}
-      <path d="M10 24H6" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="5" cy="24" r="1.5" fill="var(--sam-accent)" />
-      
-      <path d="M38 24H42" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="43" cy="24" r="1.5" fill="var(--sam-accent)" />
+    <div className="relative flex h-9 w-9 items-center justify-center overflow-hidden rounded-full bg-white shadow-sm transition-transform hover:scale-110">
+      <svg width="28" height="28" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        {/* Eye Outer Brackets */}
+        <path d="M12 18L4 24L12 30" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M36 18L44 24L36 30" stroke="black" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+        
+        {/* Central Bolt (S/7 Shape) */}
+        <path d="M28 14L20 24H28L20 34" stroke="black" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+        
+        {/* Circuit Accents Top */}
+        <circle cx="21" cy="7" r="2" fill="black" />
+        <circle cx="31" cy="7" r="2" fill="black" />
+        
+        {/* Circuit Accents Sides */}
+        <circle cx="5" cy="24" r="2" fill="black" />
+        <circle cx="43" cy="24" r="2" fill="black" />
 
-      {/* Circuit Accents Bottom */}
-      <path d="M18 36L20 40" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="21" cy="41" r="1.5" fill="var(--sam-accent)" />
-      
-      <path d="M28 36L30 40" stroke="var(--sam-accent)" strokeWidth="1.5" strokeLinecap="round" />
-      <circle cx="31" cy="41" r="1.5" fill="var(--sam-accent)" />
-    </svg>
+        {/* Circuit Accents Bottom */}
+        <circle cx="21" cy="41" r="2" fill="black" />
+        <circle cx="31" cy="41" r="2" fill="black" />
+      </svg>
+    </div>
   );
 }
 
@@ -969,6 +962,8 @@ builtins.input = input_shim
         onClose={() => setShowAiPanel(false)}
         language={activeLangId}
         currentCode={buffers[activeLangId]}
+        metrics={metrics}
+        theme={theme}
         onApplyRefactor={(newCode) => {
           setBuffers(prev => ({ ...prev, [activeLangId]: newCode }));
           setShowAiPanel(false);
