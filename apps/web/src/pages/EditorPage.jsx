@@ -13,7 +13,7 @@ import AiPanel from "../components/AiPanel";
 import HistoryModal from "../components/HistoryModal";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { Sparkles, History, Keyboard, Info, Linkedin } from "lucide-react";
+import { Sparkles, History, Keyboard, Info } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
@@ -929,7 +929,9 @@ builtins.input = input_shim
         </main>
       </div>
 
-      <footer className="relative z-20 flex h-10 shrink-0 items-center justify-between px-4 md:px-6 sam-glass border-x-0 border-b-0 border-t border-[var(--sam-glass-border)] mt-2" style={{ background: 'rgba(10,10,10,0.8)' }}>
+      <footer className={`relative z-20 flex h-10 shrink-0 items-center justify-between px-4 md:px-6 border-t mt-2 transition-colors ${
+        theme === 'dark' ? 'bg-[#0a0a0a]/80 border-white/5' : 'bg-white border-slate-200'
+      }`}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <div style={{
@@ -1025,15 +1027,6 @@ builtins.input = input_shim
       <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} settings={settings} onSettingsChange={onSettingsUpdate} />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
       
-      <AiPanel 
-        isOpen={showAiPanel} 
-        onClose={() => setShowAiPanel(false)}
-        currentCode={buffers[activeLangId]}
-        language={activeLangId}
-        metrics={metrics}
-        theme={theme}
-      />
-
       <Toaster position="bottom-right" reverseOrder={false} />
     </div>
   );

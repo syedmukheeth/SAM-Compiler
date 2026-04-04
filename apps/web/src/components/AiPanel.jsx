@@ -112,12 +112,14 @@ export default function AiPanel({
   const MarkdownComponents = {
     h1: ({ children }) => <h1 className={`text-xl font-black mb-4 tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{children}</h1>,
     h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 tracking-tight ${theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}>{children}</h2>,
-    p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-    ul: ({ children }) => <ul className="mb-4 space-y-1.5 list-none">{children}</ul>,
+    p: ({ children }) => <p className={`mb-4 last:mb-0 leading-relaxed ${theme === 'dark' ? 'text-white/80' : 'text-slate-700'}`}>{children}</p>,
+    ul: ({ children }) => <ul className="mb-4 space-y-2 list-none">{children}</ul>,
     li: ({ children }) => (
-      <li className="flex items-start gap-2">
-        <span className={`mt-1.5 h-1 w-1 shrink-0 rounded-full ${theme === 'dark' ? 'bg-white/40' : 'bg-slate-400'}`} />
-        <span>{children}</span>
+      <li className="flex gap-3 items-start">
+        <span className={`mt-2 h-1.5 w-1.5 flex-none rounded-full shadow-lg ${
+           theme === 'dark' ? 'bg-white/40' : 'bg-slate-400'
+        }`} />
+        <span className={theme === 'dark' ? 'text-white/80' : 'text-slate-700'}>{children}</span>
       </li>
     ),
     code({ node, inline, className, children, ...props }) {
@@ -176,16 +178,6 @@ export default function AiPanel({
         </code>
       );
     },
-    p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
-    ul: ({ children }) => <ul className="mb-4 space-y-2 list-none">{children}</ul>,
-    li: ({ children }) => (
-      <li className="flex gap-3">
-        <span className={`mt-1.5 h-1.5 w-1.5 flex-none rounded-full shadow-lg ${
-           theme === 'dark' ? 'bg-white/40' : 'bg-slate-400'
-        }`} />
-        <span>{children}</span>
-      </li>
-    ),
     a: ({ href, children }) => (
       <a 
         href={href} 
@@ -198,9 +190,6 @@ export default function AiPanel({
         {children} <ExternalLink size={10} />
       </a>
     ),
-    h1: ({ children }) => <h1 className={`text-xl font-bold mb-4 mt-6 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{children}</h1>,
-    h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 mt-5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{children}</h2>,
-    h3: ({ children }) => <h3 className={`text-base font-bold mb-2 mt-4 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{children}</h3>,
   };
 
   return (

@@ -4,6 +4,7 @@ import * as Y from "yjs";
 import { MonacoBinding } from "y-monaco";
 import { SocketIOProvider } from "y-socket.io";
 import ENDPOINTS from "../services/endpoints";
+import toast from "react-hot-toast";
 
 const LANGUAGE_TO_MONACO = {
   nodejs: "javascript",
@@ -169,21 +170,26 @@ export default function CodeEditor({
 
   // Provider & Binding Lifecycle Management
   useEffect(() => {
-    if (editorRef.current && !providerRef.current) {
-      handleMount(editorRef.current, window.monaco);
-    }
-
-    // EMERGENCY RESET LISTENER - Now using Refs to avoid ReferenceError
+    // 1. Setup Reset Listener First (Always active)
     const handleResetEvent = (e) => {
       const { template } = e.detail;
-      if (template && ydocRef.current && ytextRef.current) {
+      if (template !== undefined && ydocRef.current && ytextRef.current) {
         ydocRef.current.transact(() => {
           ytextRef.current.delete(0, ytextRef.current.length);
           ytextRef.current.insert(0, template);
         });
+        toast.success("Code reset to original template", {
+          style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '12px' },
+          icon: '🔄'
+        });
       }
     };
     window.addEventListener('sam-editor-reset', handleResetEvent);
+
+    // 2. Initialize Editor/Provider
+    if (editorRef.current && !providerRef.current) {
+      handleMount(editorRef.current, window.monaco);
+    }
 
     return () => {
       window.removeEventListener('sam-editor-reset', handleResetEvent);
@@ -195,9 +201,6 @@ export default function CodeEditor({
         providerRef.current.destroy();
         providerRef.current = null;
       }
-      ydocRef.current = null;
-      ytextRef.current = null;
-      hasInitializedRef.current = false;
     };
   }, [sessionId, handleMount]); // Re-run when session ID changes
 
