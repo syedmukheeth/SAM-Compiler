@@ -57,34 +57,74 @@ const languageConfigs = {
   cpp: {
     name: "main.cpp",
     icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/cplusplus/cplusplus-original.svg",
-    template: "#include <iostream>\n\nint main() {\n    std::cout << \"// 🚀 SAM Compiler: Syntax Analysis Machine\\n\";\n    std::cout << \"Hello from the future of cloud IDEs!\" << std::endl;\n    return 0;\n}",
+    template: "#include <iostream>\n\nint main() {\n    std::cout << \"Welcome to SAM Compiler!\" << std::endl;\n    return 0;\n}",
     lang: "cpp"
   },
   c: {
     name: "main.c",
     icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/c/c-original.svg",
-    template: "#include <stdio.h>\n\nint main() {\n    printf(\"// 🚀 SAM Compiler: Syntax Analysis Machine\\n\");\n    printf(\"Hello from the secure sandbox!\\n\");\n    return 0;\n}",
+    template: "#include <stdio.h>\n\nint main() {\n    printf(\"Welcome to SAM Compiler!\\n\");\n    return 0;\n}",
     lang: "c"
   },
   python: {
     name: "main.py",
     icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/python/python-original.svg",
-    template: "print(\"// 🚀 SAM Compiler: Syntax Analysis Machine\")\nprint(\"Hello from the lightning-fast Python runner!\")",
+    template: "print(\"Welcome to SAM Compiler!\")",
     lang: "python"
   },
   javascript: {
     name: "main.js",
     icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/javascript/javascript-original.svg",
-    template: "console.log(\"// 🚀 SAM Compiler: Syntax Analysis Machine\");\nconsole.log(\"Hello from the high-scale Node.js engine!\");",
+    template: "console.log(\"Welcome to SAM Compiler!\");",
     lang: "javascript"
   },
   java: {
     name: "Main.java",
     icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg",
-    template: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"// 🚀 SAM Compiler: Syntax Analysis Machine\");\n        System.out.println(\"Hello from the enterprise-grade Java sandbox!\");\n    }\n}",
+    template: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Welcome to SAM Compiler!\");\n    }\n}",
     lang: "java"
   }
 };
+
+function ThemeToggle({ theme, toggle }) {
+  return (
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={toggle}
+      className="p-2 rounded-xl bg-sam-surface-high border border-sam-glass-border hover:border-sam-text-dim transition-all duration-300 group"
+      title={`Switch to ${theme === "dark" ? "Light" : "Dark"} mode`}
+    >
+      <div className="relative w-6 h-6 overflow-hidden">
+        <AnimatePresence mode="wait">
+          {theme === "dark" ? (
+            <motion.div
+              key="moon"
+              initial={{ y: 20, opacity: 0, rotate: 45 }}
+              animate={{ y: 0, opacity: 1, rotate: 0 }}
+              exit={{ y: -20, opacity: 0, rotate: -45 }}
+              transition={{ duration: 0.4, ease: "backOut" }}
+              className="absolute inset-0 flex items-center justify-center text-sam-accent"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="sun"
+              initial={{ y: 20, opacity: 0, scale: 0.5 }}
+              animate={{ y: 0, opacity: 1, scale: 1 }}
+              exit={{ y: -20, opacity: 0, scale: 0.5 }}
+              transition={{ duration: 0.4, ease: "backOut" }}
+              className="absolute inset-0 flex items-center justify-center text-sam-accent"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </motion.button>
+  );
+}
 
 export default function EditorPage() {
   const [activeLangId, setActiveLangId] = useState("cpp");
@@ -95,7 +135,13 @@ export default function EditorPage() {
   const [metrics, setMetrics] = useState(null);
   
   const [searchParams] = useSearchParams();
-  const sessionId = searchParams.get("session") || "default";
+  const rawSessionId = searchParams.get("session") || "default";
+  
+  // FIX: Isolate sessions by language to prevent cross-language code duplication
+  const sessionId = `${rawSessionId}_${activeLangId}`;
+
+  const [theme, setTheme] = useState(localStorage.getItem("sam_theme") || "dark");
+  
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -120,7 +166,7 @@ export default function EditorPage() {
   const { user, loginUser, logoutUser } = useAuth();
 
 
-  // Poll worker status
+  // Poll worker status & Sync theme
   useEffect(() => {
     const checkStatus = async () => {
       if (!navigator.onLine) {
@@ -144,9 +190,18 @@ export default function EditorPage() {
       }
     };
     checkStatus();
+
+    // Sync theme class to root
+    if (theme === "light") {
+      document.documentElement.classList.add("light");
+    } else {
+      document.documentElement.classList.remove("light");
+    }
+    localStorage.setItem("sam_theme", theme);
+    
     const timer = setInterval(checkStatus, 15000);
     return () => clearInterval(timer);
-  }, []);
+  }, [theme]);
 
 
 
@@ -448,6 +503,7 @@ builtins.input = input_shim
           <nav className="hidden md:flex items-center gap-6">
             {['Editor', 'Dashboard', 'Settings'].map((tab) => {
               if (tab === 'Dashboard') {
+                if (user?.role !== 'admin') return null;
                 return (
                   <Link
                     key={tab}
@@ -485,6 +541,8 @@ builtins.input = input_shim
         </div>
         
         <div className="flex items-center gap-3 md:gap-5">
+          <ThemeToggle theme={theme} toggle={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
+          
           {user ? (
             <div className="flex items-center gap-2 md:gap-3 shrink-0">
               <div style={{

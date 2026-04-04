@@ -126,30 +126,23 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // ULTIMATE FIX: Only insert initial value if THIS browser tab hasn't already joined this room.
-    // This prevents duplication when switching languages (remounting) in the same session.
-    const roomKey = `sam_synced_${sessionId}`;
-    
+    // ULTIMATE FIX: Only insert initial value if the document is brand new/empty.
+    // Sync isolation via sessionId (lang-specific) handles the rest.
     provider.on('sync', (isSynced) => {
       if (isSynced !== false && !hasInitializedRef.current && value) {
         hasInitializedRef.current = true;
         
-        // Wait a bit for server state to land
-        setTimeout(() => {
-          const currentText = ytext.toString().trim();
-          const alreadySynced = window[roomKey];
-
-          if (currentText === "" && !alreadySynced) {
+        ydoc.transact(() => {
+          if (ytext.toString().trim() === "") {
             ytext.insert(0, value);
-            window[roomKey] = true;
-          } else {
-            window[roomKey] = true; // Mark as handled
           }
-        }, 120);
+        });
       }
     });
 
   }, [sessionId, localName, localColor, onCursorChange, value]);
+
+  const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "monolith-dark", [theme]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -172,7 +165,7 @@ export default function CodeEditor({
   return (
     <div className="h-full w-full bg-transparent">
       <Editor
-        theme={theme}
+        theme={monacoTheme}
         language={monacoLanguage}
         onMount={handleMount}
         onChange={handleChange}
