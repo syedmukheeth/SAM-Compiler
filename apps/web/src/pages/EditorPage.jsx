@@ -263,21 +263,22 @@ export default function EditorPage() {
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
+    const isDark = theme === "dark";
     const term = new XTerm({
       theme: {
         background: 'transparent',
-        foreground: '#dde2f1',
+        foreground: isDark ? '#dde2f1' : '#080C14',
         cursor: '#00D4FF',
-        cursorAccent: '#001f27',
-        selectionBackground: 'rgba(0, 212, 255, 0.2)',
-        black: '#0e131e',
+        cursorAccent: isDark ? '#001f27' : '#FFFFFF',
+        selectionBackground: isDark ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.1)',
+        black: isDark ? '#0e131e' : '#FFFFFF',
         red: '#f43f5e',
         green: '#22c55e',
         yellow: '#ffd9a1',
         blue: '#00D4FF',
         magenta: '#8B5CF6',
-        cyan: '#3cd7ff',
-        white: '#dde2f1',
+        cyan: isDark ? '#3cd7ff' : '#00A3C4',
+        white: isDark ? '#dde2f1' : '#080C14',
       },
       fontFamily: 'JetBrains Mono, Menlo, monospace',
       fontSize: 14,
@@ -310,7 +311,7 @@ export default function EditorPage() {
       term.dispose();
       xtermRef.current = null;
     };
-  }, []);
+  }, [theme]);
 
   // Keyboard Shortcuts
   useEffect(() => {

@@ -42,13 +42,32 @@ function initSocket(server) {
   // Pre-load state from DB when doc is first created
   ysocket.on("document-loaded", async (doc) => {
     try {
-      const state = await ProjectStateModel.findOne({ sessionId: doc.name });
+      const sessionId = doc.name;
+      const state = await ProjectStateModel.findOne({ sessionId });
+      
       if (state && state.binaryState) {
         Y.applyUpdate(doc, state.binaryState);
-        logger.info({ sessionId: doc.name }, "Yjs document loaded from MongoDB");
+        logger.info({ sessionId }, "Yjs document loaded from MongoDB");
+      } else {
+        // DETERMINISTIC BACKEND INITIALIZATION (Root Cause Fix)
+        // If room is brand new, populate it with the correct language template
+        const langId = sessionId.split('_').pop();
+        const templates = {
+          cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}',
+          c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}',
+          python: 'print("Welcome to SAM Compiler!")',
+          nodejs: 'console.log("Welcome to SAM Compiler!");',
+          java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}'
+        };
+        
+        if (templates[langId]) {
+          const ytext = doc.getText("monaco");
+          ytext.insert(0, templates[langId]);
+          logger.info({ sessionId, langId }, "Yjs document initialized on backend");
+        }
       }
     } catch (err) {
-      logger.error({ err, doc: doc.name }, "Failed to load Yjs state from MongoDB");
+      logger.error({ err, doc: doc.name }, "Failed to load/initialize Yjs state from MongoDB");
     }
   });
 

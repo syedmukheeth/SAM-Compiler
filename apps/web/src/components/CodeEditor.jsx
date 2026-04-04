@@ -70,29 +70,34 @@ export default function CodeEditor({
       }
     });
 
-    // Define Monolith Light Theme
+    // Define Monolith Light Theme (Premium Paper-Glass Aesthetic)
     monaco.editor.defineTheme('monolith-light', {
       base: 'vs',
       inherit: true,
       rules: [
-        { token: '', foreground: '000000', background: 'FAF9F6' },
-        { token: 'comment', foreground: '999999', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '000000', fontStyle: 'bold' },
+        { token: '', foreground: '080C14', background: 'FFFFFF' },
+        { token: 'comment', foreground: '9BA3AF', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '00A3C4', fontStyle: 'bold' },
+        { token: 'string', foreground: '059669' },
+        { token: 'number', foreground: 'D97706' },
+        { token: 'type', foreground: '0284C7' },
+        { token: 'operator', foreground: '00A3C4' },
+        { token: 'function', foreground: '7C3AED' },
       ],
       colors: {
-        'editor.background': '#FAF9F6',
-        'editor.foreground': '#000000',
-        'editorLineNumber.foreground': '#CCCCCC',
-        'editorLineNumber.activeForeground': '#000000',
-        'editorIndentGuide.background': '#EEEEEE',
-        'editor.selectionBackground': '#E0E0E0',
-        'editorCursor.foreground': '#000000',
+        'editor.background': '#FFFFFF',
+        'editor.foreground': '#080C14',
+        'editorLineNumber.foreground': '#E5E7EB',
+        'editorLineNumber.activeForeground': '#00A3C4',
+        'editorIndentGuide.background': '#F3F4F6',
+        'editor.selectionBackground': '#00D4FF22',
+        'editorCursor.foreground': '#00A3C4',
       }
     });
 
     if (providerRef.current) return;
-
-    // Initialize Yjs
+    
+    // ... rest of Yjs initialization ...
     const ydoc = new Y.Doc();
     const endpoint = ENDPOINTS.WS_ENDPOINT;
 
@@ -126,39 +131,21 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // Metadata Gating: Use a shared flag to ensure single initialization across all clients
-    const meta = ydoc.getMap('metadata');
-    
+    // SELF-HEALING: EXTREME DEDUPLICATION for legacy corrupted rooms.
+    // If the room contains multiple copies of the SAM Welcome message, it is corrupted.
+    // Reset it to a single clean copy.
     provider.on('sync', (isSynced) => {
       if (isSynced !== false && !hasInitializedRef.current && value) {
         hasInitializedRef.current = true;
         
         ydoc.transact(() => {
-          const currentText = ytext.toString().trim();
-          
-          // 1. SELF-HEALING: If the document is corrupted with repeated copies of the boilerplate
-          // (a common sync race condition artifact), deduplicate it.
-          // 1. SELF-HEALING: If the document is corrupted with repeated copies of the boilerplate
-          // (a common sync race condition artifact), deduplicate it aggressively.
-          const normalize = (s) => s.replace(/\s+/g, ' ').trim();
-          const normalizedCurrent = normalize(currentText);
-          const normalizedBoilerplate = normalize(value);
-          
-          // Count occurrences of the boilerplate in the document
-          const occurrences = normalizedCurrent.split(normalizedBoilerplate).length - 1;
+          const text = ytext.toString();
+          const identifier = "Welcome to SAM Compiler!";
+          const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
           
           if (occurrences > 1) {
-            // Document contains repeated boilerplate patterns, wipe and reset to a single clean copy
             ytext.delete(0, ytext.length);
             ytext.insert(0, value + "\n");
-            meta.set('initialized', true);
-            return;
-          }
-
-          // 2. DETERMINISTIC INITIALIZATION: Only insert if room has NEVER been initialized
-          if (currentText === "" && !meta.get('initialized')) {
-            ytext.insert(0, value);
-            meta.set('initialized', true);
           }
         });
       }
