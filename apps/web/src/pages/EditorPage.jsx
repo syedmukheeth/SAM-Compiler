@@ -313,6 +313,14 @@ export default function EditorPage() {
     };
   }, [theme]);
 
+  const handleCodeReset = () => {
+    if (window.confirm("Overwrite current code with original template?")) {
+      window.dispatchEvent(new CustomEvent('sam-editor-reset', { 
+        detail: { template: languageConfigs[activeLangId].template } 
+      }));
+    }
+  };
+
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -569,16 +577,16 @@ builtins.input = input_shim
                 display: 'flex', alignItems: 'center', gap: 8,
                 padding: '4px 8px 4px 12px',
                 borderRadius: 20,
-                border: '1px solid rgba(0,212,255,0.12)',
-                background: 'rgba(0,212,255,0.04)',
+                border: '1px solid var(--sam-glass-border)',
+                background: 'var(--sam-accent-muted)',
               }}>
-                <span className="hidden lg:block" style={{ fontSize: 11, fontWeight: 600, color: '#dde2f1', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-body)' }}>
+                <span className="hidden lg:block" style={{ fontSize: 11, fontWeight: 600, color: 'var(--sam-text)', maxWidth: 120, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontFamily: 'var(--font-body)' }}>
                   {user.name}
                 </span>
                 <img
-                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=00D4FF&color=001f27`}
+                  src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=000000&color=FFFFFF`}
                   alt="Avatar"
-                  style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid rgba(0,212,255,0.3)', objectFit: 'cover' }}
+                  style={{ width: 26, height: 26, borderRadius: '50%', border: '1px solid var(--sam-glass-border)', objectFit: 'cover' }}
                 />
               </div>
               <button
@@ -667,14 +675,14 @@ builtins.input = input_shim
           className="relative flex-1 flex items-center justify-center gap-2"
           style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em',
-            color: activeMobileTab === 'editor' ? '#00D4FF' : 'rgba(221,226,241,0.3)',
-            background: activeMobileTab === 'editor' ? 'rgba(0,212,255,0.05)' : 'transparent',
+            color: activeMobileTab === 'editor' ? 'var(--sam-accent)' : 'var(--sam-text-dim)',
+            background: activeMobileTab === 'editor' ? 'var(--sam-accent-muted)' : 'transparent',
             border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
           }}
         >
           <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
           Code
-          {activeMobileTab === 'editor' && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: '#00D4FF', boxShadow: '0 0 8px #00D4FF' }} />}
+          {activeMobileTab === 'editor' && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'var(--sam-accent)' }} />}
         </button>
         <div style={{ width: 1, background: 'rgba(0,212,255,0.08)' }} />
         <button
@@ -682,17 +690,17 @@ builtins.input = input_shim
           className="relative flex-1 flex items-center justify-center gap-2"
           style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em',
-            color: activeMobileTab === 'terminal' ? '#00D4FF' : 'rgba(221,226,241,0.3)',
-            background: activeMobileTab === 'terminal' ? 'rgba(0,212,255,0.05)' : 'transparent',
+            color: activeMobileTab === 'terminal' ? 'var(--sam-accent)' : 'var(--sam-text-dim)',
+            background: activeMobileTab === 'terminal' ? 'var(--sam-accent-muted)' : 'transparent',
             border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)',
           }}
         >
           <div style={{ position: 'relative' }}>
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>
-            {busy && <div style={{ position: 'absolute', top: -3, right: -3, width: 6, height: 6, borderRadius: '50%', background: '#00D4FF', boxShadow: '0 0 8px #00D4FF', animation: 'sam-pulse 1s infinite' }} />}
+            {busy && <div style={{ position: 'absolute', top: -3, right: -3, width: 6, height: 6, borderRadius: '50%', background: 'var(--sam-accent)', animation: 'sam-pulse 1s infinite' }} />}
           </div>
           Output
-          {activeMobileTab === 'terminal' && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: '#00D4FF', boxShadow: '0 0 8px #00D4FF' }} />}
+          {activeMobileTab === 'terminal' && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'var(--sam-accent)' }} />}
         </button>
       </div>
 
@@ -703,8 +711,27 @@ builtins.input = input_shim
               <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
                   <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
-                  <div style={{ width: 1, height: 16, background: 'rgba(0,212,255,0.1)' }} className="hidden md:block" />
-                  <span className="hidden md:inline font-mono tracking-wider animate-pulse" style={{ fontSize: 11, fontWeight: 500, color: 'rgba(0,212,255,0.4)' }}>
+                  
+                  {/* Reset Safety Valve */}
+                  <button
+                    onClick={handleCodeReset}
+                    title="Reset to original template"
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      color: 'var(--sam-text-dim)', transition: 'color 0.2s',
+                      padding: 4, display: 'flex', alignItems: 'center'
+                    }}
+                    onMouseEnter={(e) => e.target.style.color = 'var(--sam-accent)'}
+                    onMouseLeave={(e) => e.target.style.color = 'var(--sam-text-dim)'}
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                      <path d="M3 3v5h5" />
+                    </svg>
+                  </button>
+
+                  <div style={{ width: 1, height: 16, background: 'var(--sam-glass-border)' }} className="hidden md:block" />
+                  <span className="hidden md:inline font-mono tracking-wider opacity-40" style={{ fontSize: 11, fontWeight: 500, color: 'var(--sam-text)' }}>
                     {languageConfigs[activeLangId]?.name}
                   </span>
                 </div>
@@ -727,7 +754,7 @@ builtins.input = input_shim
                   }}
                 >
                   {busy ? (
-                    <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#FFFFFF', animation: 'spin 0.8s linear infinite' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--sam-accent)', animation: 'spin 0.8s linear infinite' }} />
                   ) : (
                     <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
                   )}

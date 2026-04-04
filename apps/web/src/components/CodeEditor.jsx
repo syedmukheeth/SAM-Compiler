@@ -131,29 +131,11 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // SELF-HEALING: EXTREME DEDUPLICATION for legacy corrupted rooms.
-    // If the room contains multiple copies of the SAM Welcome message, it is corrupted.
-    // Reset it to a single clean copy. 
-    provider.on('sync', (isSynced) => {
-      if (isSynced !== false && !hasInitializedRef.current && value) {
-        hasInitializedRef.current = true;
-        
-        ydoc.transact(() => {
-          const text = ytext.toString();
-          const identifier = "Welcome to SAM Compiler!";
-          const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
-          
-          if (occurrences > 1) {
-            ytext.delete(0, ytext.length);
-            ytext.insert(0, value + "\n");
-          } else if (occurrences === 0 && text.trim() === "") {
-             // Fallback for brand new rooms if backend-init didn't catch it
-             ytext.insert(0, value + "\n");
-          }
-        });
-      }
-    });
-
+    // BROWSER PASSIVE MODE (The Absolute Fix)
+    // We NO LONGER check for emptiness or insert boilerplate here.
+    // The Backend is now the Sole Source of Truth and handles all initialization.
+    // This prevents the race condition where multiple browsing sessions insert boilerplate.
+    
   }, [localName, localColor, onCursorChange]); // Removed sessionId and value from dependencies
 
   // THEME PERSISTENCE: Use vs-dark for dark mode as requested
@@ -166,7 +148,20 @@ export default function CodeEditor({
       handleMount(editorRef.current, window.monaco);
     }
 
+    // EMERGENCY RESET LISTENER
+    const handleResetEvent = (e) => {
+      const { template } = e.detail;
+      if (template) {
+        ydoc.transact(() => {
+          ytext.delete(0, ytext.length);
+          ytext.insert(0, template);
+        });
+      }
+    };
+    window.addEventListener('sam-editor-reset', handleResetEvent);
+
     return () => {
+      window.removeEventListener('sam-editor-reset', handleResetEvent);
       if (bindingRef.current) {
         bindingRef.current.destroy();
         bindingRef.current = null;

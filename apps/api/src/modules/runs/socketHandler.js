@@ -49,8 +49,9 @@ function initSocket(server) {
         Y.applyUpdate(doc, state.binaryState);
         logger.info({ sessionId }, "Yjs document loaded from MongoDB");
       } else {
-        // DETERMINISTIC BACKEND INITIALIZATION (The Root Cause Fix)
-        // If room is brand new, populate it with the correct language template
+        // DEFINITIVE BACKEND INITIALIZATION (The One True Source)
+        // If room is brand new (no state in DB), populate it with the template.
+        // Frontend is now passive and will NOT insert code.
         const langId = sessionId.split('_').pop();
         const templates = {
           cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
@@ -60,12 +61,13 @@ function initSocket(server) {
           java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}\n'
         };
         
-        if (templates[langId]) {
+        const template = templates[langId];
+        if (template) {
           const ytext = doc.getText("monaco");
-          // Double check it's still empty before inserting
-          if (ytext.toString().trim() === "") {
-            ytext.insert(0, templates[langId]);
-            logger.info({ sessionId, langId }, "Yjs document initialized on backend");
+          // Final safety check: if doc is truly pristine, insert the boilerplate.
+          if (ytext.length === 0) {
+            ytext.insert(0, template);
+            logger.info({ sessionId, langId }, "Yjs room initialized by backend source of truth");
           }
         }
       }
