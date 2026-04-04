@@ -142,28 +142,20 @@ export default function CodeEditor({
       if (isSynced !== false && !hasInitializedRef.current) {
         hasInitializedRef.current = true;
         
-        // Defensive check: only transact if refs are still valid in current mount
-        const currentYdoc = ydocRef.current;
         const currentYtext = ytextRef.current;
-        
-        if (currentYdoc && currentYtext) {
-          currentYdoc.transact(() => {
-            const text = currentYtext.toString();
-            const identifier = "Welcome to SAM Compiler!";
-            const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
-            
-            if (occurrences > 1) {
-              currentYtext.delete(0, currentYtext.length);
-              if (value) {
-                currentYtext.insert(0, value + "\n");
-              }
+        if (currentYtext) {
+          const content = currentYtext.toString();
+          // ONLY insert if the channel is empty (prevents double/append bugs)
+          if (!content || content.trim().length === 0) {
+            if (value) {
+              currentYtext.insert(0, value);
             }
-          });
+          }
         }
       }
     });
     
-  }, [localName, localColor, onCursorChange, value, sessionId]);
+  }, [localName, localColor, onCursorChange, sessionId]); // DECOUPLED VALUE FROM HERE
 
   // THEME PERSISTENCE
   const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);

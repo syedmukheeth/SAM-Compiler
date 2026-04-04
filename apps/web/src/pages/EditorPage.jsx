@@ -19,9 +19,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
 
 // Inline SAM logo SVG — no image file dependency
-function SamNavLogo() {
+function SamNavLogo({ theme }) {
   return (
-    <div className="relative flex h-10 w-10 items-center justify-center transition-all duration-500 hover:scale-110">
+    <div className={`relative flex h-10 w-10 items-center justify-center rounded-full transition-all duration-500 hover:scale-110 ${theme === 'light' ? 'bg-white shadow-sm border border-slate-100' : ''}`}>
       <svg width="42" height="42" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
         {/* Bolt Center */}
         <path d="M21 12L15 24H23L17 36" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
@@ -577,7 +577,7 @@ builtins.input = input_shim
         <div className="flex items-center gap-4 md:gap-14">
           <div className="flex items-center gap-5 shrink-0">
             <div className="flex items-center gap-3 transition-all hover:scale-105">
-              <SamNavLogo />
+              <SamNavLogo theme={theme} />
             <div className="flex flex-col leading-[0.9] mt-1 relative">
                 <span className="font-black tracking-tight text-[18px] uppercase italic" style={{ fontFamily: 'var(--font-display)', color: 'var(--sam-text)' }}>SAM</span>
                 <span className="text-[10px] font-black uppercase tracking-[0.35em] opacity-40 ml-0.5" style={{ color: 'var(--sam-text)' }}>Compiler</span>
@@ -630,8 +630,11 @@ builtins.input = input_shim
             })}
           </nav>
         </div>
-        
-        <div className="flex items-center gap-3 md:gap-5">
+        <motion.div 
+          animate={{ x: (showAiPanel && window.innerWidth >= 768) ? -440 : 0 }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          className="flex items-center gap-3 md:gap-5"
+        >
           <ThemeToggle theme={theme} toggle={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
           
           {user ? (
@@ -724,17 +727,16 @@ builtins.input = input_shim
               }}
             >
               <Sparkles className={`h-4 w-4 ${showAiPanel ? 'animate-pulse' : (theme === 'light' ? 'text-slate-400' : 'text-white/60')}`} />
-              <span className="text-[10px] font-black uppercase tracking-widest text-inherit">Sam AI</span>
             </button>
           </div>
-
+        </motion.div>
+          
           <div className="flex md:hidden">
             <button onClick={() => setActiveModal('settings')} style={{ padding: 8, background: 'none', border: 'none', color: 'rgba(221,226,241,0.3)', cursor: 'pointer' }}>
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
           </div>
-        </div>
-      </header>
+        </header>
 
       <div className="flex md:hidden h-12 shrink-0" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
         <button
