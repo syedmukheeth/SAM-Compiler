@@ -267,18 +267,18 @@ export default function EditorPage() {
     const term = new XTerm({
       theme: {
         background: 'transparent',
-        foreground: isDark ? '#dde2f1' : '#1E293B',
-        cursor: '#2563EB',
-        cursorAccent: isDark ? '#001f27' : '#FFFFFF',
-        selectionBackground: isDark ? 'rgba(0, 212, 255, 0.2)' : 'rgba(37, 99, 235, 0.15)',
-        black: isDark ? '#0e131e' : '#F1F5F9',
-        red: '#f43f5e',
-        green: '#10B981',
-        yellow: '#F59E0B',
-        blue: '#2563EB',
-        magenta: '#8B5CF6',
-        cyan: isDark ? '#3cd7ff' : '#0EA5E9',
-        white: isDark ? '#dde2f1' : '#334155',
+        foreground: isDark ? '#FFFFFF' : '#000000',
+        cursor: isDark ? '#FFFFFF' : '#000000',
+        cursorAccent: isDark ? '#000000' : '#FFFFFF',
+        selectionBackground: isDark ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+        black: '#000000',
+        red: '#737373',
+        green: '#A3A3A3',
+        yellow: '#D4D4D4',
+        blue: '#525252',
+        magenta: '#404040',
+        cyan: '#737373',
+        white: '#FFFFFF',
       },
       fontFamily: 'JetBrains Mono, Menlo, monospace',
       fontSize: 14,
@@ -795,17 +795,17 @@ builtins.input = input_shim
                   </button>
                   <div style={{
                     width: 7, height: 7, borderRadius: '50%',
-                    background: runStatus === 'Succeeded' ? '#22c55e' : runStatus === 'Failed' ? '#f43f5e' : busy ? 'var(--sam-accent)' : 'var(--sam-glass-border)',
-                    boxShadow: runStatus === 'Succeeded' ? '0 0 10px #22c55e' : runStatus === 'Failed' ? '0 0 10px #f43f5e' : busy ? '0 0 10px var(--sam-accent)' : 'none',
+                    background: runStatus === 'Succeeded' ? 'var(--sam-text)' : runStatus === 'Failed' ? 'var(--sam-text-dim)' : busy ? 'var(--sam-accent)' : 'var(--sam-glass-border)',
+                    boxShadow: runStatus === 'Succeeded' ? '0 0 10px var(--sam-text)' : busy ? '0 0 10px var(--sam-accent)' : 'none',
                     animation: busy ? 'sam-pulse 1s infinite' : 'none',
                     transition: 'all 0.5s',
                   }} />
-                  <span style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>
+                  <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
                     {isWorkerOnline ? 'Terminal' : 'Cloud Output'}
                   </span>
                   {metrics && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid var(--sam-glass-border)' }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-accent)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-text)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', opacity: 0.6 }}>
                         {metrics.sandbox?.replace('docker-', '')}
                       </span>
                       <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>
@@ -814,7 +814,7 @@ builtins.input = input_shim
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(221,226,241,0.25)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
+                <div style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? 'var(--sam-text)' : 'var(--sam-text-dim)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
               <div className="flex-1 overflow-hidden p-2 md:p-5 relative" style={{ background: theme === 'light' ? '#F8FAFC' : 'rgba(0,0,0,0.4)' }}>
