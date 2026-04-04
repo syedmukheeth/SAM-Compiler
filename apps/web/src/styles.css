@@ -57,26 +57,26 @@
 
 /* === Light Mode Overrides (Manual Toggle) === */
 :root.light {
-  --sam-bg:            #FFFFFF; /* Pure Paper White */
+  --sam-bg:            #F8FAFC; /* Modern Grayish-White */
   --sam-surface:       #FFFFFF;
-  --sam-surface-low:   #F9F9FB;
-  --sam-surface-high:  #F3F3F6;
-  --sam-surface-top:   #EBEBEF;
-  --sam-bright:        #E2E2E7;
+  --sam-surface-low:   #F1F5F9;
+  --sam-surface-high:  #E2E8F0;
+  --sam-surface-top:   #CBD5E1;
+  --sam-bright:        #94A3B8;
 
-  --sam-accent:        #00D4FF;
-  --sam-accent-dim:    #00A3C4;
-  --sam-accent-muted:  rgba(0,212,255,0.06);
+  --sam-accent:        #2563EB; /* Premium SaaS Blue */
+  --sam-accent-dim:    #1D4ED8;
+  --sam-accent-muted:  rgba(37,99,235,0.08);
 
-  --sam-glass-bg:      rgba(255,255,255,0.9);
-  --sam-glass-border:  transparent; /* Seamless UI */
-  --sam-glass-bright:  rgba(0,0,0,0.02);
+  --sam-glass-bg:      rgba(255,255,255,0.95);
+  --sam-glass-border:  #E2E8F0;
+  --sam-glass-bright:  rgba(255,255,255,1);
 
-  --sam-text:          #000000;
-  --sam-text-muted:    #666666;
-  --sam-text-dim:      rgba(0,0,0,0.1);
+  --sam-text:          #0F172A; /* Deep Sharp Slate */
+  --sam-text-muted:    #475569;
+  --sam-text-dim:      #94A3B8;
 
-  --sam-glow-bloom:    0 20px 50px rgba(0,0,0,0.05); /* Floating depth */
+  --sam-glow-bloom:    0 8px 30px rgba(0,0,0,0.08); /* Sophisticated Depth */
 }
 
 /* === Global Transitions === */

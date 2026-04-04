@@ -75,23 +75,23 @@ export default function CodeEditor({
       base: 'vs',
       inherit: true,
       rules: [
-        { token: '', foreground: '080C14', background: 'FFFFFF' },
-        { token: 'comment', foreground: '9BA3AF', fontStyle: 'italic' },
-        { token: 'keyword', foreground: '00A3C4', fontStyle: 'bold' },
+        { token: '', foreground: '0F172A', background: 'FFFFFF' },
+        { token: 'comment', foreground: '64748B', fontStyle: 'italic' },
+        { token: 'keyword', foreground: '2563EB', fontStyle: 'bold' },
         { token: 'string', foreground: '059669' },
         { token: 'number', foreground: 'D97706' },
         { token: 'type', foreground: '0284C7' },
-        { token: 'operator', foreground: '00A3C4' },
+        { token: 'operator', foreground: '2563EB' },
         { token: 'function', foreground: '7C3AED' },
       ],
       colors: {
         'editor.background': '#FFFFFF',
-        'editor.foreground': '#080C14',
-        'editorLineNumber.foreground': '#E5E7EB',
-        'editorLineNumber.activeForeground': '#00A3C4',
-        'editorIndentGuide.background': '#F3F4F6',
-        'editor.selectionBackground': '#00D4FF22',
-        'editorCursor.foreground': '#00A3C4',
+        'editor.foreground': '#0F172A',
+        'editorLineNumber.foreground': '#CBD5E1',
+        'editorLineNumber.activeForeground': '#2563EB',
+        'editorIndentGuide.background': '#F1F5F9',
+        'editor.selectionBackground': '#BFDBFE66',
+        'editorCursor.foreground': '#2563EB',
       }
     });
 

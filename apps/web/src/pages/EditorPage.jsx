@@ -267,18 +267,18 @@ export default function EditorPage() {
     const term = new XTerm({
       theme: {
         background: 'transparent',
-        foreground: isDark ? '#dde2f1' : '#080C14',
-        cursor: '#00D4FF',
+        foreground: isDark ? '#dde2f1' : '#1E293B',
+        cursor: '#2563EB',
         cursorAccent: isDark ? '#001f27' : '#FFFFFF',
-        selectionBackground: isDark ? 'rgba(0, 212, 255, 0.2)' : 'rgba(0, 212, 255, 0.1)',
-        black: isDark ? '#0e131e' : '#FFFFFF',
+        selectionBackground: isDark ? 'rgba(0, 212, 255, 0.2)' : 'rgba(37, 99, 235, 0.15)',
+        black: isDark ? '#0e131e' : '#F1F5F9',
         red: '#f43f5e',
-        green: '#22c55e',
-        yellow: '#ffd9a1',
-        blue: '#00D4FF',
+        green: '#10B981',
+        yellow: '#F59E0B',
+        blue: '#2563EB',
         magenta: '#8B5CF6',
-        cyan: isDark ? '#3cd7ff' : '#00A3C4',
-        white: isDark ? '#dde2f1' : '#080C14',
+        cyan: isDark ? '#3cd7ff' : '#0EA5E9',
+        white: isDark ? '#dde2f1' : '#334155',
       },
       fontFamily: 'JetBrains Mono, Menlo, monospace',
       fontSize: 14,
@@ -539,15 +539,21 @@ builtins.input = input_shim
                   onClick={() => setActiveModal(tab === 'Editor' ? null : tab.toLowerCase())}
                   style={{
                     fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em',
-                    color: isActive ? '#00D4FF' : 'rgba(221,226,241,0.4)',
+                    color: isActive ? (theme === 'light' ? '#2563EB' : '#00D4FF') : (theme === 'light' ? '#64748B' : 'rgba(221,226,241,0.4)'),
                     background: 'none', border: 'none', cursor: 'pointer',
-                    transition: 'color 0.2s',
+                    transition: 'color 0.2s', position: 'relative',
+                    padding: '8px 0',
                     fontFamily: 'var(--font-body)',
                   }}
-                  onMouseEnter={(e) => { if (!isActive) e.currentTarget.style.color = '#dde2f1'; }}
-                  onMouseLeave={(e) => { if (!isActive) e.currentTarget.style.color = 'rgba(221,226,241,0.4)'; }}
                 >
                   {tab}
+                  {isActive && (
+                    <motion.div
+                      layoutId="activeTab"
+                      className="absolute bottom-0 left-0 right-0 h-0.5"
+                      style={{ background: theme === 'light' ? '#2563EB' : '#00D4FF' }}
+                    />
+                  )}
                 </button>
               );
             })}
@@ -603,33 +609,49 @@ builtins.input = input_shim
           )}
 
           {/* Navigation & Actions */}
-            <div className="flex items-center gap-3">
-              {user && (
-                <button 
-                  onClick={() => setShowHistoryModal(true)}
-                  className="hidden md:flex h-10 items-center gap-2 rounded-xl border border-white/5 bg-white/5 px-4 transition-all hover:bg-white/10 hover:border-[#00D4FF]/20"
-                >
-                  <History className="h-4 w-4 text-white/40 group-hover:text-white" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-white/60">History</span>
-                </button>
-              )}
-              
+          <div className="flex items-center gap-3">
+            {user && (
               <button 
-                onClick={() => setShowShortcutsHelp(true)}
-                className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/5 bg-white/5 transition-all hover:bg-white/10"
-                title="Keyboard Shortcuts"
+                onClick={() => setShowHistoryModal(true)}
+                className="hidden md:flex h-10 items-center gap-2 rounded-xl border px-4 transition-all duration-300"
+                style={{ 
+                  background: theme === 'light' ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
+                  borderColor: theme === 'light' ? '#E2E8F0' : 'rgba(255,255,255,0.05)',
+                  boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+                }}
               >
-                <Keyboard className="h-5 w-5 text-white/20 transition-colors group-hover:text-white" />
+                <History className={`h-4 w-4 ${theme === 'light' ? 'text-slate-500' : 'text-white/40'}`} />
+                <span className={`text-[10px] font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-600' : 'text-white/60'}`}>History</span>
               </button>
+            )}
+            
+            <button 
+              onClick={() => setShowShortcutsHelp(true)}
+              className="group flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300"
+              style={{ 
+                background: theme === 'light' ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
+                borderColor: theme === 'light' ? '#E2E8F0' : 'rgba(255,255,255,0.05)',
+                boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+              }}
+              title="Keyboard Shortcuts"
+            >
+              <Keyboard className={`h-5 w-5 transition-colors ${theme === 'light' ? 'text-slate-400 group-hover:text-slate-900' : 'text-white/20 group-hover:text-white'}`} />
+            </button>
 
-              <button 
-                onClick={() => setShowAiPanel(!showAiPanel)}
-                className={`group flex h-10 items-center gap-2 rounded-xl border px-4 transition-all duration-300 ${showAiPanel ? 'border-sam-text/40 bg-sam-text/5 text-sam-text' : 'border-white/5 bg-white/5 text-white/60 hover:bg-white/10'}`}
-              >
-                <Sparkles className={`h-4 w-4 ${showAiPanel ? 'animate-pulse' : 'text-white/40'}`} />
-                <span className="text-[10px] font-black uppercase tracking-widest">Sam AI</span>
-              </button>
-            </div>
+            <button 
+              onClick={() => setShowAiPanel(!showAiPanel)}
+              className="group flex h-10 items-center gap-2 rounded-xl border px-4 transition-all duration-300"
+              style={{ 
+                background: showAiPanel ? (theme === 'light' ? '#F8FAFC' : 'rgba(255,255,255,0.1)') : (theme === 'light' ? '#FFFFFF' : 'rgba(255,255,255,0.05)'),
+                borderColor: showAiPanel ? 'var(--sam-accent)' : (theme === 'light' ? '#E2E8F0' : 'rgba(255,255,255,0.05)'),
+                color: showAiPanel ? 'var(--sam-accent)' : (theme === 'light' ? '#475569' : 'rgba(221,226,241,0.6)'),
+                boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+              }}
+            >
+              <Sparkles className={`h-4 w-4 ${showAiPanel ? 'animate-pulse' : (theme === 'light' ? 'text-slate-400' : 'text-white/40')}`} />
+              <span className="text-[10px] font-black uppercase tracking-widest text-inherit">Sam AI</span>
+            </button>
+          </div>
 
           <div className="flex md:hidden">
             <button onClick={() => setActiveModal('settings')} style={{ padding: 8, background: 'none', border: 'none', color: 'rgba(221,226,241,0.3)', cursor: 'pointer' }}>
@@ -675,10 +697,10 @@ builtins.input = input_shim
       </div>
 
       <div className={`flex flex-1 overflow-hidden transition-all duration-500 ease-in-out ${showAiPanel ? 'md:pr-[450px] lg:pr-[500px]' : ''}`}>
-        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-2 md:p-4 gap-2 md:gap-4 transition-all duration-500">
+        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-8 gap-4 md:gap-8 transition-all duration-500">
           <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex md:flex-[7]`}>
-            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16 }}>
-              <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'rgba(14,19,30,0.4)', borderBottom: '1px solid rgba(0,212,255,0.05)' }}>
+            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)' }}>
+              <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
                   <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
                   <div style={{ width: 1, height: 16, background: 'rgba(0,212,255,0.1)' }} className="hidden md:block" />
@@ -690,23 +712,24 @@ builtins.input = input_shim
                   id="editor-run-btn"
                   onClick={onRun}
                   disabled={busy}
+                  className="sam-button-primary"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: '5px 14px', borderRadius: 7,
-                    border: '1px solid rgba(0,212,255,0.3)',
-                    background: busy ? 'rgba(0,212,255,0.04)' : 'rgba(0,212,255,0.08)',
-                    color: '#00D4FF',
-                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
+                    display: 'flex', alignItems: 'center', gap: 8,
+                    padding: '8px 24px', borderRadius: 8,
+                    background: busy ? 'var(--sam-accent-dim)' : 'var(--sam-accent)',
+                    color: '#FFFFFF',
+                    fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
+                    boxShadow: theme === 'light' ? '0 4px 14px rgba(37,99,235,0.3)' : '0 4px 14px rgba(0,212,255,0.2)',
                     cursor: busy ? 'not-allowed' : 'pointer',
-                    opacity: busy ? 0.6 : 1,
+                    opacity: busy ? 0.8 : 1,
                     transition: 'all 0.2s',
                     fontFamily: 'var(--font-body)',
                   }}
                 >
                   {busy ? (
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(0,212,255,0.2)', borderTopColor: '#00D4FF', animation: 'spin 0.8s linear infinite' }} />
+                    <div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#FFFFFF', animation: 'spin 0.8s linear infinite' }} />
                   ) : (
-                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
+                    <svg width="14" height="14" fill="currentColor" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" /></svg>
                   )}
                   Run
                 </button>
@@ -731,8 +754,8 @@ builtins.input = input_shim
           </section>
   
           <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'terminal' ? 'flex-1' : 'hidden'} md:flex md:flex-[3]`}>
-            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)' }}>
-              <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'rgba(14,19,30,0.4)', borderBottom: '1px solid rgba(0,212,255,0.05)' }}>
+            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)', border: '1px solid var(--sam-glass-border)' }}>
+              <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
                   <button
                     onClick={onClear}
@@ -767,7 +790,7 @@ builtins.input = input_shim
                 <div style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(221,226,241,0.25)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
-              <div className="flex-1 overflow-hidden p-2 md:p-5 bg-black/40 relative">
+              <div className="flex-1 overflow-hidden p-2 md:p-5 relative" style={{ background: theme === 'light' ? '#F8FAFC' : 'rgba(0,0,0,0.4)' }}>
                 <div ref={terminalRef} className="h-full w-full" />
                 
                 {!isWorkerOnline && busy && (
@@ -779,9 +802,9 @@ builtins.input = input_shim
                 )}
               </div>
   
-              <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid rgba(0,212,255,0.06)', background: 'rgba(8,14,24,0.4)' }}>
-                <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(0,212,255,0.3)', fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
-                <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'rgba(221,226,241,0.2)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
+              <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
+                <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-accent)', opacity: 0.5, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
+                <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
               </div>
             </div>
           </section>
