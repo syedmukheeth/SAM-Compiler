@@ -52,7 +52,7 @@ export default function DashboardPage() {
     return (
       <div className="flex h-screen items-center justify-center bg-black">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="h-8 w-8 animate-spin text-blue-500" />
+          <RefreshCw className="h-8 w-8 animate-spin text-white/40" />
           <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40">Initialising SRE Metrics...</span>
         </div>
       </div>
@@ -63,7 +63,7 @@ export default function DashboardPage() {
   const overallSuccessRate = isNaN(rateRaw) ? 0 : rateRaw;
 
   return (
-    <div className="relative min-h-screen w-full p-4 md:p-8 font-sans text-white overflow-hidden selection:bg-[#00D4FF]/30" style={{ background: 'var(--sam-bg)' }}>
+    <div className="relative min-h-screen w-full p-4 md:p-8 font-sans text-white overflow-hidden selection:bg-white/10" style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -317,7 +317,7 @@ function KpiCard({ icon, title, value, subtext, color }) {
       className="glass-card p-6 flex flex-col gap-4 group"
     >
       <div className="flex items-center justify-between">
-         <div className="rounded-xl bg-[#00D4FF]/5 p-2 transition-colors group-hover:bg-[#00D4FF]/15">
+         <div className="rounded-xl bg-white/5 p-2 transition-colors group-hover:bg-white/15">
             {React.cloneElement(icon, { size: 20 })}
          </div>
          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">KPI</span>

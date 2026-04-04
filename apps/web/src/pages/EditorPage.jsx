@@ -277,21 +277,21 @@ export default function EditorPage() {
     const isDark = theme === "dark";
     const term = new XTerm({
       theme: {
-        background: isDark ? '#000000' : '#FFFFFF',
-        foreground: isDark ? '#FFFFFF' : '#000000',
-        cursor: isDark ? '#FFFFFF' : '#000000',
+        background: isDark ? '#000000' : '#F1F5F9',
+        foreground: isDark ? '#FFFFFF' : '#0F172A',
+        cursor: isDark ? '#FFFFFF' : '#0F172A',
         cursorAccent: isDark ? '#000000' : '#FFFFFF',
-        selectionBackground: isDark ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.15)',
-        black: '#000000',
-        red: '#737373',
-        green: '#A3A3A3',
-        yellow: '#D4D4D4',
-        blue: '#525252',
-        magenta: '#404040',
-        cyan: '#737373',
-        white: '#FFFFFF',
+        selectionBackground: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(15, 23, 42, 0.15)',
+        black: isDark ? '#1A1A1A' : '#000000',
+        red: isDark ? '#F5F5F5' : '#7F1D1D',
+        green: isDark ? '#FFFFFF' : '#064E3B',
+        yellow: isDark ? '#E5E5E5' : '#713F12',
+        blue: isDark ? '#D4D4D4' : '#1E3A8A',
+        magenta: isDark ? '#A3A3A3' : '#581C87',
+        cyan: isDark ? '#FFFFFF' : '#164E63',
+        white: isDark ? '#FFFFFF' : '#FFFFFF',
       },
-      fontFamily: 'JetBrains Mono, Menlo, monospace',
+      fontFamily: 'var(--font-mono)',
       fontSize: 14,
       lineHeight: 1.5,
       cursorBlink: true,
@@ -344,7 +344,7 @@ export default function EditorPage() {
       if ((e.metaKey || e.ctrlKey) && e.key === "s") {
         e.preventDefault();
         toast.success("Workspace saved to cloud", {
-          style: { background: '#0e131e', color: '#fff', border: '1px solid rgba(0,212,255,0.2)', fontSize: '12px' },
+          style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '12px' },
           icon: '💾'
         });
       }
@@ -816,7 +816,7 @@ builtins.input = input_shim
                   </span>
                   {metrics && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid var(--sam-glass-border)' }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--sam-text)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', opacity: 0.6 }}>
+                      <span style={{ fontSize: 9, fontBold: 800, color: 'var(--sam-text)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', opacity: 0.9 }}>
                         {metrics.sandbox?.replace('docker-', '')}
                       </span>
                       <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>
@@ -825,10 +825,10 @@ builtins.input = input_shim
                     </div>
                   )}
                 </div>
-                <div style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? 'var(--sam-text)' : 'var(--sam-text-dim)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
+                <div style={{ fontSize: 9, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? 'var(--sam-text)' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
-              <div className="flex-1 overflow-hidden p-2 md:p-5 relative" style={{ background: theme === 'light' ? '#F8FAFC' : 'rgba(0,0,0,0.4)' }}>
+              <div className="flex-1 overflow-hidden p-2 md:p-5 relative" style={{ background: theme === 'light' ? '#F1F5F9' : '#000000' }}>
                 <div ref={terminalRef} className="h-full w-full" />
                 
                 {!isWorkerOnline && busy && (
@@ -841,8 +841,8 @@ builtins.input = input_shim
               </div>
   
               <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
-                <span style={{ fontSize: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-accent)', opacity: 0.5, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
-                <span style={{ fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
+                <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', opacity: 0.8, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
+                <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
               </div>
             </div>
           </section>
