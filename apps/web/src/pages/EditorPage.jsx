@@ -163,6 +163,7 @@ export default function EditorPage() {
   const [activeModal, setActiveModal] = useState(null); 
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(true);
+  const [activeMobileTab, setActiveMobileTab] = useState('editor');
   
   const { user, loginUser, logoutUser } = useAuth();
 
