@@ -33,6 +33,8 @@ export default function CodeEditor({
   const editorRef = useRef(null);
   const bindingRef = useRef(null);
   const providerRef = useRef(null);
+  const ydocRef = useRef(null);
+  const ytextRef = useRef(null);
   const hasInitializedRef = useRef(false);
 
   const monacoLanguage = useMemo(() => LANGUAGE_TO_MONACO[language] ?? "javascript", [language]);
@@ -97,7 +99,7 @@ export default function CodeEditor({
 
     if (providerRef.current) return;
     
-    // ... rest of Yjs initialization ...
+    // Initialize Yjs
     const ydoc = new Y.Doc();
     const endpoint = ENDPOINTS.WS_ENDPOINT;
 
@@ -122,6 +124,9 @@ export default function CodeEditor({
       color: localColor
     });
 
+    // Assign to refs for stability across renders and events
+    ydocRef.current = ydoc;
+    ytextRef.current = ytext;
     bindingRef.current = binding;
     providerRef.current = provider;
 
@@ -132,8 +137,6 @@ export default function CodeEditor({
     });
 
     // BROWSER SANITATION GUARD (The Final Hammer)
-    // We strictly wait for the backend-initialized state to sync.
-    // If the server-state was poisoned (from old bugs), we heal it locally too.
     provider.on('sync', (isSynced) => {
       if (isSynced !== false && !hasInitializedRef.current) {
         hasInitializedRef.current = true;
@@ -144,9 +147,7 @@ export default function CodeEditor({
           const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
           
           if (occurrences > 1) {
-            // Heal the document: wipe and restore a clean single copy.
             ytext.delete(0, ytext.length);
-            // We use the 'value' passed from the parent as the definitive template.
             if (value) {
               ytext.insert(0, value + "\n");
             }
@@ -155,25 +156,24 @@ export default function CodeEditor({
       }
     });
     
-  }, [localName, localColor, onCursorChange, value]); // Re-added value to dependencies for the guard
+  }, [localName, localColor, onCursorChange, value, sessionId]);
 
-  // THEME PERSISTENCE: Use vs-dark for dark mode as requested
+  // THEME PERSISTENCE
   const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);
 
   // Provider & Binding Lifecycle Management
   useEffect(() => {
-    // If we have an editor instance, we can initialize Yjs
     if (editorRef.current && !providerRef.current) {
       handleMount(editorRef.current, window.monaco);
     }
 
-    // EMERGENCY RESET LISTENER
+    // EMERGENCY RESET LISTENER - Now using Refs to avoid ReferenceError
     const handleResetEvent = (e) => {
       const { template } = e.detail;
-      if (template) {
-        ydoc.transact(() => {
-          ytext.delete(0, ytext.length);
-          ytext.insert(0, template);
+      if (template && ydocRef.current && ytextRef.current) {
+        ydocRef.current.transact(() => {
+          ytextRef.current.delete(0, ytextRef.current.length);
+          ytextRef.current.insert(0, template);
         });
       }
     };
@@ -189,6 +189,8 @@ export default function CodeEditor({
         providerRef.current.destroy();
         providerRef.current = null;
       }
+      ydocRef.current = null;
+      ytextRef.current = null;
       hasInitializedRef.current = false;
     };
   }, [sessionId, handleMount]); // Re-run when session ID changes

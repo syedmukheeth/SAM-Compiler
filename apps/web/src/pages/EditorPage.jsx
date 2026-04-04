@@ -171,12 +171,55 @@ export default function EditorPage() {
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(true);
   
-  const terminalRef = useRef(null);
-  const xtermRef = useRef(null);
-  const fitAddonRef = useRef(null);
-  const [activeMobileTab, setActiveMobileTab] = useState("editor"); // "editor" or "terminal"
-  
   const { user, loginUser, logoutUser } = useAuth();
+
+  // Layout Resizing Logic (60/40 Split)
+  const [leftPanelWidth, setLeftPanelWidth] = useState(60); // Percentage
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef(null);
+
+  const startResizing = useCallback(() => {
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
+
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+  }, []);
+
+  const onResize = useCallback((e) => {
+    if (!isResizing || !containerRef.current) return;
+    
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+    
+    // Constraints: 20% min, 80% max
+    if (newWidth > 20 && newWidth < 80) {
+      setLeftPanelWidth(newWidth);
+    }
+  }, [isResizing]);
+
+  useEffect(() => {
+    if (isResizing) {
+      window.addEventListener('mousemove', onResize);
+      window.addEventListener('mouseup', stopResizing);
+    }
+    return () => {
+      window.removeEventListener('mousemove', onResize);
+      window.removeEventListener('mouseup', stopResizing);
+    };
+  }, [isResizing, onResize, stopResizing]);
+
+  // Sycn Monaco Layout on Resize
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [leftPanelWidth, showAiPanel]);
 
 
   // Poll worker status & Sync theme
@@ -736,9 +779,16 @@ builtins.input = input_shim
         </button>
       </div>
 
-      <div className={`flex flex-1 overflow-hidden transition-all duration-500 ease-in-out ${showAiPanel ? 'md:pr-[450px] lg:pr-[500px]' : ''}`}>
-        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-8 gap-4 md:gap-8 transition-all duration-500">
-          <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex md:flex-[7]`}>
+      <div 
+        ref={containerRef}
+        className={`flex flex-1 overflow-hidden transition-all duration-500 ease-in-out ${showAiPanel ? 'md:pr-[450px] lg:pr-[500px]' : ''}`}
+      >
+        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-6 gap-0 transition-all duration-500">
+          {/* EDITOR SECTION */}
+          <section 
+            className={`flex flex-col overflow-hidden ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex`}
+            style={{ width: `${leftPanelWidth}%`, flex: `0 0 ${leftPanelWidth}%` }}
+          >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
@@ -747,7 +797,7 @@ builtins.input = input_shim
                   {/* Reset Safety Valve */}
                   <button
                     onClick={handleCodeReset}
-                    title="Reset to original template"
+                    title="Reset To Boilerplate"
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       color: 'var(--sam-text-dim)', transition: 'color 0.2s',
@@ -811,8 +861,24 @@ builtins.input = input_shim
               </div>
             </div>
           </section>
-  
-          <section className={`flex flex-col overflow-hidden gap-4 ${activeMobileTab === 'terminal' ? 'flex-1' : 'hidden'} md:flex md:flex-[3]`}>
+
+          {/* DRAGGABLE SPLITTER */}
+          <div 
+            onMouseDown={startResizing}
+            className="hidden md:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
+          >
+            <div className="h-24 w-[1px] bg-white/5 group-hover:bg-white/20 transition-all" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-4 rounded-full bg-black/80 border border-white/5 opacity-0 group-hover:opacity-100 transition-all flex items-center justify-center gap-0.5">
+              <div className="w-[1px] h-3 bg-white/20" />
+              <div className="w-[1px] h-3 bg-white/20" />
+            </div>
+          </div>
+
+          {/* TERMINAL SECTION */}
+          <section 
+            className={`flex flex-col overflow-hidden ${activeMobileTab === 'terminal' ? 'flex-1' : 'hidden'} md:flex`}
+            style={{ width: `${100 - leftPanelWidth}%`, flex: `0 0 ${100 - leftPanelWidth}%` }}
+          >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)', border: '1px solid var(--sam-glass-border)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
@@ -849,12 +915,12 @@ builtins.input = input_shim
                 <div style={{ fontSize: 9, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? 'var(--sam-text)' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
-              <div className="flex-1 overflow-hidden p-2 md:p-5 relative" style={{ background: theme === 'light' ? '#F1F5F9' : '#000000' }}>
-                <div ref={terminalRef} className="h-full w-full" />
+              <div className={`flex-1 overflow-hidden p-2 md:p-5 relative ${theme === 'light' ? 'bg-[#F1F5F9]' : 'bg-[#000000]'}`}>
+                <div ref={terminalRef} className="h-full w-full overflow-hidden" />
                 
                 {!isWorkerOnline && busy && (
                   <div className="absolute top-4 left-4 right-4 z-10">
-                    <div className="text-[10px] font-bold text-amber-500/50 uppercase tracking-widest bg-amber-500/5 p-2 rounded-lg border border-amber-500/10 backdrop-blur-md">
+                    <div className="text-[10px] font-bold text-amber-500/50 uppercase tracking-widest bg-amber-500/10 p-2 rounded-lg border border-amber-500/10 backdrop-blur-md">
                        ⚠️ Cloud Sandbox - Interactivity limited. Run API locally for full stdin.
                     </div>
                   </div>
@@ -964,6 +1030,15 @@ builtins.input = input_shim
       <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} settings={settings} onSettingsChange={onSettingsUpdate} />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
       
+      <AiPanel 
+        isOpen={showAiPanel} 
+        onClose={() => setShowAiPanel(false)}
+        currentCode={buffers[activeLangId]}
+        language={activeLangId}
+        metrics={metrics}
+        theme={theme}
+      />
+
       <Toaster position="bottom-right" reverseOrder={false} />
     </div>
   );
