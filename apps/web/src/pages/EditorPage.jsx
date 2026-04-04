@@ -261,6 +261,15 @@ export default function EditorPage() {
 
   // Initialize XTerm
   useEffect(() => {
+    // Sync Favicon with Theme
+    const fav = document.getElementById("favicon");
+    if (fav) {
+      fav.setAttribute("href", theme === 'light' ? "/favicon-light.svg" : "/favicon.svg");
+    }
+  }, [theme]);
+
+  // Terminal logic below...
+  useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
 
     const isDark = theme === "dark";
@@ -508,7 +517,7 @@ builtins.input = input_shim
 
 
   return (
-    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-cyan-500/20" style={{ background: 'var(--sam-bg)' }}>
+    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10" style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -532,10 +541,10 @@ builtins.input = input_shim
                     to="/dashboard"
                     className="group relative flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest transition-all"
                     style={{ color: 'rgba(221,226,241,0.4)' }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = '#00D4FF'}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--sam-accent)'}
                     onMouseLeave={(e) => e.currentTarget.style.color = 'rgba(221,226,241,0.4)'}
                   >
-                    <div className="h-1.5 w-1.5 rounded-full" style={{ background: 'rgba(0,212,255,0.4)' }} />
+                    <div className="h-1.5 w-1.5 rounded-full" style={{ background: 'var(--sam-accent-dim)' }} />
                     Dashboard
                   </Link>
                 );
@@ -669,7 +678,7 @@ builtins.input = input_shim
         </div>
       </header>
 
-      <div className="flex md:hidden h-12 shrink-0" style={{ borderBottom: '1px solid rgba(0,212,255,0.08)', background: 'rgba(8,14,24,0.9)' }}>
+      <div className="flex md:hidden h-12 shrink-0" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
         <button
           onClick={() => setActiveMobileTab('editor')}
           className="relative flex-1 flex items-center justify-center gap-2"
@@ -684,7 +693,7 @@ builtins.input = input_shim
           Code
           {activeMobileTab === 'editor' && <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 2, background: 'var(--sam-accent)' }} />}
         </button>
-        <div style={{ width: 1, background: 'rgba(0,212,255,0.08)' }} />
+        <div style={{ width: 1, background: 'var(--sam-glass-border)' }} />
         <button
           onClick={() => setActiveMobileTab('terminal')}
           className="relative flex-1 flex items-center justify-center gap-2"
