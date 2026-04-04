@@ -89,39 +89,52 @@ const languageConfigs = {
 function ThemeToggle({ theme, toggle }) {
   return (
     <motion.button
-      whileHover={{ scale: 1.05 }}
-      whileTap={{ scale: 0.95 }}
       onClick={toggle}
-      className="p-2 rounded-xl bg-sam-surface-high border border-sam-glass-border hover:border-sam-text-dim transition-all duration-300 group"
-      title={`Switch to ${theme === "dark" ? "Light" : "Dark"} mode`}
+      className="relative flex h-7 w-12 items-center rounded-full px-1 shadow-inner focus:outline-none overflow-hidden"
+      style={{ 
+        background: theme === 'dark' ? 'rgba(0,0,0,0.4)' : 'rgba(0,212,255,0.1)',
+        border: '1px solid var(--sam-glass-border)',
+        backdropFilter: 'blur(10px)'
+      }}
+      whileTap={{ scale: 0.95 }}
     >
-      <div className="relative w-6 h-6 overflow-hidden">
+      <motion.div
+        className="absolute left-1 flex h-5 w-5 items-center justify-center rounded-full shadow-lg"
+        animate={{ 
+          x: theme === 'dark' ? 0 : 20,
+          background: theme === 'dark' ? '#FFFFFF' : '#00D4FF',
+          boxShadow: theme === 'dark' ? '0 0 15px rgba(255,255,255,0.2)' : '0 0 15px rgba(0,212,255,0.3)'
+        }}
+        transition={{ 
+          type: "spring",
+          stiffness: 400,
+          damping: 25
+        }}
+      >
         <AnimatePresence mode="wait">
-          {theme === "dark" ? (
+          {theme === 'dark' ? (
             <motion.div
               key="moon"
-              initial={{ y: 20, opacity: 0, rotate: 45 }}
-              animate={{ y: 0, opacity: 1, rotate: 0 }}
-              exit={{ y: -20, opacity: 0, rotate: -45 }}
-              transition={{ duration: 0.4, ease: "backOut" }}
-              className="absolute inset-0 flex items-center justify-center text-sam-accent"
+              initial={{ opacity: 0, rotate: -45, scale: 0.5 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: 45, scale: 0.5 }}
+              transition={{ duration: 0.1 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
             </motion.div>
           ) : (
             <motion.div
               key="sun"
-              initial={{ y: 20, opacity: 0, scale: 0.5 }}
-              animate={{ y: 0, opacity: 1, scale: 1 }}
-              exit={{ y: -20, opacity: 0, scale: 0.5 }}
-              transition={{ duration: 0.4, ease: "backOut" }}
-              className="absolute inset-0 flex items-center justify-center text-sam-accent"
+              initial={{ opacity: 0, rotate: 45, scale: 0.5 }}
+              animate={{ opacity: 1, rotate: 0, scale: 1 }}
+              exit={{ opacity: 0, rotate: -45, scale: 0.5 }}
+              transition={{ duration: 0.1 }}
             >
-              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
+              <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </motion.div>
     </motion.button>
   );
 }
@@ -490,7 +503,7 @@ builtins.input = input_shim
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
-      <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 border-b-0 sam-glass" style={{ borderBottom: '1px solid rgba(0,212,255,0.05)', background: 'rgba(14,19,30,0.85)', backdropFilter: 'blur(30px)' }}>
+      <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 border-b-0 sam-glass" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-glass-bg)', backdropFilter: 'blur(30px)' }}>
         <div className="flex items-center gap-4 md:gap-10">
           <div className="flex items-center gap-3 transition-transform hover:scale-105 shrink-0">
             <SamNavLogo />

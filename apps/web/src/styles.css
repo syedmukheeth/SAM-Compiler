@@ -57,26 +57,34 @@
 
 /* === Light Mode Overrides (Manual Toggle) === */
 :root.light {
-  --sam-bg:            #FAF9F6;
+  --sam-bg:            #FAF9F6; /* Pearlescent White */
   --sam-surface:       #FFFFFF;
-  --sam-surface-low:   #F5F5F2;
-  --sam-surface-high:  #EDEDE8;
-  --sam-surface-top:   #E5E5E0;
-  --sam-bright:        #DDDDD8;
+  --sam-surface-low:   #F9F8F3;
+  --sam-surface-high:  #F0EFEA;
+  --sam-surface-top:   #EAE9E4;
+  --sam-bright:        #E2E1DC;
 
-  --sam-accent:        #000000;
-  --sam-accent-dim:    #222222;
-  --sam-accent-muted:  rgba(0,0,0,0.08);
+  --sam-accent:        #00D4FF; /* Keep the Cyan but adjusted */
+  --sam-accent-dim:    #00A3C4;
+  --sam-accent-muted:  rgba(0,212,255,0.08);
 
-  --sam-glass-bg:      rgba(255,255,255,0.8);
-  --sam-glass-border:  rgba(0,0,0,0.08);
-  --sam-glass-bright:  rgba(0,0,0,0.12);
+  --sam-glass-bg:      rgba(255,255,255,0.85);
+  --sam-glass-border:  rgba(0,0,0,0.05);
+  --sam-glass-bright:  rgba(0,0,0,0.1);
 
-  --sam-text:          #000000;
-  --sam-text-muted:    #666666;
-  --sam-text-dim:      rgba(0,0,0,0.3);
+  --sam-text:          #080C14; /* Deep Indigo-Black */
+  --sam-text-muted:    #555C6D;
+  --sam-text-dim:      rgba(8,12,20,0.3);
 
-  --sam-glow-bloom:    0px 20px 40px rgba(0,0,0,0.05);
+  --sam-glow-bloom:    0px 10px 30px rgba(0,0,0,0.04);
+}
+
+/* === Global Transitions === */
+html, body, div, header, footer, section, nav, button, span, a {
+  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* === Selection === */

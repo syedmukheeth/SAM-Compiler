@@ -138,13 +138,19 @@ export default function CodeEditor({
           
           // 1. SELF-HEALING: If the document is corrupted with repeated copies of the boilerplate
           // (a common sync race condition artifact), deduplicate it.
-          const escapedVal = value.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const repeatedRegex = new RegExp(`(${escapedVal}\\s*\\n*){2,}`, 'g');
+          // 1. SELF-HEALING: If the document is corrupted with repeated copies of the boilerplate
+          // (a common sync race condition artifact), deduplicate it aggressively.
+          const normalize = (s) => s.replace(/\s+/g, ' ').trim();
+          const normalizedCurrent = normalize(currentText);
+          const normalizedBoilerplate = normalize(value);
           
-          if (repeatedRegex.test(currentText)) {
-            const cleaned = currentText.replace(repeatedRegex, value + "\n");
+          // Count occurrences of the boilerplate in the document
+          const occurrences = normalizedCurrent.split(normalizedBoilerplate).length - 1;
+          
+          if (occurrences > 1) {
+            // Document contains repeated boilerplate patterns, wipe and reset to a single clean copy
             ytext.delete(0, ytext.length);
-            ytext.insert(0, cleaned);
+            ytext.insert(0, value + "\n");
             meta.set('initialized', true);
             return;
           }
