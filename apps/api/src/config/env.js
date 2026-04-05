@@ -5,19 +5,20 @@ dotenv.config();
 
 const EnvSchema = z.object({
   PORT: z.coerce.number().default(8080),
-  MONGO_URI: z.string().optional(),
-  REDIS_URL: z.string().optional(),
-  WEB_ORIGIN: z.string().min(1).default("http://localhost:5173"),
-  JWT_SECRET: z.string().min(12).default("sam_compiler_super_secret_key_2026"),
-  JWT_EXPIRES_IN: z.string().default("7d"),
+  MONGO_URI: z.string().trim().optional(),
+  REDIS_URL: z.string().trim().optional(),
+  WEB_ORIGIN: z.string().trim().min(1).default("https://sam-compiler-web.vercel.app"),
+  JWT_SECRET: z.string().trim().min(12).default("sam_compiler_super_secret_key_2026"),
+  JWT_EXPIRES_IN: z.string().trim().default("7d"),
   
   // OAuth (Optional placeholders)
-  GITHUB_CLIENT_ID: z.string().optional(),
-  GITHUB_CLIENT_SECRET: z.string().optional(),
-  GOOGLE_CLIENT_ID: z.string().optional(),
-  GOOGLE_CLIENT_SECRET: z.string().optional(),
-  CALLBACK_URL_BASE: z.string().default("http://localhost:8080/auth")
+  GITHUB_CLIENT_ID: z.string().trim().optional(),
+  GITHUB_CLIENT_SECRET: z.string().trim().optional(),
+  GOOGLE_CLIENT_ID: z.string().trim().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().trim().optional(),
+  CALLBACK_URL_BASE: z.string().trim().default("https://sam-compiler.onrender.com/api/auth")
 });
+
 
 let env;
 const result = EnvSchema.safeParse(process.env);
