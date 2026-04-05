@@ -1,122 +1,135 @@
 <div align="center">
   <img alt="SAM Compiler Logo" src="https://raw.githubusercontent.com/syedmukheeth/SAM-Compiler/main/apps/web/public/favicon.svg" width="120">
   <br>
-  <h1>SAM Compiler — Obsidian Monolith</h1>
-  <p><b>The High-Scale, Distributed Syntax Analysis Machine</b></p>
-  
+  <h1>SAM Compiler — The Obsidian Monolith</h1>
+  <p><b>High-Performance, Multi-Language Cloud IDE with AI Synthesis</b></p>
+
   <p>
-    <img src="https://img.shields.io/badge/Version-2.5.0--OBSIDIAN-black?style=for-the-badge" alt="Version">
-    <img src="https://img.shields.io/badge/Design-Monolith--Black--White-black?style=for-the-badge" alt="Design">
-    <img src="https://img.shields.io/badge/Security-Hardened--gVisor-black?style=for-the-badge&logo=docker" alt="Security">
-    <img src="https://img.shields.io/badge/Stack-Fullstack--Workspace-black?style=for-the-badge" alt="Stack">
+    <img src="https://img.shields.io/badge/Version-3.0.0-black?style=for-the-badge" alt="Version">
+    <img src="https://img.shields.io/badge/Design-Obsidian--Monolith-black?style=for-the-badge" alt="Design">
+    <img src="https://img.shields.io/badge/Security-gVisor--Hardened-black?style=for-the-badge&logo=docker" alt="Security">
+    <img src="https://img.shields.io/badge/AI-Gemini--Pro--Integrated-black?style=for-the-badge&logo=google-cloud" alt="AI">
   </p>
 
-  <i>A precision engineering masterpiece featuring pure monochromatic aesthetics, real-time binary state synchronization, and hardened cloud execution.</i>
+  <i>A precision-engineered development engine featuring zero-lag collaboration, hardened sandboxing, and a high-fidelity monochromatic aesthetic.</i>
 </div>
 
 ---
 
-## 🌑 The Obsidian Identity
+## 🌑 The SAM Identity
 
-**SAM Compiler** is an enterprise-grade cloud IDE redefined through the **Obsidian Monolith** design system. By stripping away visual clutter and adopting a strict, high-contrast black-and-white aesthetic, we prioritize code clarity and developer focus above all else.
+**SAM Compiler** is not just an editor; it's a statement in minimal engineering. Built on the **Obsidian Monolith** design system, it provides a sanctuary for developers where distractions are obliterated by a strict monochromatic interface. 
 
-Built for **high-scale reliability** and **sub-millisecond latency**, SAM provides an elite development environment where engineering meets art.
+Underneath the glassmorphism and slate accents lies a powerhouse of **distributed systems**: from **CRDT-based synchronization** to **gVisor-hardened execution kernels**, SAM is built for scale, security, and speed.
 
 ---
 
-## ⚡ Core Capabilities
+## ⚡ Key Features
 
-### 🖋️ Monolith IDE
-*   **Monaco Engine**: Industrial-strength editor powering VS Code, optimized for pure B&W high-contrast rendering.
-*   **Polyglot Logic**: Native support for **50+ languages**, including C++, Rust, Go, Python, and Java.
-*   **AI Synthesis**: Deep integration with Gemini Pro for automated refactoring, bug detection, and architectural explanations.
+### 🖋️ Professional IDE Suite
+*   **Monaco Engine**: Powered by the same core as VS Code, optimized with custom Obsidian themes.
+*   **Polyglot Runtime**: Native, lightning-fast execution for **C++, C, Python, JavaScript, and Java**.
+*   **Real-time Multi-player**: Conflict-free collaborative editing powered by **Yjs CRDTs** and WebSockets.
+*   **Integrated Terminal**: High-fidelity XTerm.js integration for real-time output streaming.
 
-### 🌓 Absolute Monochrome UI
-*   **Obsidian Design System**: A unified Black, White, and Slate color palette. No distracting glows, just pure focus.
-*   **Dynamic Theme-Sensing**: Intelligent switching between **Deep Obsidian Dark** and **Paper White Light** modes, including automatic favicon synchronization.
-*   **B&W SRE Dashboard**: High-fidelity observability charts and metrics designed for maximum information density without the noise.
+### 🧠 SAM AI Synthesis
+*   **Gemini Pro Powered**: Built-in AI assistant for complex refactoring, bug hunting, and logic explanation.
+*   **Context-Aware**: One-click "Apply Code" to instantly merge AI-suggested improvements into your workspace.
 
-### ⛓️ Distributed Execution Plane
-*   **Hardened Sandboxing**: Multi-layer isolation using gVisor and Docker, ensuring absolute security for every code run.
-*   **Zero-Disk I/O**: Workspaces utilize `tmpfs` RAM-disks to eliminate host leakage and maximize throughput.
-*   **BullMQ Clustering**: A robust Redis-backed queue intelligently handles hundreds of concurrent compilation requests.
+### 🛡️ Enterprise-Grade Security
+*   **Hardened Sandboxing**: Every execution run is isolated using **gVisor** (Google's container sandbox) and Docker.
+*   **Session Isolation**: Automatic, randomized room generation ensures your private code stays private.
+*   **OAuth Lifecycle**: Secure "Continue with Google/GitHub" integration via Passport.js.
 
-### 🤝 Mathematical Collaboration
-*   **Yjs CRDT Engine**: Mathematically guaranteed state merging for real-time multiplayer editing without conflicts.
-*   **Binary Snapshotting**: Instant session persistence allows resuming complex development environments in milliseconds.
+### 📱 Edge Responsiveness
+*   **Mobile-First Design**: A complete mobile UI overhaul with adaptive headers and touch-optimized editor controls.
+*   **Zero-Install**: Fully functional in any modern browser, from desktop workstations to mobile devices.
 
 ---
 
 ## 🏛️ System Architecture
 
-SAM is architected as a decoupled, horizontally scalable ecosystem:
+SAM utilizes a distributed control plane to manage isolation and high-frequency synchronization.
 
 ```mermaid
 graph TD
-    subgraph "Edge Layer (Frontend)"
-        Client[Obsidian UI / Monaco] -->|CRDT Binary Sync| Socket[Socket.io Gateway]
-        Client -->|Monochomatic Telemetry| Telemetry[SRE Dashboard]
+    subgraph "Client Layer (Obsidian UI)"
+        UI[React / Monaco] -->|Sync State| CRDT[Yjs CRDT Engine]
+        UI -->|Streaming| Term[XTerm.js Output]
     end
 
     subgraph "Control Plane (Orchestration)"
-        Socket -->|State Provider| Yjs[Yjs CRDT Engine]
-        Yjs -->|Binary Persistence| DB[(MongoDB Atlas)]
-        Socket -->|Job Dispatch| Queue[BullMQ Cluster]
-        Queue -->|Redis Backend| Redis[(Redis Stack)]
+        Socket[Socket.io Gateway] -->|Auth| OAuth[Google / GitHub OAuth]
+        Socket -->|Job Dispatch| Queue[BullMQ / Redis Stack]
+        CRDT -->|Persistence| Mongo[(MongoDB Atlas)]
     end
 
-    subgraph "Data Plane (Hardened Workers)"
-        Queue -->|gVisor / Docker| Docker[Secure Sandbox]
-        Docker -->|Memory Mount| RAM[tmpfs RAM-Disk]
-        RAM -->|Execution| Code((User Binary))
-    end
-
-    subgraph "SRE Observability Mesh"
-        Tele[(Regional Heatmap)]
-        Tele -->|Worker Heartbeat| Telemetry
+    subgraph "Synthesis & Execution"
+        Queue -->|Hardened Run| gVisor[gVisor Sandbox]
+        gVisor -->|tmpfs| RAM[RAM Disk Execution]
+        Gemini[SAM AI / Gemini] -->|Refactor| UI
     end
 ```
 
 ---
 
-## 🛠️ Performance Stack
+## 🛠️ Performance Tech Stack
 
-| Layer | Technology | Philosophy |
+| Domain | Technology | Implementation |
 | :--- | :--- | :--- |
-| **Interface** | React 18, Framer Motion | Fluid, high-contrast, zero-lag |
-| **Synchronization** | Yjs, Socket.io | Mathematical eventual consistency |
-| **Logic** | Node.js (V20), Express, Zod | Safe, typed orchestration |
-| **Data Plane** | BullMQ, Redis, gVisor | Hardened, distributed execution |
-| **Observability** | SAM SRE Mesh | High-density information display |
+| **Frontend** | React 18 / Vite | High-frequency UI updates & Framer Motion |
+| **Editor** | Monaco / Yjs | Professional editing with binary CRDT sync |
+| **Backend** | Node.js / Express | Distributed task orchestration & JWT security |
+| **Queue** | BullMQ / Redis | High-throughput background code execution |
+| **Security** | gVisor / Docker | Multi-layer kernel isolation for user code |
+| **AI** | Google Gemini | Large Language Model synthesis & explanation |
 
 ---
 
-## 🏃 Deployment Guide
+## 🚀 Quick Start
 
-### 1. Monorepo Initialization
+### 1. Prerequisities
+-   **Node.js** (v18+)
+-   **Docker** (for secure Cloud execution)
+-   **Redis & MongoDB** (Local or Cloud instances)
+
+### 2. Monorepo Installation
 ```bash
 # Clone the repository
 git clone https://github.com/syedmukheeth/SAM-Compiler.git
 cd SAM-Compiler
 
-# Install unified dependencies
+# Install all workspace dependencies
 npm install
 
-# Build & Run Development Environment
+# Launch Development Environment (All Apps)
 npm run dev
 ```
 
-### 2. Environment Configuration
-Ensure `.env` files are correctly configured in `apps/api`, `apps/web`, and `apps/worker` based on the provided templates.
+### 3. Environment Secrets
+Create `.env` files in `apps/api` and `apps/web`.
+
+**Required `apps/api/.env`:**
+```env
+PORT=8080
+MONGO_URI=mongodb+srv://...
+REDIS_URL=rediss://...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GEMINI_API_KEY=...
+```
 
 ---
 
-## 💼 Engineer: [Syed Mukheeth](https://linkedin.com/in/syedmukheeth)
-*Specializing in High-Scale Distributed Systems and Hardened Cloud Infrastructure.*
+## 💼 Engineer & Designer
+**[Syed Mukheeth](https://linkedin.com/in/syedmukheeth)**
+*Specializing in High-Scale Distributed Infrastructure and Modern UX Engineering.*
 
 <div align="center">
   <br>
   <img src="https://img.shields.io/badge/License-MIT-black.svg?style=for-the-badge" alt="License">
   <br>
-  <sub>v2.5.0-OBSIDIAN | Powered by the MONOLITH Design System</sub>
+  <sub>v3.0.0-OBSIDIAN | Handcrafted with Precision</sub>
 </div>

@@ -1,93 +1,72 @@
-# SAM Compiler Deployment Guide: Cloud-Native Execution 🚀
+# SAM Compiler: Cloud-Native Deployment Guide 🚀
 
-To achieve a professional, cloud-only experience where you don't need to run a local worker for C++, Java, or C, you must deploy the API as a **Docker Container**.
-
-## Why Docker?
-Vercel Serverless is great for JS/Node, but it **does not contain compilers** (g++, gcc, javac). Our Dockerfile is pre-configured with all these tools, allowing the SAM API to execute code directly in the cloud.
+The SAM Compiler is architected for secure, high-scale cloud execution. To enable compiled languages (C++, C, Java) without running local workers, follow the **Docker Monolith** deployment strategy.
 
 ---
 
-## Option 1: Render (Recommended)
-Render is the easiest way to deploy a Dockerized monorepo.
+## ☁️ Option 1: Render (Recommended)
 
-1.  **Create a New Web Service** on Render.
-2.  **Connect your GitHub Repository**.
-3.  **Root Directory**: Leave as root or set to `apps/api`.
-4.  **Language**: Select **Docker**.
-5.  **Docker Command**: Render will automatically find the `Dockerfile` in `apps/api`.
-6.  **Environment Variables**:
-    *   `PORT`: 8080
-    *   `MONGO_URI`: Your MongoDB Connection String (e.g., MongoDB Atlas)
-    *   `REDIS_URL`: Your Redis Connection String (Upstash/Aiven)
-    *   `NODE_ENV`: production
+Render is the simplest way to host the Dockerized SAM API.
+
+### 1. Create Web Service
+1.  **New Web Service** -> **Connect GitHub Repo**.
+2.  **Environment**: Select **Docker**.
+3.  **Root Directory**: `apps/api` (Important: Dockerfile is here).
+
+### 2. Environment Variables 🔒
+| Key | Value |
+| :--- | :--- |
+| `PORT` | `8080` |
+| `NODE_ENV` | `production` |
+| `MONGO_URI` | `mongodb+srv://...` |
+| `REDIS_URL` | `rediss://...` (Upstash recommended) |
+| `WEB_ORIGIN` | `https://sam-compiler-web.vercel.app` |
+| `CALLBACK_URL_BASE` | `https://sam-compiler-api.onrender.com/api/auth` |
+| `GITHUB_CLIENT_ID` | Your ID |
+| `GITHUB_CLIENT_SECRET` | Your Secret |
+| `GOOGLE_CLIENT_ID` | Your ID |
+| `GOOGLE_CLIENT_SECRET` | Your Secret |
+| `GEMINI_API_KEY` | Your AI Key |
 
 ---
 
-## Option 2: Railway
-Railway is also excellent for monorepos.
+## 🚂 Option 2: Railway
 
 1.  **New Project** -> **Deploy from GitHub**.
-2.  Railway will detect the `Dockerfile`.
-3.  In **Settings**, ensure the **Root Directory** is set to `apps/api`.
-4.  Add your Environment Variables.
+2.  In **Settings**, set **Root Directory** to `apps/api`.
+3.  Add all environment variables from the table above.
 
 ---
 
-## Option 3: Local "Hybrid" Mode (Dev/Testing)
-If you prefer to stay on Vercel for the frontend, you **must** run the worker on your local machine to handle compiled languages (C++, Java, C):
+## 🔐 OAuth Redirect Configuration
+
+For authentication to work, you **must** update your developer dashboards with the exact callback URLs that include the `/api` prefix:
+
+### GitHub (Authorization callback URL)
+```bash
+https://sam-compiler-api.onrender.com/api/auth/github/callback
+```
+
+### Google (Authorized redirect URIs)
+```bash
+https://sam-compiler-api.onrender.com/api/auth/google/callback
+```
+
+---
+
+## 🛠️ Local "Hybrid" Mode (Dev)
+
+If you are hosting the Frontend on Vercel but haven't deployed the API yet, you can run a local worker to handle execution:
 
 ```bash
 cd apps/worker
 npm start
 ```
-
-Ensure your `REDIS_URL` is the same for both the cloud API and your local worker.
-
----
-
-## Verifying Cloud Execution
-Once deployed on a container platform (Render/Railway), try running this C++ code:
-```cpp
-#include <iostream>
-int main() {
-    std::cout << "Hello from the SAM Cloud!" << std::endl;
-    return 0;
-}
-```
----
-
-## 🔐 Authentication & Environment Variables
-
-For social logins and full functionality, ensure the following environment variables are set in your production environment.
-
-### Social Auth Setup (GitHub & Google)
-1. **GitHub**: Create an OAuth App in [GitHub Developer Settings](https://github.com/settings/developers).
-2. **Google**: Create OAuth Credentials in [Google Cloud Console](https://console.cloud.google.com).
-3. Set the redirect URIs to `https://<YOUR_API_DOMAIN>/auth/github/callback` (and Google).
-
-### Required Environment Variables
-```env
-# Core
-NODE_ENV=production
-PORT=8080
-MONGO_URI=mongodb+srv://...
-WEB_ORIGIN=https://<YOUR_FRONTEND_DOMAIN>
-JWT_SECRET=your_super_secret_jwt_key
-
-# Execution (Redis for Workers)
-REDIS_URL=rediss://...
-
-# Social Auth
-CALLBACK_URL_BASE=https://<YOUR_API_DOMAIN>/auth
-GITHUB_CLIENT_ID=...
-GITHUB_CLIENT_SECRET=...
-GOOGLE_CLIENT_ID=...
-GOOGLE_CLIENT_SECRET=...
-```
+*Note: Ensure your `REDIS_URL` is shared between your cloud API and local worker.*
 
 ---
 
 <div align="center">
-  <b>SAM Compiler Deployment Guide</b><br>
-  <i>Ensuring a seamless, professional cloud-hosting experience.</i>
+  <b>SAM Compiler Deployment</b><br>
+  <sub>v3.0.0-OBSIDIAN | Precision Engineering in the Cloud</sub>
 </div>
