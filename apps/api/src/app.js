@@ -110,10 +110,12 @@ function createApp() {
     uptime: process.uptime()
   }));
 
-  app.use(["/api/runs", "/runs"], runLimiter, runsRouter);
-  app.use(["/api/github", "/github"], githubRouter);
-  app.use(["/api/auth", "/auth"], authRouter);
-  app.use(["/api/ai", "/ai"], aiRouter);
+  // Standardized API mounting for production-grade proxying
+  app.use("/api/runs", runLimiter, runsRouter);
+  app.use("/api/github", githubRouter);
+  app.use("/api/auth", authRouter);
+  app.use("/api/ai", aiRouter);
+
 
   // Remaining generic routes
   app.use("/api", routes);

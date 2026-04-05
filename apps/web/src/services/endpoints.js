@@ -11,11 +11,11 @@ const isProduction = import.meta.env.PROD;
 const isVercel = window.location.hostname.includes("vercel.app");
 
 export const ENDPOINTS = {
-  // REST API Endpoint: Prioritizes environment variables, falls back to the production monolith
-  API_BASE_URL: (import.meta.env.VITE_API_URL || RENDER_BASE).replace(/\/+$/, ""),
+  // REST API Endpoint: Tunneled through Vercel/Vite proxies for CORS-free communication
+  API_BASE_URL: "/api",
 
-  // WebSocket Endpoint: Essential for real-time collaborative synchronization
-  WS_ENDPOINT: (import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || RENDER_BASE).replace(/\/+$/, ""),
+  // WebSocket Endpoint: Requires absolute domain for cross-origin Socket.io handshakes on Vercel
+  WS_ENDPOINT: RENDER_BASE,
 
   // SOCKET_OPTIONS: Optimized for Render's container handshake
   SOCKET_OPTIONS: {
