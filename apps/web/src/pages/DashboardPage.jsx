@@ -21,8 +21,8 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       const [statsRes, queueRes] = await Promise.all([
-        fetch(`${ENDPOINTS.API_BASE_URL}/api/runs/health/stats`),
-        fetch(`${ENDPOINTS.API_BASE_URL}/api/runs/health/queue`)
+        fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/stats`),
+        fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`)
       ]);
       if (statsRes.ok) setStats(await statsRes.json());
       if (queueRes.ok) setQueueStatus(await queueRes.json());

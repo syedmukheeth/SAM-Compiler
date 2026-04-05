@@ -302,7 +302,7 @@ export default function EditorPage() {
         return;
       }
       try {
-        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/api/runs/health/queue`);
+        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
         if (res.ok) {
           const data = await res.json();
           setIsApiOnline(true);

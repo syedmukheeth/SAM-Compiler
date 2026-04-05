@@ -2,7 +2,9 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import { login, register } from "../services/authApi";
 import { Mail, Loader2 } from "lucide-react";
-import { ENDPOINTS } from "../services/endpoints";
+
+// The Render backend URL — OAuth MUST start here directly, it cannot be proxied
+const RENDER_API = "https://sam-compiler.onrender.com";
 
 export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin, theme }) {
   const [isLoginTab, setIsLoginTab] = useState(true);
@@ -11,9 +13,10 @@ export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin, theme 
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
 
   const handleSocialLogin = (provider) => {
-    // HARDENED: Definitively targets the monolithic Render backend
-    const API_URL = (ENDPOINTS.API_BASE_URL || "/api") + "/auth";
-    window.location.href = `${API_URL}/${provider}`;
+    // CRITICAL FIX: OAuth redirects MUST go directly to the backend (Render).
+    // Using a relative URL (/api/auth/...) goes through the Vercel proxy which
+    // breaks the OAuth flow. The browser must navigate to Render directly.
+    window.location.href = `${RENDER_API}/api/auth/${provider}`;
   };
 
 
