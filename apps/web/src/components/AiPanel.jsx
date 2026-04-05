@@ -40,7 +40,7 @@ export default function AiPanel({
     setLoading(true);
 
     try {
-      const response = await fetch(`${ENDPOINTS.API_BASE_URL}/api/ai/chat`, {
+      const response = await fetch(`${ENDPOINTS.API_BASE_URL}/ai/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: currentCode, language, messages: [...messages, userMsg] })
@@ -94,7 +94,7 @@ export default function AiPanel({
     setMessages(prev => [...prev, { role: "user", content: query }]);
 
     try {
-      const res = await fetch(`${ENDPOINTS.API_BASE_URL}/api/ai/refactor`, {
+      const res = await fetch(`${ENDPOINTS.API_BASE_URL}/ai/refactor`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: currentCode, language, metrics, query })
@@ -112,15 +112,15 @@ export default function AiPanel({
 
   const MarkdownComponents = {
     h1: ({ children }) => <h1 className={`text-xl font-black mb-4 tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{children}</h1>,
-    h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 tracking-tight ${theme === 'dark' ? 'text-white/90' : 'text-slate-800'}`}>{children}</h2>,
-    p: ({ children }) => <p className={`mb-4 last:mb-0 leading-relaxed ${theme === 'dark' ? 'text-white/80' : 'text-slate-700'}`}>{children}</p>,
+    h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 tracking-tight ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>{children}</h2>,
+    p: ({ children }) => <p className={`mb-4 last:mb-0 leading-relaxed font-medium ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>{children}</p>,
     ul: ({ children }) => <ul className="mb-4 space-y-2 list-none">{children}</ul>,
     li: ({ children }) => (
       <li className="flex gap-3 items-start">
         <span className={`mt-2 h-1.5 w-1.5 flex-none rounded-full shadow-lg ${
            theme === 'dark' ? 'bg-white/40' : 'bg-slate-400'
         }`} />
-        <span className={theme === 'dark' ? 'text-white/80' : 'text-slate-700'}>{children}</span>
+        <span className={`font-medium ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>{children}</span>
       </li>
     ),
     code({ node, inline, className, children, ...props }) {
