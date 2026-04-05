@@ -65,6 +65,10 @@ async function executeRun(opts, onLog) {
     
     // 1. Try Docker first (Hardened Sandbox)
     try {
+      // Robustly escape commands for the shell script
+      const cmdParts = config.command(entry, files.find(f => f.path === entrypoint)?.content || "");
+      const escapedCmd = cmdParts.map(p => `'${p.replace(/'/g, "'\\''")}'`).join(" ");
+
       const dockerArgs = [
         "run", "--rm", "--network", "none",
         "--memory", env.RUN_MEMORY || "128m",
@@ -79,7 +83,7 @@ async function executeRun(opts, onLog) {
         "-w", "/workspace",
         "-u", "1000:1000",
         config.image,
-        "sh", "-c", `cp -r /workspace-host/. /workspace/ && ${config.command(entry, files.find(f => f.path === entrypoint)?.content || "").join(" ")}`
+        "sh", "-c", `cp -r /workspace-host/. /workspace/ && ${escapedCmd}`
       ];
 
       const start = Date.now();
@@ -113,11 +117,11 @@ async function executeRun(opts, onLog) {
       const localCmds = {
         javascript: ["node", entry],
         python: pythonCmd ? [pythonCmd, entry] : null,
-        cpp: [shell, shellFlag, `g++ ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
-        c: [shell, shellFlag, `gcc ${entry} -o main${exeExt} && .${path.sep}main${exeExt}`],
+        cpp: [shell, shellFlag, `g++ "${entry}" -o "main${exeExt}" && ".${path.sep}main${exeExt}"`],
+        c: [shell, shellFlag, `gcc "${entry}" -o "main${exeExt}" && ".${path.sep}main${exeExt}"`],
         java: (() => {
           const className = entry.replace(".java", "");
-          return [shell, shellFlag, `javac ${entry} && java ${className}`];
+          return [shell, shellFlag, `javac "${entry}" && java "${className}"`];
         })()
       };
 
@@ -132,10 +136,10 @@ async function executeRun(opts, onLog) {
 
       const [cmd, ...args] = cmdInfo;
       
-      // Verify the command or the first part of the shell script exists
+      // Verify command availability
       try {
         const { execSync } = require("node:child_process");
-        const checkCmd = isWin ? `where ${cmd}` : `command -v ${cmd}`;
+        const checkCmd = isWin ? `where "${cmd}"` : `command -v "${cmd}"`;
         try {
           execSync(checkCmd, { stdio: "ignore" });
         } catch (err) {
@@ -145,7 +149,7 @@ async function executeRun(opts, onLog) {
         // If it's a compiler command, also check the compiler itself inside the shell script
         if (language === "cpp" || language === "c" || language === "java") {
             const tool = language === "cpp" ? "g++" : language === "c" ? "gcc" : "javac";
-            const checkTool = isWin ? `where ${tool}` : `command -v ${tool}`;
+            const checkTool = isWin ? `where "${tool}"` : `command -v "${tool}"`;
             try {
               execSync(checkTool, { stdio: "ignore" });
             } catch (err) {
@@ -183,12 +187,15 @@ async function materializeFiles(root, files) {
 
 function sanitizeRelPath(p) {
   const normalized = String(p || "").replaceAll("\\", "/");
+  const extension = path.extname(normalized);
   const parts = normalized.split("/").filter(Boolean);
   const safeParts = parts.filter((seg) => seg !== "." && seg !== ".." && !seg.includes(":"));
   const joined = safeParts.join(path.sep);
-  if (!joined) return crypto.randomUUID() + ".txt";
+  
+  if (!joined) return crypto.randomUUID() + extension;
   return joined;
 }
+
 
 function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
   const { onLog, ...spawnOpts } = opts;

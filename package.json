@@ -5,8 +5,7 @@
   "description": "SAM Compiler - Syntax Analysis Machine IDE with cloud-native execution.",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "server"
+    "packages/*"
   ],
   "scripts": {
     "start": "npm start -w @sam/api",

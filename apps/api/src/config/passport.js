@@ -4,12 +4,22 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const { env } = require("./env");
 const User = require("../modules/auth/user.model");
 
+// Helper to ensure the callback URL is correct for the production monolith
+const getCallbackURL = (provider) => {
+  let base = env.CALLBACK_URL_BASE || `https://sam-compiler.onrender.com/api/auth`;
+  // Auto-correct legacy subdomains if they sneak in via env
+  if (base.includes("sam-compiler-api.onrender.com")) {
+    base = base.replace("sam-compiler-api.onrender.com", "sam-compiler.onrender.com");
+  }
+  return `${base.replace(/\/+$/, "")}/${provider}/callback`;
+};
+
 passport.use(
   new GitHubStrategy(
     {
       clientID: env.GITHUB_CLIENT_ID || "placeholder",
       clientSecret: env.GITHUB_CLIENT_SECRET || "placeholder",
-      callbackURL: `${env.CALLBACK_URL_BASE}/github/callback`,
+      callbackURL: getCallbackURL("github"),
       proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
@@ -44,7 +54,7 @@ passport.use(
     {
       clientID: env.GOOGLE_CLIENT_ID || "placeholder",
       clientSecret: env.GOOGLE_CLIENT_SECRET || "placeholder",
-      callbackURL: `${env.CALLBACK_URL_BASE}/google/callback`,
+      callbackURL: getCallbackURL("google"),
       proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
@@ -66,6 +76,7 @@ passport.use(
     }
   )
 );
+
 
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser(async (id, done) => {
