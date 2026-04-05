@@ -26,16 +26,14 @@ router.get("/google", (req, res, next) => {
 
 // Social Auth Callbacks
 router.get("/github/callback", (req, res, next) => {
-  const frontendUrl = process.env.NODE_ENV === "production" 
-      ? "https://sam-compiler-web.vercel.app" 
-      : env.WEB_ORIGIN;
+  const frontendUrl = env.WEB_ORIGIN || "https://sam-compiler-web.vercel.app";
       
   passport.authenticate("github", { 
-    failureRedirect: `${frontendUrl}/login`, 
+    failureRedirect: `${frontendUrl}/?error=auth_failed`, 
     session: false 
   }, (err, user) => {
     if (err || !user) {
-      return res.redirect(`${frontendUrl}/login?error=auth_failed`);
+      return res.redirect(`${frontendUrl}/?error=auth_failed`);
     }
 
     const token = generateToken(user);
@@ -45,22 +43,21 @@ router.get("/github/callback", (req, res, next) => {
 
 
 router.get("/google/callback", (req, res, next) => {
-  const frontendUrl = process.env.NODE_ENV === "production" 
-      ? "https://sam-compiler-web.vercel.app" 
-      : env.WEB_ORIGIN;
+  const frontendUrl = env.WEB_ORIGIN || "https://sam-compiler-web.vercel.app";
 
   passport.authenticate("google", { 
-    failureRedirect: `${frontendUrl}/login`, 
+    failureRedirect: `${frontendUrl}/?error=auth_failed`, 
     session: false 
   }, (err, user) => {
     if (err || !user) {
-      return res.redirect(`${frontendUrl}/login?error=auth_failed`);
+      return res.redirect(`${frontendUrl}/?error=auth_failed`);
     }
 
     const token = generateToken(user);
     res.redirect(`${frontendUrl}/?token=${token}`);
   })(req, res, next);
 });
+
 
 
 router.get("/me", authMiddleware, async (req, res) => {

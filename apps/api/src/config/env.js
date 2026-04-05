@@ -31,10 +31,11 @@ if (!result.success) {
       PORT: process.env.PORT || 8080,
       MONGO_URI: process.env.MONGO_URI,
       REDIS_URL: process.env.REDIS_URL,
-      WEB_ORIGIN: process.env.WEB_ORIGIN || "http://localhost:5173",
+      WEB_ORIGIN: process.env.WEB_ORIGIN || "https://sam-compiler-web.vercel.app",
       JWT_SECRET: process.env.JWT_SECRET || "sam-compiler-super-secret-key-2026",
       JWT_EXPIRES_IN: "7d",
-      CALLBACK_URL_BASE: process.env.CALLBACK_URL_BASE || "http://localhost:8080/auth",
+      CALLBACK_URL_BASE: process.env.CALLBACK_URL_BASE || "https://sam-compiler.onrender.com/api/auth",
+
       GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
       GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
