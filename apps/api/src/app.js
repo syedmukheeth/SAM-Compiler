@@ -10,7 +10,9 @@ const { runsRouter } = require("./modules/runs/runs.routes");
 const { githubRouter } = require("./modules/github/github.routes");
 const { authRouter } = require("./modules/auth/auth.routes");
 const { aiRouter } = require("./modules/ai/ai.routes");
+const { ProjectStateModel } = require("./modules/runs/project.model");
 const path = require("path");
+
 
 function createApp() {
   const app = express();
@@ -56,7 +58,7 @@ function createApp() {
 
   app.use(
     cors({
-      origin: true, // Reflect origin for reliability on Vercel
+      origin: true,
       methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
       allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"]
@@ -64,6 +66,7 @@ function createApp() {
   );
   app.use(express.json({ limit: "2mb" }));
   app.use(passport.initialize());
+
 
   // Health check - moved from root to avoid conflict with frontend
   app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString(), env: process.env.NODE_ENV }));
@@ -102,7 +105,10 @@ function createApp() {
   routes.use("/auth", authRouter);
   routes.use("/ai", aiRouter);
 
+  // Nuclear Routing fallback: Mount routes on both /api and root
   app.use("/api", routes);
+  app.use("/", routes);
+
 
 
   // Serve Static Frontend Assets (Monolith Mode)
