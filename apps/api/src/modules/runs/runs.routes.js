@@ -1,10 +1,10 @@
 const { Router } = require("express");
 const { z } = require("zod");
 const { createRun, getRun, getQueueStatus, getUserHistory } = require("./runs.service");
-const { getExecutionStats, getThroughputChart } = require("../analytics/analytics.service");
 const { authMiddleware, optionalAuth } = require("../../middleware/auth.middleware");
 
 const runsRouter = Router();
+
 
 const CreateRunSchema = z.object({
   language: z.enum(["nodejs", "javascript", "python", "cpp", "c", "java"]),
@@ -71,19 +71,9 @@ runsRouter.get("/health/queue", async (req, res, next) => {
   }
 });
 
-runsRouter.get("/health/stats", async (req, res, next) => {
-  try {
-    const [executionStats, throughput] = await Promise.all([
-      getExecutionStats(),
-      getThroughputChart()
-    ]);
-    res.json({ executionStats, throughput });
-  } catch (err) {
-    next(err);
-  }
-});
 
 // eslint-disable-next-line no-unused-vars
+
 runsRouter.use((err, _req, res, next) => {
   if (err instanceof z.ZodError) {
     return res.status(400).json({ message: "Invalid request", issues: err.issues });
