@@ -137,16 +137,24 @@ export default function EditorPage() {
   }, [searchParams, activeLangId]);
 
   useEffect(() => {
-    const current = searchParams.get("session");
-    const token = searchParams.get("token");
-    if (!current || current === "default") {
+    // PRIME MODE: High-Fidelity Authentication Diagnostic
+    const sessionParam = searchParams.get("session");
+    const tokenParam = searchParams.get("token");
+    
+    if (tokenParam) {
+      console.log("[SAM-AUTH] Token found in URL, initiating verification...");
+    }
+
+    if (!sessionParam || sessionParam === "default") {
       const fresh = Math.random().toString(36).substring(2, 9);
-      // Preserve existing token if present
       const newParams = { session: fresh };
-      if (token) newParams.token = token;
+      if (tokenParam) newParams.token = tokenParam;
+      
+      console.log(`[SAM-SESSION] Initializing fresh session: ${fresh}`);
       setSearchParams(newParams, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
 
 
 
