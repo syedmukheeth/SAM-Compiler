@@ -882,10 +882,10 @@ builtins.input = input_shim
 
       <div 
         ref={containerRef}
-        className={`flex flex-1 overflow-hidden transition-all duration-500 ease-in-out ${showAiPanel ? '' : ''}`}
+        className={`flex flex-1 overflow-hidden transition-all duration-200 ease-out`}
         style={showAiPanel && window.innerWidth >= 768 ? { paddingRight: aiPanelWidth } : {}}
       >
-        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-6 pb-20 md:pb-24 gap-0 transition-all duration-500">
+        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-6 pb-20 md:pb-24 gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
           <section 
             className={`flex flex-col overflow-hidden ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex`}

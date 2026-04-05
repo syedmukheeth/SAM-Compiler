@@ -211,7 +211,7 @@ export default function AiPanel({
             initial={{ x: "100%", opacity: 0.5 }}
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0.5 }}
-            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            transition={{ type: "tween", duration: 0.2, ease: "easeOut" }}
             className={`fixed right-0 top-0 bottom-12 z-[65] border-l shadow-[-20px_0_50px_rgba(0,0,0,0.1)] backdrop-blur-3xl overflow-hidden ${
               theme === 'dark' ? 'bg-black border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'
             }`}
