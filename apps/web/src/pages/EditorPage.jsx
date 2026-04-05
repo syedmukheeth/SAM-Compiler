@@ -178,6 +178,14 @@ export default function EditorPage() {
   const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
+  // Responsive Hook
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   // Pre-connect socket for performance
   useEffect(() => {
     const socket = getSocket();
@@ -735,7 +743,7 @@ builtins.input = input_shim
             {user && (
               <button 
                 onClick={() => setShowHistoryModal(true)}
-                className="flex h-10 items-center justify-center gap-2 rounded-xl border px-3 transition-all duration-300 hover:scale-105 active:scale-95 group"
+                className="hidden md:flex h-10 items-center justify-center gap-2 rounded-xl border px-3 transition-all duration-300 hover:scale-105 active:scale-95 group"
                 style={{ 
                   background: 'var(--sam-surface-low)',
                   borderColor: 'var(--sam-glass-border)',
@@ -750,7 +758,7 @@ builtins.input = input_shim
             
             <button 
               onClick={() => setShowShortcutsHelp(true)}
-              className="group flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300"
+              className="group hidden md:flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300"
               style={{ 
                 background: 'var(--sam-surface-low)',
                 borderColor: 'var(--sam-glass-border)',
@@ -827,7 +835,7 @@ builtins.input = input_shim
           {/* EDITOR SECTION */}
           <section 
             className={`flex flex-col overflow-hidden ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex`}
-            style={{ width: `${leftPanelWidth}%`, flex: `0 0 ${leftPanelWidth}%` }}
+            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${leftPanelWidth}%`, flex: `0 0 ${leftPanelWidth}%` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
@@ -917,7 +925,7 @@ builtins.input = input_shim
           {/* TERMINAL SECTION */}
           <section 
             className={`flex flex-col overflow-hidden ${activeMobileTab === 'terminal' ? 'flex-1' : 'hidden'} md:flex`}
-            style={{ width: `${100 - leftPanelWidth}%`, flex: `0 0 ${100 - leftPanelWidth}%` }}
+            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${100 - leftPanelWidth}%`, flex: `0 0 ${100 - leftPanelWidth}%` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)', border: '1px solid var(--sam-glass-border)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
