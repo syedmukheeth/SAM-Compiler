@@ -7,8 +7,8 @@ const router = express.Router();
 
 // Social Auth Redirects
 router.get("/github", (req, res, next) => {
-  console.log("[AUTH-INIT] GitHub Login Process Started");
   if (!env.GITHUB_CLIENT_ID || env.GITHUB_CLIENT_ID === "placeholder") {
+
     return res.status(400).json({ 
       message: "GitHub Integration is not configured. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to your environment variables." 
     });
@@ -26,7 +26,6 @@ router.get("/google", (req, res, next) => {
 
 // Social Auth Callbacks
 router.get("/github/callback", (req, res, next) => {
-  console.log("[AUTH-CALLBACK] GitHub Callback Received");
   const frontendUrl = process.env.NODE_ENV === "production" 
       ? "https://sam-compiler-web.vercel.app" 
       : env.WEB_ORIGIN;
@@ -36,9 +35,9 @@ router.get("/github/callback", (req, res, next) => {
     session: false 
   }, (err, user) => {
     if (err || !user) {
-      console.error("[AUTH-CALLBACK-FAILURE] GitHub Auth Failed:", err);
       return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
+
     const token = generateToken(user);
     res.redirect(`${frontendUrl}/?token=${token}`);
   })(req, res, next);
@@ -46,7 +45,6 @@ router.get("/github/callback", (req, res, next) => {
 
 
 router.get("/google/callback", (req, res, next) => {
-  console.log("[AUTH-CALLBACK] Google Callback Received");
   const frontendUrl = process.env.NODE_ENV === "production" 
       ? "https://sam-compiler-web.vercel.app" 
       : env.WEB_ORIGIN;
@@ -56,9 +54,9 @@ router.get("/google/callback", (req, res, next) => {
     session: false 
   }, (err, user) => {
     if (err || !user) {
-      console.error("[AUTH-CALLBACK-FAILURE] Google Auth Failed:", err);
       return res.redirect(`${frontendUrl}/login?error=auth_failed`);
     }
+
     const token = generateToken(user);
     res.redirect(`${frontendUrl}/?token=${token}`);
   })(req, res, next);

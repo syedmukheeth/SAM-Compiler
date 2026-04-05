@@ -20,14 +20,14 @@ function createApp() {
   // Enable trust proxy for correct IP detection behind Vercel/Render
   app.set("trust proxy", 1);
 
-  // [SENIOR DIAGNOSTIC LAYER]
   app.use((req, res, next) => {
-    res.setHeader("X-Sam-Api", "v3.0-monochrome-stable");
+    res.setHeader("X-Sam-Api", "v3.0-stable");
     if (req.url.includes("/auth")) {
-      logger.info({ url: req.url, method: req.method }, "[AUTH-HANDSHAKE-DETECTED]");
+      logger.info({ url: req.url, method: req.method });
     }
     next();
   });
+
 
 
   // Rate Limiting - Global & Run Specific
@@ -72,14 +72,12 @@ function createApp() {
   app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString(), env: process.env.NODE_ENV }));
 
   
-  // Senior Diagnostic Routes
-  app.get("/api/ping", (req, res) => res.json({ status: "alive", stamp: Date.now() }));
+  app.get("/api/ping", (req, res) => res.json({ status: "alive" }));
   app.get("/api/health-check", (req, res) => res.json({ 
     status: "healthy", 
-    service: "SAM Compiler API",
-    version: "3.0.0",
     uptime: process.uptime()
   }));
+
 
   // Prevent favicon 404 noise in logs
   app.get(["/favicon.ico", "/favicon.png"], (req, res) => res.status(204).end());
@@ -105,9 +103,9 @@ function createApp() {
   routes.use("/auth", authRouter);
   routes.use("/ai", aiRouter);
 
-  // Nuclear Routing fallback: Mount routes on both /api and root
   app.use("/api", routes);
   app.use("/", routes);
+
 
 
 
