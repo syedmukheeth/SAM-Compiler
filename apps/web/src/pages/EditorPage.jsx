@@ -884,7 +884,7 @@ builtins.input = input_shim
               
               <div className="flex-1 overflow-hidden relative">
                 <CodeEditor
-                  key={sessionId}
+                  key={`${sessionId}-${activeLangId}`}
                   language={activeLangId}
                   value={buffers[activeLangId]}
                   onChange={onCodeChange}
@@ -1000,22 +1000,23 @@ builtins.input = input_shim
           ? 'bg-black/90' 
           : 'bg-white/95 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.05)]'
       }`}>
-        {/* Top Accent Bar — Full-Width Fading Glow Horizon */}
-        <div className="absolute top-0 left-0 right-0 h-[2px] z-10 overflow-visible">
+        {/* Top Accent Bar — Full-Width Fading Glow Horizon (Intense) */}
+        <div className="absolute top-0 left-0 right-0 h-[3px] z-10 overflow-visible">
           <div 
             className={`w-full h-full ${
               theme === 'dark' 
-                ? 'sam-pulse-glow-red bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_20px_rgba(255,59,59,0.5)]' 
-                : 'sam-pulse-glow-blue bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent shadow-[0_0_15px_rgba(59,130,246,0.3)]'
+                ? 'sam-pulse-glow-red bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_40px_rgba(255,59,59,0.9)]' 
+                : 'sam-pulse-glow-blue bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent shadow-[0_0_30px_rgba(59,130,246,0.7)]'
             }`}
           />
-          {/* Intense Core — Fading Blade */}
+          {/* Intense Core — High-Energy Fading Blade */}
           <div 
-            className={`absolute top-0 left-0 right-0 h-[1px] ${
+            className={`absolute top-0 left-0 right-0 h-[1.5px] ${
               theme === 'dark' 
-                ? 'bg-gradient-to-r from-transparent via-white/90 to-transparent' 
-                : 'bg-gradient-to-r from-transparent via-blue-400/90 to-transparent'
+                ? 'bg-gradient-to-r from-transparent via-white to-transparent' 
+                : 'bg-gradient-to-r from-transparent via-blue-500 to-transparent'
             }`}
+            style={{ opacity: 1 }}
           />
         </div>
 

@@ -109,7 +109,8 @@ export default function CodeEditor({
       autoConnect: true
     });
 
-    const ytext = ydoc.getText("monaco");
+    // ISOLATION LAYER: Unique text node per language prevents cross-language corruption
+    const ytext = ydoc.getText(language);
 
     // Assign to refs IMMEDIATELY for event visibility
     ydocRef.current = ydoc;
@@ -137,19 +138,18 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // BROWSER SANITATION GUARD (The Final Hammer)
+    // FIRST-SYNC GUARD (The Senior Dev Implementation)
     provider.on('sync', (isSynced) => {
       if (isSynced !== false && !hasInitializedRef.current) {
         const currentYtext = ytextRef.current;
         if (!currentYtext) return;
 
-        // Standard Yjs Initialization Pattern:
-        // Only the first user to arrive in a session should initialize the boilerplate.
-        // We detect this by checking if we are the only peer and the doc is empty.
         const peerCount = provider.awareness.getStates().size;
-        const currentContent = currentYtext.toString();
+        const currentContent = currentYtext.toString().trim();
 
-        if (peerCount <= 1 && (!currentContent || currentContent.trim().length === 0)) {
+        // ONLY the first user in a session initializes the boilerplate.
+        // This stops 'Repeating Code' in its tracks.
+        if (peerCount <= 1 && currentContent.length === 0) {
           if (value) {
             currentYtext.insert(0, value);
           }
@@ -159,7 +159,7 @@ export default function CodeEditor({
       }
     });
     
-  }, [localName, localColor, onCursorChange, sessionId]); // DECOUPLED VALUE FROM HERE
+  }, [localName, localColor, onCursorChange, sessionId, language]); 
 
   // THEME PERSISTENCE
   const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);
