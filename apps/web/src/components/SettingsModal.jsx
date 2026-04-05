@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import { Cpu, Settings, User } from "lucide-react";
 
-export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, onSettingsChange }) {
+export default function SettingsModal({ isOpen, onClose, settings, onSettingsChange }) {
   const [activeTab, setActiveTab] = useState("editor");
 
   const tabs = [
@@ -19,11 +19,11 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, o
         {/* Tab bar */}
         <div style={{
           display: "flex",
-          gap: 4,
-          padding: 4,
-          borderRadius: 10,
-          background: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.1)",
+          gap: 6,
+          padding: 6,
+          borderRadius: 14,
+          background: "var(--sam-surface-low)",
+          border: "1px solid var(--sam-glass-border)",
         }}>
           {tabs.map(({ id, label, Icon }) => {
             const active = activeTab === id;
@@ -37,24 +37,24 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, o
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 6,
-                  padding: "8px 0",
-                  borderRadius: 7,
+                  gap: 8,
+                  padding: "10px 0",
+                  borderRadius: 10,
                   border: "none",
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: "0.08em",
+                  fontSize: 9,
+                  fontWeight: 900,
+                  letterSpacing: "0.15em",
                   textTransform: "uppercase",
                   cursor: "pointer",
-                  transition: "all 0.25s",
-                  background: active ? "rgba(255,255,255,0.1)" : "transparent",
-                  color: active ? "#FFFFFF" : "rgba(221,226,241,0.3)",
-                  boxShadow: active ? "0 0 12px rgba(255,255,255,0.05)" : "none",
+                  transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                  background: active ? "var(--sam-accent)" : "transparent",
+                  color: active ? "var(--sam-bg)" : "var(--sam-text-dim)",
+                  boxShadow: active ? "var(--sam-glow-bloom)" : "none",
                   fontFamily: "var(--font-body)",
                 }}
               >
-                <Icon size={12} />
-                {label}
+                <Icon size={13} strokeWidth={active ? 3 : 2.5} />
+                <span className="hidden sm:inline">{label}</span>
               </button>
             );
           })}
@@ -62,67 +62,68 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, o
 
         {/* Editor Tab */}
         {activeTab === "editor" && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 28, padding: "8px 0" }}>
             {/* Font Size */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#dde2f1", fontFamily: "var(--font-body)", marginBottom: 4 }}>Font Size</p>
-                <p style={{ fontSize: 10, color: "rgba(221,226,241,0.3)", fontFamily: "var(--font-body)" }}>Editor text size in pixels</p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "var(--sam-text)", fontFamily: "var(--font-body)", marginBottom: 4, letterSpacing: "-0.01em" }}>Font Size</p>
+                <p style={{ fontSize: 10, fontWeight: 500, color: "var(--sam-text-dim)", fontFamily: "var(--font-body)", opacity: 0.8 }}>Editor text size in pixels</p>
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                {["-", "+"].map((op) => (
-                  <button
-                    key={op}
-                    id={`font-size-${op === "-" ? "dec" : "inc"}`}
-                    onClick={() => handleChange("fontSize", op === "-"
-                      ? Math.max(10, (settings.fontSize || 14) - 1)
-                      : Math.min(32, (settings.fontSize || 14) + 1)
-                    )}
-                    style={{
-                      width: 32, height: 32,
-                      borderRadius: 8,
-                      border: "1px solid rgba(255,255,255,0.15)",
-                      background: "rgba(255,255,255,0.05)",
-                      color: "#FFFFFF",
-                      cursor: "pointer",
-                      fontSize: 16,
-                      fontWeight: 700,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                      transition: "all 0.2s",
-                    }}
-                  >{op}</button>
-                ))}
-                <span style={{ fontSize: 16, fontWeight: 800, color: "#FFFFFF", minWidth: 28, textAlign: "center", fontFamily: "var(--font-mono)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+                <div style={{ display: "flex", itemsCenter: "center", gap: 4, padding: 4, background: "var(--sam-surface-low)", borderRadius: 10, border: "1px solid var(--sam-glass-border)" }}>
+                  {["-", "+"].map((op) => (
+                    <button
+                      key={op}
+                      onClick={() => handleChange("fontSize", op === "-"
+                        ? Math.max(10, (settings.fontSize || 14) - 1)
+                        : Math.min(32, (settings.fontSize || 14) + 1)
+                      )}
+                      style={{
+                        width: 32, height: 32,
+                        borderRadius: 8,
+                        border: "none",
+                        background: "transparent",
+                        color: "var(--sam-text)",
+                        cursor: "pointer",
+                        fontSize: 18,
+                        fontWeight: 900,
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        transition: "all 0.2s",
+                      }}
+                      onMouseEnter={(e) => e.target.style.background = "var(--sam-glass-border)"}
+                      onMouseLeave={(e) => e.target.style.background = "transparent"}
+                    >{op}</button>
+                  ))}
+                </div>
+                <span style={{ fontSize: 18, fontWeight: 900, color: "var(--sam-accent)", minWidth: 32, textAlign: "center", fontFamily: "var(--font-mono)" }}>
                   {settings.fontSize || 14}
                 </span>
               </div>
             </div>
 
-            <div className="sam-divider" />
+            <div style={{ height: 1, background: "var(--sam-glass-border)", opacity: 0.5 }} />
 
             {/* Tab Size */}
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
               <div>
-                <p style={{ fontSize: 12, fontWeight: 700, color: "#dde2f1", fontFamily: "var(--font-body)", marginBottom: 4 }}>Tab Size</p>
-                <p style={{ fontSize: 10, color: "rgba(221,226,241,0.3)", fontFamily: "var(--font-body)" }}>Spaces per indentation level</p>
+                <p style={{ fontSize: 13, fontWeight: 800, color: "var(--sam-text)", fontFamily: "var(--font-body)", marginBottom: 4 }}>Tab Size</p>
+                <p style={{ fontSize: 10, fontWeight: 500, color: "var(--sam-text-dim)", fontFamily: "var(--font-body)", opacity: 0.8 }}>Spaces per indentation level</p>
               </div>
-              <div style={{ display: "flex", gap: 6, padding: 4, borderRadius: 8, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <div style={{ display: "flex", gap: 4, padding: 4, borderRadius: 10, background: "var(--sam-surface-low)", border: "1px solid var(--sam-glass-border)" }}>
                 {[2, 4, 8].map(size => (
                   <button
                     key={size}
-                    id={`tab-size-${size}`}
                     onClick={() => handleChange("tabSize", size)}
                     style={{
-                      width: 36, height: 32,
-                      borderRadius: 6,
+                      width: 40, height: 32,
+                      borderRadius: 7,
                       border: "none",
-                      fontSize: 12,
-                      fontWeight: 700,
+                      fontSize: 11,
+                      fontWeight: 900,
                       cursor: "pointer",
                       transition: "all 0.2s",
-                      background: settings.tabSize === size ? "rgba(255,255,255,0.15)" : "transparent",
-                      color: settings.tabSize === size ? "#FFFFFF" : "rgba(221,226,241,0.3)",
-                      boxShadow: settings.tabSize === size ? "0 0 10px rgba(255,255,255,0.1)" : "none",
+                      background: settings.tabSize === size ? "var(--sam-accent)" : "transparent",
+                      color: settings.tabSize === size ? "var(--sam-bg)" : "var(--sam-text-dim)",
                       fontFamily: "var(--font-mono)",
                     }}
                   >{size}</button>
@@ -134,47 +135,56 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, o
 
         {/* Account Tab */}
         {activeTab === "account" && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "20px 0" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: "24px 0" }}>
             <div style={{
-              width: 80, height: 80,
-              borderRadius: 20,
-              background: "linear-gradient(135deg, #FFFFFF, #737373)",
+              width: 88, height: 88,
+              borderRadius: 24,
+              background: "var(--sam-accent)",
               display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "0 0 30px rgba(255,255,255,0.1)",
-              fontSize: 32, fontWeight: 900, color: "#000000",
+              boxShadow: "var(--sam-glow-bloom)",
+              fontSize: 36, fontWeight: 900, color: "var(--sam-bg)",
               fontFamily: "var(--font-display)",
-            }}>S</div>
+              position: "relative",
+              overflow: "hidden"
+            }}>
+              S
+              <div style={{ position: "absolute", bottom: -20, right: -20, width: 60, height: 60, borderRadius: "50%", background: "var(--sam-bg)", opacity: 0.1 }} />
+            </div>
             <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: 14, fontWeight: 800, color: "#dde2f1", fontFamily: "var(--font-display)", marginBottom: 8 }}>
-                SAM Compiler Member
+              <p style={{ fontSize: 15, fontWeight: 900, color: "var(--sam-text)", fontFamily: "var(--font-display)", marginBottom: 8, letterSpacing: "-0.02em" }}>
+                SAM Member Account
               </p>
               <span style={{
                 display: "inline-block",
-                padding: "4px 14px",
-                borderRadius: 20,
-                background: "rgba(255,255,255,0.08)",
-                border: "1px solid rgba(255,255,255,0.2)",
-                fontSize: 10, fontWeight: 700,
-                color: "#FFFFFF",
+                padding: "6px 16px",
+                borderRadius: 30,
+                background: "var(--sam-surface-low)",
+                border: "1px solid var(--sam-glass-border)",
+                fontSize: 9, fontWeight: 950,
+                color: "var(--sam-text-dim)",
                 textTransform: "uppercase",
-                letterSpacing: "0.1em",
+                letterSpacing: "0.2em",
                 fontFamily: "var(--font-body)",
-              }}>Free Tier</span>
+              }}>Free tier active</span>
             </div>
-            <button style={{
-              padding: "12px 32px",
-              borderRadius: 10,
+            <button className="sam-button-primary" style={{
+              padding: "14px 36px",
+              borderRadius: 12,
               border: "none",
-              background: "linear-gradient(135deg, #FFFFFF, #737373)",
-              color: "#000000",
-              fontSize: 11, fontWeight: 800,
+              background: "var(--sam-accent)",
+              color: "var(--sam-bg)",
+              fontSize: 10, fontWeight: 950,
               textTransform: "uppercase",
-              letterSpacing: "0.15em",
+              letterSpacing: "0.2em",
               cursor: "pointer",
-              boxShadow: "0 0 18px rgba(255,255,255,0.2)",
+              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
               fontFamily: "var(--font-body)",
-            }}>
-              Upgrade to SAM Pro
+              boxShadow: "0 10px 30px -5px rgba(0,0,0,0.15)"
+            }}
+            onMouseEnter={(e) => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 15px 40px -5px rgba(0,0,0,0.2)"; }}
+            onMouseLeave={(e) => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 10px 30px -5px rgba(0,0,0,0.15)"; }}
+            >
+              Get SAM Pro Access
             </button>
           </div>
         )}
@@ -183,26 +193,30 @@ export default function SettingsModal({ isOpen, onClose, isDarkMode, settings, o
         {activeTab === "engine" && (
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             <div style={{
-              padding: 20,
-              borderRadius: 12,
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.12)",
+              padding: 24,
+              borderRadius: 20,
+              background: "var(--sam-surface-low)",
+              border: "1px solid var(--sam-glass-border)",
             }}>
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-                <div style={{ width: 8, height: 8, borderRadius: "50%", background: "#FFFFFF", boxShadow: "0 0 10px #FFFFFF", animation: "sam-pulse 2s infinite" }} />
-                <span style={{ fontSize: 11, fontWeight: 800, color: "#FFFFFF", textTransform: "uppercase", letterSpacing: "0.2em", fontFamily: "var(--font-body)" }}>
-                  SAM Engine v1.0
+              <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+                <div style={{ 
+                  width: 10, height: 10, borderRadius: "50%", 
+                  background: "var(--sam-accent)", 
+                  animation: "sam-pulse 2s infinite" 
+                }} />
+                <span style={{ fontSize: 11, fontWeight: 900, color: "var(--sam-text)", textTransform: "uppercase", letterSpacing: "0.25em", fontFamily: "var(--font-body)" }}>
+                  SAM Node v1.2 Engine
                 </span>
               </div>
               {[
-                ["Connected to", "SAM-Cluster-Global"],
-                ["Execution Limit", "60s • Unlimited RAM"],
-                ["Sandbox", "Docker + Pyodide"],
-                ["Status", "OPTIMIZED ✦"],
+                ["Cloud Grid", "SAM-Global-Vercel"],
+                ["Resource Max", "2 Core • 2GB RAM"],
+                ["Sandbox Iso", "Docker Runtime"],
+                ["Engine Status", "OPTIMIZED"],
               ].map(([label, value]) => (
-                <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 10 }}>
-                  <span style={{ fontSize: 10, color: "rgba(221,226,241,0.35)", fontFamily: "var(--font-body)", textTransform: "uppercase", letterSpacing: "0.08em" }}>{label}</span>
-                  <span style={{ fontSize: 10, color: "#dde2f1", fontFamily: "var(--font-mono)", fontWeight: 700 }}>{value}</span>
+                <div key={label} style={{ display: "flex", justifyContent: "space-between", marginBottom: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: "var(--sam-text-dim)", fontFamily: "var(--font-body)", textTransform: "uppercase", letterSpacing: "0.15em", opacity: 0.6 }}>{label}</span>
+                  <span style={{ fontSize: 10, color: "var(--sam-text)", fontFamily: "var(--font-mono)", fontWeight: 800, background: "var(--sam-glass-border)", padding: "4px 8px", borderRadius: 6 }}>{value}</span>
                 </div>
               ))}
             </div>

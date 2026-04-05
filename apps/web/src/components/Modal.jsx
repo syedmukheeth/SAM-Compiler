@@ -4,20 +4,20 @@ import React, { useEffect } from "react";
 function SamLogoSmall() {
   return (
     <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="36" height="36" rx="9" fill="url(#samModalGrad)" />
+      <defs>
+        <linearGradient id="samModalGrad" x1="0" y1="0" x2="36" y2="36">
+          <stop offset="0%" stopColor="var(--sam-text)" stopOpacity="1" />
+          <stop offset="100%" stopColor="var(--sam-text)" stopOpacity="0.4" />
+        </linearGradient>
+      </defs>
+      <rect width="36" height="36" rx="9" fill="var(--sam-accent)" />
       <path
         d="M22 11.5C20.8 10.5 19.2 10 17.5 10C14.5 10 12 11.8 12 14.2C12 16.4 13.8 17.5 16.5 18.2L17.5 18.5C20.2 19.2 22 20.3 22 22.5C22 25 19.5 26.5 16.8 26.5C14.8 26.5 12.8 25.8 11.5 24.5"
-        stroke="black"
-        strokeWidth="2.2"
+        stroke="var(--sam-bg)"
+        strokeWidth="2.5"
         strokeLinecap="round"
         fill="none"
       />
-      <defs>
-        <linearGradient id="samModalGrad" x1="0" y1="0" x2="36" y2="36">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="100%" stopColor="#A3A3A3" />
-        </linearGradient>
-      </defs>
     </svg>
   );
 }
@@ -49,88 +49,88 @@ export default function Modal({ isOpen, onClose, title, children }) {
         style={{
           position: "absolute",
           inset: 0,
-          background: "rgba(0,0,0,0.8)",
-          backdropFilter: "blur(12px)",
-          WebkitBackdropFilter: "blur(12px)",
+          background: "rgba(0,0,0,0.4)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
           animation: "fadeIn 0.2s ease",
         }}
       />
 
       {/* Modal Card */}
       <div
+        className="sam-glass"
         style={{
           position: "relative",
           width: "100%",
           maxWidth: 480,
           maxHeight: "90vh",
-          borderRadius: 20,
-          border: "1px solid rgba(255,255,255,0.1)",
-          background: "rgba(14,19,30,0.95)",
-          backdropFilter: "blur(30px)",
-          WebkitBackdropFilter: "blur(30px)",
-          boxShadow: "0 0 40px rgba(255,255,255,0.03), 0 30px 80px rgba(0,0,0,0.9)",
-          animation: "slideUp 0.25s cubic-bezier(0.16,1,0.3,1)",
+          borderRadius: 24,
+          border: "1px solid var(--sam-glass-border)",
+          background: "var(--sam-glass-bg)",
+          backdropFilter: "blur(40px)",
+          WebkitBackdropFilter: "blur(40px)",
+          boxShadow: "var(--sam-card-shadow)",
+          animation: "slideUp 0.3s cubic-bezier(0.16,1,0.3,1)",
           overflow: "hidden",
           display: "flex",
           flexDirection: "column",
         }}
       >
-        {/* Top white glow edge */}
-        <div style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          right: 0,
-          height: 1,
-          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent)",
-        }} />
-
         {/* Header */}
         <div style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "18px 24px",
-          borderBottom: "1px solid rgba(255,255,255,0.05)",
+          padding: "20px 24px",
+          background: "var(--sam-surface-low)",
+          borderBottom: "1px solid var(--sam-glass-border)",
         }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <SamLogoSmall />
             <span style={{
-              fontSize: 11,
-              fontWeight: 800,
+              fontSize: 10,
+              fontWeight: 900,
               textTransform: "uppercase",
-              letterSpacing: "0.2em",
-              color: "rgba(255,255,255,0.6)",
+              letterSpacing: "0.25em",
+              color: "var(--sam-text)",
               fontFamily: "var(--font-body)",
+              opacity: 0.9
             }}>{title}</span>
           </div>
           <button
             id="modal-close-btn"
             onClick={onClose}
             style={{
-              width: 30,
-              height: 30,
-              borderRadius: 8,
-              border: "none",
-              background: "rgba(255,255,255,0.05)",
-              color: "rgba(255,255,255,0.3)",
+              width: 32,
+              height: 32,
+              borderRadius: 10,
+              border: "1px solid var(--sam-glass-border)",
+              background: "transparent",
+              color: "var(--sam-text-dim)",
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               transition: "all 0.2s",
             }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.1)"; e.currentTarget.style.color = "#FFFFFF"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "rgba(255,255,255,0.05)"; e.currentTarget.style.color = "rgba(255,255,255,0.3)"; }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = "var(--sam-glass-border)"; e.currentTarget.style.color = "var(--sam-text)"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.color = "var(--sam-text-dim)"; }}
           >
             <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Content */}
-        <div style={{ padding: "24px", overflowY: "auto", flex: 1 }}>
+        <div style={{ 
+          padding: "24px", 
+          overflowY: "auto", 
+          flex: 1,
+          color: "var(--sam-text)",
+          fontSize: "14px",
+          lineHeight: "1.6"
+        }}>
           {children}
         </div>
       </div>

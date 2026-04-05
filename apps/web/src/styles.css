@@ -73,10 +73,12 @@
   --sam-glass-bright:  rgba(255,255,255,1);
 
   --sam-text:          #000000; /* High Contrast Black */
-  --sam-text-muted:    #404040;
+  --sam-text-muted:    #525252;
   --sam-text-dim:      #737373;
+  --sam-text-muted-alt: rgba(0,0,0,0.4);
 
-  --sam-glow-bloom:    0 1px 2px rgba(0,0,0,0.05); 
+  --sam-glow-bloom:    0 1px 3px rgba(0,0,0,0.05); 
+  --sam-card-shadow:   0 10px 40px rgba(0,0,0,0.04);
 }
 
 /* === Global Transitions === */

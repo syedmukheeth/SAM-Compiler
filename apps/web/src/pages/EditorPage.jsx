@@ -698,13 +698,15 @@ builtins.input = input_shim
                 onClick={() => confirm("Sign out of SAM Compiler?") && logoutUser()}
                 style={{
                   padding: '6px 14px', borderRadius: 8,
-                  border: '1px solid rgba(244,63,94,0.2)',
-                  background: 'rgba(244,63,94,0.05)',
-                  color: 'rgba(244,63,94,0.6)',
-                  fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em',
+                  border: '1px solid var(--sam-glass-border)',
+                  background: 'var(--sam-surface-low)',
+                  color: 'var(--sam-text-dim)',
+                  fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.15em',
                   cursor: 'pointer', transition: 'all 0.2s',
                   fontFamily: 'var(--font-body)',
                 }}
+                onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--sam-text)'; e.currentTarget.style.background = 'var(--sam-glass-border)'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--sam-text-dim)'; e.currentTarget.style.background = 'var(--sam-surface-low)'; }}
               >Sign Out</button>
             </div>
           ) : (
@@ -731,14 +733,14 @@ builtins.input = input_shim
                 onClick={() => setShowHistoryModal(true)}
                 className="flex h-10 items-center justify-center gap-2 rounded-xl border px-3 transition-all duration-300 hover:scale-105 active:scale-95 group"
                 style={{ 
-                  background: theme === 'light' ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
-                  borderColor: theme === 'light' ? '#E2E8F0' : 'rgba(255,255,255,0.05)',
-                  boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+                  background: 'var(--sam-surface-low)',
+                  borderColor: 'var(--sam-glass-border)',
+                  boxShadow: 'var(--sam-glow-bloom)'
                 }}
                 title="Compilation History"
               >
-                <History className={`h-4 w-4 ${theme === 'light' ? 'text-slate-500' : 'text-white/60'} group-hover:text-emerald-400 transition-colors`} />
-                <span className={`hidden md:inline text-[10px] font-black uppercase tracking-widest ${theme === 'light' ? 'text-slate-600' : 'text-white/80'}`}>History</span>
+                <History className="h-4 w-4 text-dim group-hover:text-label transition-colors" style={{ color: 'var(--sam-text-dim)' }} />
+                <span className="hidden md:inline text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--sam-text)' }}>History</span>
               </button>
             )}
             
@@ -746,32 +748,32 @@ builtins.input = input_shim
               onClick={() => setShowShortcutsHelp(true)}
               className="group flex h-10 w-10 items-center justify-center rounded-xl border transition-all duration-300"
               style={{ 
-                background: theme === 'light' ? '#FFFFFF' : 'rgba(255,255,255,0.05)',
-                borderColor: theme === 'light' ? '#E2E8F0' : 'rgba(255,255,255,0.05)',
-                boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+                background: 'var(--sam-surface-low)',
+                borderColor: 'var(--sam-glass-border)',
+                boxShadow: 'var(--sam-glow-bloom)'
               }}
               title="Keyboard Shortcuts"
             >
-              <Keyboard className={`h-5 w-5 transition-colors ${theme === 'light' ? 'text-slate-400 group-hover:text-slate-900' : 'text-white/50 group-hover:text-white'}`} />
+              <Keyboard className="h-5 w-5 transition-colors" style={{ color: 'var(--sam-text-dim)' }} />
             </button>
 
             <button 
               onClick={() => setShowAiPanel(!showAiPanel)}
               className="group flex h-10 items-center gap-2 rounded-xl border px-4 transition-all duration-300"
               style={{ 
-                background: showAiPanel ? (theme === 'light' ? '#F8FAFC' : 'rgba(255,255,255,0.1)') : (theme === 'light' ? '#FFFFFF' : 'rgba(255,255,255,0.05)'),
-                borderColor: showAiPanel ? 'var(--sam-accent)' : (theme === 'light' ? '#E2E8F0' : 'rgba(255,255,255,0.05)'),
-                color: showAiPanel ? 'var(--sam-accent)' : (theme === 'light' ? '#475569' : 'rgba(221,226,241,0.6)'),
-                boxShadow: theme === 'light' ? '0 1px 3px rgba(0,0,0,0.05)' : 'none'
+                background: showAiPanel ? 'var(--sam-accent-muted)' : 'var(--sam-surface-low)',
+                borderColor: showAiPanel ? 'var(--sam-accent)' : 'var(--sam-glass-border)',
+                color: showAiPanel ? 'var(--sam-accent)' : 'var(--sam-text-dim)',
+                boxShadow: 'var(--sam-glow-bloom)'
               }}
             >
-              <Sparkles className={`h-4 w-4 ${showAiPanel ? 'animate-pulse' : (theme === 'light' ? 'text-slate-400' : 'text-white/60')}`} />
+              <Sparkles className={`h-4 w-4 ${showAiPanel ? 'animate-pulse' : ''}`} />
             </button>
           </div>
         </motion.div>
           
           <div className="flex md:hidden">
-            <button onClick={() => setActiveModal('settings')} style={{ padding: 8, background: 'none', border: 'none', color: 'rgba(221,226,241,0.3)', cursor: 'pointer' }}>
+            <button onClick={() => setActiveModal('settings')} style={{ padding: 8, background: 'none', border: 'none', color: 'var(--sam-text-dim)', cursor: 'pointer', opacity: 0.5 }}>
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
           </div>
@@ -984,16 +986,16 @@ builtins.input = input_shim
       </div>
 
       {/* Fixed Terminal Dashboard Footer */}
-      <footer className={`fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between px-6 transition-all duration-300 border-t ${
+      <footer className={`fixed bottom-0 left-0 right-0 z-50 flex h-12 items-center justify-between px-6 transition-all duration-300 border-t backdrop-blur-md ${
         theme === 'dark' 
-          ? 'bg-black/90 border-[#ff3b3b]/10 backdrop-blur-md' 
-          : 'bg-white/95 border-blue-100 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.1)] backdrop-blur-md'
+          ? 'bg-black/90 border-white/5' 
+          : 'bg-white/95 border-slate-200 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.05)]'
       }`}>
         {/* Top Accent Bar */}
         <div className={`absolute top-0 left-0 right-0 h-[2px] ${
           theme === 'dark' 
-            ? 'bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_12px_rgba(255,59,59,0.4)]' 
-            : 'bg-gradient-to-r from-transparent via-blue-500 to-transparent'
+            ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent' 
+            : 'bg-gradient-to-r from-transparent via-black/10 to-transparent'
         }`} />
 
         <div className="flex items-center gap-6 h-full">
@@ -1003,7 +1005,7 @@ builtins.input = input_shim
               <div className={`h-1.5 w-1.5 rounded-full ${isApiOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
             </div>
             <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
-              theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'
+              theme === 'dark' ? 'text-white' : 'text-slate-900'
             }`}>
               {isApiOnline ? 'ONLINE' : 'OFFLINE'}
             </span>
@@ -1015,13 +1017,13 @@ builtins.input = input_shim
           <div className="hidden lg:flex items-center gap-6">
              <div className="flex items-center gap-2">
                 <span className={`text-[8px] font-black uppercase tracking-widest opacity-40 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>CPU</span>
-                <span className={`font-mono text-[10px] font-bold tabular-nums ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                <span className={`font-mono text-[10px] font-bold tabular-nums ${theme === 'dark' ? 'text-white' : 'text-slate-600'}`}>
                   {busy ? (8 + Math.random() * 5).toFixed(1) : (0.1 + Math.random() * 0.3).toFixed(1)}%
                 </span>
              </div>
              <div className="flex items-center gap-2">
                 <span className={`text-[8px] font-black uppercase tracking-widest opacity-40 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>RAM</span>
-                <span className={`font-mono text-[10px] font-bold tabular-nums ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`}>
+                <span className={`font-mono text-[10px] font-bold tabular-nums ${theme === 'dark' ? 'text-white' : 'text-slate-600'}`}>
                   {busy ? (110 + Math.random() * 20).toFixed(0) : (42 + Math.random() * 5).toFixed(0)}MB
                 </span>
              </div>
@@ -1113,24 +1115,24 @@ builtins.input = input_shim
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-              className="relative w-full max-w-sm rounded-3xl border border-white/10 bg-[#0e131e] p-8 shadow-2xl"
+              className="relative w-full max-w-sm rounded-[32px] border border-white/5 bg-black/95 p-8 shadow-2xl backdrop-blur-2xl"
             >
-              <h3 className="mb-6 flex items-center gap-3 text-lg font-black uppercase tracking-[0.2em] text-white">
-                 <Keyboard className="h-5 w-5 text-white" />
-                 Shortcuts
+              <h3 className="mb-8 flex items-center gap-3 text-sm font-black uppercase tracking-[0.25em] text-white opacity-90">
+                 <Keyboard className="h-5 w-5 text-white" strokeWidth={3} />
+                 Terminal Shortcuts
               </h3>
-              <div className="flex flex-col gap-4">
+              <div className="flex flex-col gap-5">
                  <ShortcutItem keys={["CTRL", "ENTER"]} label="Run Code" />
                  <ShortcutItem keys={["CTRL", "S"]} label="Save Locally" />
-                 <ShortcutItem keys={["CTRL", "L"]} label="Clear Terminal" />
+                 <ShortcutItem keys={["CTRL", "L"]} label="Clear Output" />
                  <ShortcutItem keys={["CTRL", "/"]} label="Toggle Sam AI" />
-                 <ShortcutItem keys={["CTRL", "H"]} label="Open History" />
+                 <ShortcutItem keys={["CTRL", "H"]} label="History Overlay" />
               </div>
               <button 
                 onClick={() => setShowShortcutsHelp(false)}
-                className="mt-8 w-full rounded-xl bg-white/5 p-3 text-[10px] font-black uppercase tracking-widest text-white/40 transition-all hover:bg-white/10 hover:text-white"
+                className="mt-10 w-full rounded-2xl bg-white/10 p-4 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/20 transition-all active:scale-95"
               >
-                Got it
+                Close Guidelines
               </button>
             </motion.div>
           </div>
