@@ -1081,18 +1081,17 @@ builtins.input = input_shim
             rel="noopener noreferrer" 
             className={`group flex items-center gap-3 transition-all active:scale-95`}
           >
-            <span className={`hidden text-[9px] font-black uppercase tracking-[0.15em] opacity-40 group-hover:opacity-100 transition-opacity lg:inline ${
-              theme === 'dark' ? 'text-white' : 'text-slate-900'
+            <span className={`hidden text-[9px] font-black uppercase tracking-[0.2em] transition-opacity lg:inline ${
+              theme === 'dark' ? 'text-white/60 group-hover:text-white' : 'text-slate-500 group-hover:text-slate-800'
             }`}>
               BUILT BY
             </span>
-            <div className={`flex items-center gap-2 rounded-lg py-1.5 px-3 transition-colors ${
+            <div className={`flex items-center gap-2 rounded-lg py-1.5 px-3 border transition-all duration-200 ${
                theme === 'dark' 
-                 ? 'bg-white/5 border border-white/5 hover:bg-[#ff3b3b]/10 hover:border-[#ff3b3b]/20 hover:text-[#ff3b3b]' 
-                 : 'bg-blue-50 border border-blue-100 hover:bg-blue-600 hover:text-white'
+                 ? 'bg-white/8 border-white/15 text-white/90 hover:bg-[#ff3b3b]/15 hover:border-[#ff3b3b]/40 hover:text-[#ff3b3b] hover:shadow-[0_0_12px_rgba(255,59,59,0.25)]' 
+                 : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-blue-600 hover:border-blue-600 hover:text-white'
             }`}>
-              {/* Linkedin SVG Placeholder */}
-              <svg className={`h-3 w-3 ${theme === 'dark' ? 'text-[#ff3b3b]' : 'text-blue-500'} fill-current group-hover:text-inherit`} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+              <svg className={`h-3 w-3 fill-current shrink-0`} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433c-1.144 0-2.063-.926-2.063-2.065 0-1.138.92-2.063 2.063-2.063 1.14 0 2.064.925 2.064 2.063 0 1.139-.925 2.065-2.064 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
               <span className={`text-[10px] font-black uppercase tracking-wider`}>
                 SYED MUKHEETH
               </span>
@@ -1101,8 +1100,8 @@ builtins.input = input_shim
 
           <div className={`h-4 w-[1px] hidden sm:block ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-200'}`} />
 
-          <span className={`hidden text-[9px] font-black uppercase tracking-[0.2em] opacity-30 sm:block ${
-            theme === 'dark' ? 'text-white' : 'text-slate-900'
+          <span className={`hidden text-[9px] font-black uppercase tracking-[0.2em] sm:block ${
+            theme === 'dark' ? 'text-white/50' : 'text-slate-400'
           }`}>
             SAM © 2026
           </span>
