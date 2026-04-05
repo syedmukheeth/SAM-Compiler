@@ -65,10 +65,6 @@ function createApp() {
   app.use(express.json({ limit: "2mb" }));
   app.use(passport.initialize());
 
-  // Serve Static Frontend Assets (Monolith Mode)
-  const distPath = path.join(__dirname, "../../../web/dist");
-  app.use(express.static(distPath));
-  
   // Health check - moved from root to avoid conflict with frontend
   app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
   
@@ -96,6 +92,10 @@ function createApp() {
   routes.use("/ai", aiRouter);
 
   app.use("/", routes);
+
+  // Serve Static Frontend Assets (Monolith Mode)
+  const distPath = path.join(__dirname, "../../../web/dist");
+  app.use(express.static(distPath));
 
   // Catch-all: Route anything else to index.html for React Router support (SPA)
   app.get("*", (req, res) => {
