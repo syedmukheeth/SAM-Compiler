@@ -982,7 +982,7 @@ builtins.input = input_shim
           {showAiPanel && (
             <div 
               onMouseDown={startResizingAi}
-              className={`fixed top-0 bottom-0 z-[70] w-1.5 cursor-col-resize transition-all hover:bg-white/10 hidden md:block`}
+              className={`fixed top-0 bottom-12 z-[70] w-1.5 cursor-col-resize transition-all hover:bg-white/10 hidden md:block`}
               style={{ right: aiPanelWidth }}
             >
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-4 rounded-full bg-black/80 border border-white/5 flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
