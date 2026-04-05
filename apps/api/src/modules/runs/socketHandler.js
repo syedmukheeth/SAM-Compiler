@@ -69,6 +69,10 @@ function initSocket(server) {
           ytext.delete(0, ytext.length);
           ytext.insert(0, templates[langId]);
           logger.info({ sessionId, occurrences }, "Server-side healer fixed corrupted room in MongoDB");
+        } else if (ytext.length === 0 && templates[langId]) {
+          // If the room existed but the specific language node was empty (e.g. migration)
+          ytext.insert(0, templates[langId]);
+          logger.info({ sessionId, langId }, "Server-side healer populated empty legacy room");
         }
       } else {
         // DEFINITIVE INITIALIZATION (The One True Source)
