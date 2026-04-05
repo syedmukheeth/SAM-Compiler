@@ -995,18 +995,23 @@ builtins.input = input_shim
           ? 'bg-black/90 border-white/5' 
           : 'bg-white/95 border-slate-200 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.05)]'
       }`}>
-        {/* Top Accent Bar — Restored Animated Branded Lights */}
-        <div 
-          className={`absolute top-[-1px] left-0 right-0 h-[3px] ${
-            theme === 'dark' 
-              ? 'sam-pulse-glow-red bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_20px_rgba(255,59,59,0.8)]' 
-              : 'sam-pulse-glow-blue bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent shadow-[0_0_15px_rgba(59,130,246,0.5)]'
-          }`}
-          style={{ 
-            zIndex: 10,
-            opacity: theme === 'dark' ? 1 : 1
-          }} 
-        />
+        {/* Top Accent Bar — Professional Centered Beam */}
+        <div className="absolute top-[-1px] left-1/2 -translate-x-1/2 w-[300px] h-[2px] z-10 overflow-visible">
+          <div 
+            className={`w-full h-full ${
+              theme === 'dark' 
+                ? 'sam-pulse-glow-red bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_25px_rgba(255,59,59,0.9)]' 
+                : 'sam-pulse-glow-blue bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+            }`}
+          />
+          {/* Intense Core Beam */}
+          <div 
+            className={`absolute top-0 left-1/2 -translate-x-1/2 w-[120px] h-[1px] ${
+              theme === 'dark' ? 'bg-white' : 'bg-blue-400'
+            }`}
+            style={{ opacity: 0.8, filter: 'blur(0.5px)' }}
+          />
+        </div>
 
         <div className="flex items-center gap-6 h-full">
           <div className="flex items-center gap-3">
