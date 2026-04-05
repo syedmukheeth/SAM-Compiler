@@ -17,21 +17,15 @@ import { Sparkles, History, Keyboard, Info } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
+import favicon from "../assets/favicon.svg";
+import faviconLight from "../assets/favicon-light.svg";
 
-// Inline SAM logo SVG — no image file dependency
+// Real SAM logo using imported assets
 function SamNavLogo({ theme }) {
-  const strokeColor = theme === 'light' ? '#000000' : '#FFFFFF';
+  const src = theme === 'dark' ? favicon : faviconLight;
   return (
-    <div className="relative flex h-10 w-10 items-center justify-center transition-all duration-500 hover:scale-110">
-      <svg width="42" height="42" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-        {/* Bolt Center */}
-        <path d="M21 12L15 24H23L17 36" stroke={strokeColor} strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Brackets */}
-        <path d="M12 18L4 24L12 30" stroke={strokeColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        <path d="M36 18L44 24L36 30" stroke={strokeColor} strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-        {/* Circuit Accents */}
-        <path d="M19 12V8M29 12V8M19 36V40M29 36V40" stroke={strokeColor} strokeWidth="2.5" strokeLinecap="round" />
-      </svg>
+    <div className="flex h-10 w-10 items-center justify-center transition-all duration-500 hover:scale-110">
+      <img src={src} alt="SAM" style={{ width: 32, height: 32 }} />
     </div>
   );
 }
@@ -991,12 +985,18 @@ builtins.input = input_shim
           ? 'bg-black/90 border-white/5' 
           : 'bg-white/95 border-slate-200 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.05)]'
       }`}>
-        {/* Top Accent Bar */}
-        <div className={`absolute top-0 left-0 right-0 h-[2px] ${
-          theme === 'dark' 
-            ? 'bg-gradient-to-r from-transparent via-white/20 to-transparent' 
-            : 'bg-gradient-to-r from-transparent via-black/10 to-transparent'
-        }`} />
+        {/* Top Accent Bar — Restored Animated Red Glow */}
+        <div 
+          className={`absolute top-[-1px] left-0 right-0 h-[3px] sam-pulse-glow-red ${
+            theme === 'dark' 
+              ? 'bg-gradient-to-r from-transparent via-[#ff3b3b] to-transparent shadow-[0_0_20px_rgba(255,59,59,0.8)]' 
+              : 'bg-gradient-to-r from-transparent via-blue-500 to-transparent'
+          }`}
+          style={{ 
+            zIndex: 10,
+            opacity: theme === 'dark' ? 1 : 0.6
+          }} 
+        />
 
         <div className="flex items-center gap-6 h-full">
           <div className="flex items-center gap-3">

@@ -224,6 +224,16 @@ body {
   0%, 100% { opacity: 1; transform: scale(1); }
   50%       { opacity: 0.6; transform: scale(1.2); }
 }
+
+@keyframes sam-pulse-glow-red {
+  0%, 100% { opacity: 0.7; transform: scaleX(0.95); filter: blur(4px) brightness(1); }
+  50%       { opacity: 1; transform: scaleX(1); filter: blur(6px) brightness(1.2); }
+}
+
+.sam-pulse-glow-red {
+  animation: sam-pulse-glow-red 3s ease-in-out infinite;
+}
+
 .sam-dot {
   display: inline-block;
   height: 6px;

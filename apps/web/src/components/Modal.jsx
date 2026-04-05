@@ -1,24 +1,12 @@
 import React, { useEffect } from "react";
+import favicon from "../assets/favicon.svg";
 
-// Inline SAM logo for modal header (no logo.jpg dependency)
+// Real SAM logo for modal header
 function SamLogoSmall() {
   return (
-    <svg width="28" height="28" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="samModalGrad" x1="0" y1="0" x2="36" y2="36">
-          <stop offset="0%" stopColor="var(--sam-text)" stopOpacity="1" />
-          <stop offset="100%" stopColor="var(--sam-text)" stopOpacity="0.4" />
-        </linearGradient>
-      </defs>
-      <rect width="36" height="36" rx="9" fill="var(--sam-accent)" />
-      <path
-        d="M22 11.5C20.8 10.5 19.2 10 17.5 10C14.5 10 12 11.8 12 14.2C12 16.4 13.8 17.5 16.5 18.2L17.5 18.5C20.2 19.2 22 20.3 22 22.5C22 25 19.5 26.5 16.8 26.5C14.8 26.5 12.8 25.8 11.5 24.5"
-        stroke="var(--sam-bg)"
-        strokeWidth="2.5"
-        strokeLinecap="round"
-        fill="none"
-      />
-    </svg>
+    <div className="flex h-8 w-8 items-center justify-center">
+      <img src={favicon} alt="SAM" style={{ width: 28, height: 28 }} />
+    </div>
   );
 }
 
