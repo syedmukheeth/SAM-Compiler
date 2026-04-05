@@ -684,7 +684,7 @@ builtins.input = input_shim
         <motion.div 
           animate={{ x: (showAiPanel && window.innerWidth >= 768) ? -440 : 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          className="flex items-center gap-3 md:gap-5"
+          className="flex items-center gap-2 md:gap-5 shrink-0"
         >
           <ThemeToggle theme={theme} toggle={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
           
@@ -708,6 +708,7 @@ builtins.input = input_shim
               </div>
               <button
                 onClick={() => confirm("Sign out of SAM Compiler?") && logoutUser()}
+                className="hidden md:block"
                 style={{
                   padding: '6px 14px', borderRadius: 8,
                   border: '1px solid var(--sam-glass-border)',
@@ -725,9 +726,10 @@ builtins.input = input_shim
             <button
               id="signin-btn"
               onClick={() => setActiveModal('auth')}
-              className="sam-button-primary"
+              className="sam-button-primary shrink-0"
               style={{
-                padding: '7px 18px', borderRadius: 4,
+                padding: window.innerWidth < 768 ? '6px 12px' : '7px 18px', 
+                borderRadius: 4,
                 fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
                 cursor: 'pointer', transition: 'all 0.25s',
                 fontFamily: 'var(--font-body)',
@@ -739,7 +741,7 @@ builtins.input = input_shim
           )}
 
           {/* Navigation & Actions */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-1.5 md:gap-3 shrink-0">
             {user && (
               <button 
                 onClick={() => setShowHistoryModal(true)}
@@ -771,7 +773,7 @@ builtins.input = input_shim
 
             <button 
               onClick={() => setShowAiPanel(!showAiPanel)}
-              className="group flex h-10 items-center gap-2 rounded-xl border px-4 transition-all duration-300"
+              className="group flex h-9 w-9 md:h-10 md:w-auto md:px-4 items-center justify-center gap-2 rounded-xl border transition-all duration-300 shrink-0"
               style={{ 
                 background: showAiPanel ? 'var(--sam-accent-muted)' : 'var(--sam-surface-low)',
                 borderColor: showAiPanel ? 'var(--sam-accent)' : 'var(--sam-glass-border)',
@@ -781,15 +783,17 @@ builtins.input = input_shim
             >
               <Sparkles className={`h-4 w-4 ${showAiPanel ? 'animate-pulse' : ''}`} />
             </button>
-          </div>
-        </motion.div>
-          
-          <div className="flex md:hidden">
-            <button onClick={() => setActiveModal('settings')} style={{ padding: 8, background: 'none', border: 'none', color: 'var(--sam-text-dim)', cursor: 'pointer', opacity: 0.5 }}>
+
+            <button 
+              onClick={() => setActiveModal('settings')} 
+              className="md:hidden flex items-center justify-center h-9 w-9 shrink-0"
+              style={{ background: 'none', border: 'none', color: 'var(--sam-text-dim)', cursor: 'pointer', opacity: 0.5 }}
+            >
               <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
             </button>
           </div>
-        </header>
+        </motion.div>
+      </header>
 
       <div className="flex md:hidden h-12 shrink-0" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
         <button
