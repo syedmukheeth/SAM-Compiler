@@ -748,19 +748,22 @@ builtins.input = input_shim
               </div>
               <button
                 onClick={() => confirm("Sign out of SAM Compiler?") && logoutUser()}
-                className="hidden md:block"
+                className="shrink-0"
                 style={{
-                  padding: '6px 14px', borderRadius: 8,
+                  padding: '5px 8px', borderRadius: 6,
                   border: '1px solid var(--sam-glass-border)',
                   background: 'var(--sam-surface-low)',
                   color: 'var(--sam-text-dim)',
-                  fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.15em',
+                  fontSize: 9, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.1em',
                   cursor: 'pointer', transition: 'all 0.2s',
                   fontFamily: 'var(--font-body)',
                 }}
                 onMouseEnter={(e) => { e.currentTarget.style.color = 'var(--sam-text)'; e.currentTarget.style.background = 'var(--sam-glass-border)'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.color = 'var(--sam-text-dim)'; e.currentTarget.style.background = 'var(--sam-surface-low)'; }}
-              >Sign Out</button>
+              >
+                <span className="hidden sm:inline">Sign Out</span>
+                <span className="inline sm:hidden">Quit</span>
+              </button>
             </div>
           ) : (
             <button
