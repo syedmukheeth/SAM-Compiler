@@ -38,22 +38,12 @@ function createApp() {
   app.use(compression()); // Compress all responses
   app.use(globalLimiter);
 
-  // Handle /api prefix transparency - MUST BE FIRST (after middleware)
-  app.use((req, _res, next) => {
-    const oldPath = req.url;
-    if (req.url.startsWith("/api/")) {
-      req.url = req.url.replace(/^\/api/, "");
-      if (req.url === "") req.url = "/";
-      logger.debug({ oldPath, newPath: req.url }, "Stripped /api prefix for compatibility");
-    }
-    next();
-  });
-
   app.use(pino({ logger }));
   app.use(helmet({
     crossOriginResourcePolicy: { policy: "cross-origin" },
     crossOriginEmbedderPolicy: false
   }));
+
   app.use(
     cors({
       origin: true, // Reflect origin for reliability on Vercel
@@ -66,7 +56,8 @@ function createApp() {
   app.use(passport.initialize());
 
   // Health check - moved from root to avoid conflict with frontend
-  app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+  app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString(), env: process.env.NODE_ENV }));
+
   
   // Prevent favicon 404 noise in logs
   app.get(["/favicon.ico", "/favicon.png"], (req, res) => res.status(204).end());
@@ -91,7 +82,8 @@ function createApp() {
   routes.use("/auth", authRouter);
   routes.use("/ai", aiRouter);
 
-  app.use("/", routes);
+  app.use("/api", routes);
+
 
   // Serve Static Frontend Assets (Monolith Mode)
   const distPath = path.join(__dirname, "../../../web/dist");

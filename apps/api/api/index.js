@@ -8,11 +8,8 @@ let app;
 let initializationError = null;
 
 module.exports = async (req, res) => {
-  // Normalize URL by removing /api prefix if present (consistent with local dev)
-  req.url = req.url.replace(/^\/api/, "");
-  if (req.url === "") req.url = "/";
-
   // 🚀 FAST HEALTH CHECK (Zero dependencies)
+
   if (req.url === "/health" || req.url === "/api/health") {
     return res.status(200).json({ 
       status: "ok", 
