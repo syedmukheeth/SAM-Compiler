@@ -8,19 +8,6 @@
   
   <p><b><code>SYNTAX ANALYSIS MACHINE</code></b></p>
 
-  <br>
-
-  <p>
-    <a href="https://sam-compiler-web.vercel.app/" target="_blank">
-      <img src="https://img.shields.io/badge/Live_App-OBSIDIAN-black?style=for-the-badge&logo=vercel&logoColor=white" alt="Live App">
-    </a>
-    <img src="https://img.shields.io/badge/Architecture-Distributed_Core-black?style=for-the-badge" alt="Architecture">
-    <img src="https://img.shields.io/badge/Security-gVisor_Hardened-black?style=for-the-badge&logo=docker&logoColor=white" alt="Security">
-    <img src="https://img.shields.io/badge/AI-Gemini_Pro-black?style=for-the-badge&logo=google&logoColor=white" alt="AI">
-  </p>
-
-  <br>
-
   <p>
     <i>"Precision engineering. Zero friction. Pure execution."</i>
   </p>
@@ -171,7 +158,7 @@ npm install && npm run dev
   <b>Engineered with uncompromising standards by</b>
   <br><br>
   <a href="https://linkedin.com/in/syedmukheeth">
-    <img src="https://img.shields.io/badge/SYED_MUKHEETH-black?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
+    <img src="https://img.shields.io/badge/-SYED_MUKHEETH-black?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
   </a>
   <br><br>
   <img src="https://img.shields.io/badge/License_MIT-black?style=for-the-badge" alt="License">
