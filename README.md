@@ -1,27 +1,36 @@
 <div align="center">
-  <img alt="SAM Compiler Logo" src="https://raw.githubusercontent.com/syedmukheeth/SAM-Compiler/main/apps/web/public/favicon.svg" width="120" style="margin-bottom: 25px;">
+  <br>
+  <a href="https://sam-compiler-web.vercel.app/" target="_blank">
+    <img alt="SAM Compiler Logo" src="https://raw.githubusercontent.com/syedmukheeth/SAM-Compiler/main/apps/web/public/favicon.svg" width="130">
+  </a>
   
-  <h1 style="font-size: 3.5rem; font-weight: 900; letter-spacing: -2px; margin: 0;">S A M</h1>
-  <p style="font-size: 1.2rem; font-weight: 800; letter-spacing: 6px; opacity: 0.8; margin-top: 5px;">THE SYNTAX ANALYSIS MACHINE</p>
+  <h1><b>SAM COMPILER</b></h1>
+  
+  <p><b><code>SYNTAX ANALYSIS MACHINE</code></b></p>
 
-  <br />
+  <br>
 
   <p>
     <a href="https://sam-compiler-web.vercel.app/" target="_blank">
-      <img src="https://img.shields.io/badge/PLAY--DEMO-OBSIDIAN-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live Demo">
+      <img src="https://img.shields.io/badge/LIVE_APP-OBSIDIAN-000000?style=for-the-badge&logo=vercel&logoColor=white" alt="Live App">
     </a>
-    <img src="https://img.shields.io/badge/Architecture-Distributed--Core-000000?style=for-the-badge" alt="Architecture">
-    <img src="https://img.shields.io/badge/Security-gVisor--Hardened-000000?style=for-the-badge&logo=docker&logoColor=white" alt="Security">
-    <img src="https://img.shields.io/badge/AI-Gemini--Pro-000000?style=for-the-badge&logo=google&logoColor=white" alt="AI">
+    <img src="https://img.shields.io/badge/ARCHITECTURE-DISTRIBUTED_CORE-111111?style=for-the-badge" alt="Architecture">
+    <img src="https://img.shields.io/badge/SECURITY-gVISOR_HARDENED-000000?style=for-the-badge&logo=docker&logoColor=white" alt="Security">
+    <img src="https://img.shields.io/badge/AI-GEMINI_PRO-111111?style=for-the-badge&logo=google&logoColor=white" alt="AI">
   </p>
 
-  <p style="font-size: 1.1rem; opacity: 0.7; margin-top: 15px;">
+  <br>
+
+  <p>
     <i>"Precision engineering. Zero friction. Pure execution."</i>
   </p>
 
-  <p>
-    <b>🌐 Live Deployment: <a href="https://sam-compiler-web.vercel.app/">https://sam-compiler-web.vercel.app/</a></b>
-  </p>
+  <br>
+
+  <h3>
+    <a href="https://sam-compiler-web.vercel.app/">► LAUNCH WORKSPACE</a>
+  </h3>
+  <br>
 </div>
 
 ---
@@ -30,9 +39,9 @@
 
 **SAM Compiler** is not just another browser code editor. It is a highly-optimized, distributed execution engine designed to bring the raw power of a desktop IDE directly into the cloud. 
 
-### 🛑 The Problem vs. 👑 The SAM Solution
+### ⚠️ Legacy IDEs vs. ⚔️ SAM Architecture
 
-Most web-based compilers (like Replit or JDoodle) tie their UI rendering directly to their heavy backend servers. They suffer from catastrophic input lag and session crashing under heavy loads.
+Most web-based compilers tie their UI rendering directly to their backend servers, suffering from catastrophic input lag and session crashing under load.
 
 | ❌ The Problem | ✨ The SAM Solution |
 |---|---|
@@ -45,19 +54,24 @@ Most web-based compilers (like Replit or JDoodle) tie their UI rendering directl
 ## 🛠️ THE TECH STACK ARSENAL
 
 <div align="center">
+  <b>Frontend Execution</b><br>
   <img src="https://img.shields.io/badge/React_18-20232A?style=for-the-badge&logo=react&logoColor=61DAFB" alt="React">
   <img src="https://img.shields.io/badge/Vite_Babel-B73BFE?style=for-the-badge&logo=vite&logoColor=FFD62E" alt="Vite">
   <img src="https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind">
   <img src="https://img.shields.io/badge/Framer_Motion-111?style=for-the-badge&logo=framer&logoColor=blue" alt="Framer">
+  <img src="https://img.shields.io/badge/Monaco_Editor-2C2C32?style=for-the-badge&logo=visual-studio-code&logoColor=007ACC" alt="Monaco Editor">
   <br><br>
+  
+  <b>API & Core Engine</b><br>
   <img src="https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
   <img src="https://img.shields.io/badge/Express.js-000?style=for-the-badge&logo=express&logoColor=white" alt="Express.js">
   <img src="https://img.shields.io/badge/Socket.io-111?style=for-the-badge&logo=socket.io&logoColor=white" alt="Socket.io">
   <img src="https://img.shields.io/badge/MongoDB_Atlas-4EA94B?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
   <br><br>
+  
+  <b>Infrastructure & Artificial Intelligence</b><br>
   <img src="https://img.shields.io/badge/Google_Gemini-8E75B2?style=for-the-badge&logo=google&logoColor=white" alt="Gemini AI">
   <img src="https://img.shields.io/badge/Docker_gVisor-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/Monaco_Editor-2C2C32?style=for-the-badge&logo=visual-studio-code&logoColor=007ACC" alt="Monaco Editor">
 </div>
 
 <br>
@@ -138,17 +152,17 @@ To run a localized version of the SAM Compiler environment:
 
 ```bash
 # 1. Clone the master repository
-git clone https://github.com/syedmukheeth/Liquid-IDE.git
+git clone https://github.com/syedmukheeth/SAM-Compiler.git
 
 # 2. Boot the API Core Engine 
-cd apps/api 
+cd SAM-Compiler/apps/api 
 npm install && npm run dev
 
 # 3. Boot the Frontend Interface
 cd ../web 
 npm install && npm run dev
 ```
-> For full deployment architecture, environment configurations, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md).
+> For full architecture, environment configurations, and contribution guidelines, see [CONTRIBUTING.md](./CONTRIBUTING.md). For cloud infrastructure and scaling, refer to the [Cloud Deployment Guide](./DEPLOYMENT.md).
 
 ---
 
@@ -156,6 +170,7 @@ npm install && npm run dev
   <br>
   <b>Engineered with uncompromising standards by <a href="https://linkedin.com/in/syedmukheeth">Syed Mukheeth</a>.</b><br><br>
   <img src="https://img.shields.io/badge/License-MIT-000?style=flat-square" alt="License">
+  <a href="./DEPLOYMENT.md"><img src="https://img.shields.io/badge/Deployment_Guide-000?style=flat-square" alt="Deployment Guide"></a>
   <br><br>
-  <sub>v3.0.0-OBSIDIAN | Vercel Edge Runtime</sub>
+  <sub>v3.0.0-OBSIDIAN | Peak Performance Architecture</sub>
 </div>
