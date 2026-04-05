@@ -104,12 +104,14 @@ export default function CodeEditor({
     const ydoc = new Y.Doc();
     const endpoint = ENDPOINTS.WS_ENDPOINT;
 
-    const provider = new SocketIOProvider(endpoint, sessionId, ydoc, {
+    // HARD ISOLATION: Room name includes language to prevent multi-sync corruption
+    const roomName = `${sessionId}-${language}`;
+    const provider = new SocketIOProvider(endpoint, roomName, ydoc, {
       ...ENDPOINTS.SOCKET_OPTIONS,
       autoConnect: true
     });
 
-    // ISOLATION LAYER: Unique text node per language prevents cross-language corruption
+    // UNIQUE TEXT NODE: Double-shielding by using language-specific keys
     const ytext = ydoc.getText(language);
 
     // Assign to refs IMMEDIATELY for event visibility
@@ -138,7 +140,7 @@ export default function CodeEditor({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // FIRST-SYNC GUARD (The Senior Dev Implementation)
+    // ROBUST FIRST-SYNC: Stop code repetition at the source
     provider.on('sync', (isSynced) => {
       if (isSynced !== false && !hasInitializedRef.current) {
         const currentYtext = ytextRef.current;
@@ -147,8 +149,7 @@ export default function CodeEditor({
         const peerCount = provider.awareness.getStates().size;
         const currentContent = currentYtext.toString().trim();
 
-        // ONLY the first user in a session initializes the boilerplate.
-        // This stops 'Repeating Code' in its tracks.
+        // Only initialize if Room is Brand New and Content is Blank
         if (peerCount <= 1 && currentContent.length === 0) {
           if (value) {
             currentYtext.insert(0, value);
@@ -166,16 +167,21 @@ export default function CodeEditor({
 
   // Provider & Binding Lifecycle Management
   useEffect(() => {
-    // 1. Setup Reset Listener First (Always active)
+    // 1. Setup Reset Listener (Absolute Wipe Transaction)
     const handleResetEvent = (e) => {
       const { template } = e.detail;
       if (template !== undefined && ydocRef.current && ytextRef.current) {
         ydocRef.current.transact(() => {
-          ytextRef.current.delete(0, ytextRef.current.length);
+          // Senior Dev Wipe: Absolute destruction of all characters in the doc
+          const currentLength = ytextRef.current.toString().length;
+          if (currentLength > 0) {
+            ytextRef.current.delete(0, currentLength);
+          }
           ytextRef.current.insert(0, template);
-        });
-        toast.success("Code reset to original template", {
-          style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '12px' },
+        }, 'sam-hard-reset'); // Named origin to ignore loops
+
+        toast.success("Boilerplate Synchronized", {
+          style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '11px', fontWeight: 900 },
           icon: '🔄'
         });
       }

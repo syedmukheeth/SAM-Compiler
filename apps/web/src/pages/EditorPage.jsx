@@ -1009,14 +1009,14 @@ builtins.input = input_shim
                 : 'sam-pulse-glow-blue bg-gradient-to-r from-transparent via-[#3b82f6] to-transparent shadow-[0_0_30px_rgba(59,130,246,0.7)]'
             }`}
           />
-          {/* Intense Core — High-Energy Fading Blade */}
+          {/* Intense Core — High-Energy Saturated Neon Blade */}
           <div 
             className={`absolute top-0 left-0 right-0 h-[1.5px] ${
               theme === 'dark' 
-                ? 'bg-gradient-to-r from-transparent via-white to-transparent' 
-                : 'bg-gradient-to-r from-transparent via-blue-500 to-transparent'
+                ? 'bg-gradient-to-r from-transparent via-[#ff1a1a] to-transparent' 
+                : 'bg-gradient-to-r from-transparent via-[#2563eb] to-transparent'
             }`}
-            style={{ opacity: 1 }}
+            style={{ opacity: 0.9 }}
           />
         </div>
 
