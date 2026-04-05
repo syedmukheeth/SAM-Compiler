@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import Modal from "./Modal";
 import { Cpu, Settings, User } from "lucide-react";
 
-export default function SettingsModal({ isOpen, onClose, settings, onSettingsChange }) {
+export default function SettingsModal({ isOpen, onClose, settings, onSettingsChange, user, onLogout }) {
   const [activeTab, setActiveTab] = useState("editor");
 
   const tabs = [
@@ -136,56 +136,96 @@ export default function SettingsModal({ isOpen, onClose, settings, onSettingsCha
         {/* Account Tab */}
         {activeTab === "account" && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 24, padding: "24px 0" }}>
-            <div style={{
-              width: 88, height: 88,
-              borderRadius: 24,
-              background: "var(--sam-accent)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "var(--sam-glow-bloom)",
-              fontSize: 36, fontWeight: 900, color: "var(--sam-bg)",
-              fontFamily: "var(--font-display)",
-              position: "relative",
-              overflow: "hidden"
-            }}>
-              S
-              <div style={{ position: "absolute", bottom: -20, right: -20, width: 60, height: 60, borderRadius: "50%", background: "var(--sam-bg)", opacity: 0.1 }} />
-            </div>
-            <div style={{ textAlign: "center" }}>
-              <p style={{ fontSize: 15, fontWeight: 900, color: "var(--sam-text)", fontFamily: "var(--font-display)", marginBottom: 8, letterSpacing: "-0.02em" }}>
-                SAM Member Account
-              </p>
-              <span style={{
-                display: "inline-block",
-                padding: "6px 16px",
-                borderRadius: 30,
-                background: "var(--sam-surface-low)",
-                border: "1px solid var(--sam-glass-border)",
-                fontSize: 9, fontWeight: 950,
-                color: "var(--sam-text-dim)",
-                textTransform: "uppercase",
-                letterSpacing: "0.2em",
-                fontFamily: "var(--font-body)",
-              }}>Free tier active</span>
-            </div>
-            <button className="sam-button-primary" style={{
-              padding: "14px 36px",
-              borderRadius: 12,
-              border: "none",
-              background: "var(--sam-accent)",
-              color: "var(--sam-bg)",
-              fontSize: 10, fontWeight: 950,
-              textTransform: "uppercase",
-              letterSpacing: "0.2em",
-              cursor: "pointer",
-              transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
-              fontFamily: "var(--font-body)",
-              boxShadow: "0 10px 30px -5px rgba(0,0,0,0.15)"
-            }}
-            onMouseEnter={(e) => { e.target.style.transform = "translateY(-2px)"; e.target.style.boxShadow = "0 15px 40px -5px rgba(0,0,0,0.2)"; }}
-            onMouseLeave={(e) => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 10px 30px -5px rgba(0,0,0,0.15)"; }}
-            >
-              Get SAM Pro Access
-            </button>
+            {user ? (
+              <>
+                <div style={{
+                  width: 88, height: 88,
+                  borderRadius: '50%',
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "var(--sam-glow-bloom)",
+                  border: '2px solid var(--sam-glass-border)',
+                  position: "relative",
+                  overflow: "hidden"
+                }}>
+                  <img src={user.avatar || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name)}&background=000000&color=FFFFFF`} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ fontSize: 15, fontWeight: 900, color: "var(--sam-text)", fontFamily: "var(--font-display)", marginBottom: 8, letterSpacing: "-0.02em" }}>
+                    {user.name}
+                  </p>
+                  <span style={{
+                    display: "inline-block",
+                    padding: "6px 16px",
+                    borderRadius: 30,
+                    background: "var(--sam-surface-low)",
+                    border: "1px solid var(--sam-glass-border)",
+                    fontSize: 9, fontWeight: 950,
+                    color: "var(--sam-text-dim)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.2em",
+                    fontFamily: "var(--font-body)",
+                  }}>{user.provider || 'SAM Member'}</span>
+                </div>
+                
+                <hr style={{ width: '100%', border: 'none', borderTop: '1px solid var(--sam-glass-border)', margin: '4px 0' }} />
+                
+                <button 
+                  onClick={onLogout}
+                  style={{
+                    width: '100%',
+                    padding: "14px 20px",
+                    borderRadius: 12,
+                    border: "1px solid rgba(255, 59, 59, 0.3)",
+                    background: "rgba(255, 59, 59, 0.05)",
+                    color: "#ff3b3b",
+                    fontSize: 10, fontWeight: 950,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.2em",
+                    cursor: "pointer",
+                    transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+                    fontFamily: "var(--font-body)",
+                  }}
+                  onMouseEnter={(e) => { e.target.style.background = "rgba(255, 59, 59, 0.15)"; e.target.style.border = "1px solid rgba(255, 59, 59, 0.6)"; }}
+                  onMouseLeave={(e) => { e.target.style.background = "rgba(255, 59, 59, 0.05)"; e.target.style.border = "1px solid rgba(255, 59, 59, 0.3)"; }}
+                >
+                  Sign Out Securely
+                </button>
+              </>
+            ) : (
+              <>
+                <div style={{
+                  width: 88, height: 88,
+                  borderRadius: 24,
+                  background: "var(--sam-accent)",
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  boxShadow: "var(--sam-glow-bloom)",
+                  fontSize: 36, fontWeight: 900, color: "var(--sam-bg)",
+                  fontFamily: "var(--font-display)",
+                  position: "relative",
+                  overflow: "hidden"
+                }}>
+                  S
+                  <div style={{ position: "absolute", bottom: -20, right: -20, width: 60, height: 60, borderRadius: "50%", background: "var(--sam-bg)", opacity: 0.1 }} />
+                </div>
+                <div style={{ textAlign: "center" }}>
+                  <p style={{ fontSize: 15, fontWeight: 900, color: "var(--sam-text)", fontFamily: "var(--font-display)", marginBottom: 8, letterSpacing: "-0.02em" }}>
+                    Anonymous Session
+                  </p>
+                  <span style={{
+                    display: "inline-block",
+                    padding: "6px 16px",
+                    borderRadius: 30,
+                    background: "var(--sam-surface-low)",
+                    border: "1px solid var(--sam-glass-border)",
+                    fontSize: 9, fontWeight: 950,
+                    color: "var(--sam-text-dim)",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.2em",
+                    fontFamily: "var(--font-body)",
+                  }}>No history saved</span>
+                </div>
+              </>
+            )}
           </div>
         )}
 

@@ -729,7 +729,7 @@ builtins.input = input_shim
           </div>
           
           {user ? (
-            <div className="flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
+            <div className="hidden md:flex items-center gap-1 sm:gap-2 md:gap-3 shrink-0">
               <div style={{
                 display: 'flex', alignItems: 'center', gap: 6,
                 padding: '2px 4px 2px 8px',
@@ -1217,7 +1217,19 @@ builtins.input = input_shim
       </AnimatePresence>
 
       <AuthModal isOpen={activeModal === 'auth'} onClose={() => setActiveModal(null)} onLogin={loginUser} theme={theme} />
-      <SettingsModal isOpen={activeModal === 'settings'} onClose={() => setActiveModal(null)} settings={settings} onSettingsChange={onSettingsUpdate} />
+      <SettingsModal 
+        isOpen={activeModal === 'settings'} 
+        onClose={() => setActiveModal(null)} 
+        settings={settings} 
+        onSettingsChange={onSettingsUpdate}
+        user={user}
+        onLogout={() => {
+          if (window.confirm("Sign out of SAM Compiler?")) {
+            logoutUser();
+            setActiveModal(null);
+          }
+        }}
+      />
       <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
       <HistoryPanel
         isOpen={showHistory}
