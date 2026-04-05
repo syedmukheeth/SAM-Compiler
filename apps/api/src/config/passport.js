@@ -9,7 +9,8 @@ passport.use(
     {
       clientID: env.GITHUB_CLIENT_ID || "placeholder",
       clientSecret: env.GITHUB_CLIENT_SECRET || "placeholder",
-      callbackURL: `${env.CALLBACK_URL_BASE}/github/callback`
+      callbackURL: `${env.CALLBACK_URL_BASE}/github/callback`,
+      proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -43,7 +44,8 @@ passport.use(
     {
       clientID: env.GOOGLE_CLIENT_ID || "placeholder",
       clientSecret: env.GOOGLE_CLIENT_SECRET || "placeholder",
-      callbackURL: `${env.CALLBACK_URL_BASE}/google/callback`
+      callbackURL: `${env.CALLBACK_URL_BASE}/google/callback`,
+      proxy: true
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
