@@ -10,10 +10,9 @@ import AuthModal from "../components/AuthModal";
 import SettingsModal from "../components/SettingsModal";
 import UpgradeModal from "../components/UpgradeModal";
 import AiPanel from "../components/AiPanel";
-import HistoryModal from "../components/HistoryModal";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
-import { Sparkles, History, Keyboard, Info } from "lucide-react";
+import { Sparkles, Keyboard, Info } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
@@ -183,7 +182,6 @@ export default function EditorPage() {
     };
   }, [isResizingAi, resizeAi, stopResizingAi]);
 
-  const [showHistoryModal, setShowHistoryModal] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
 
   // Responsive Hook
