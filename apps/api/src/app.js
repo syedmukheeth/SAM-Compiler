@@ -97,14 +97,16 @@ function createApp() {
     }
   });
   
-  // Rate-limited execution routes
-  routes.use("/runs", runLimiter, runsRouter);
-  routes.use("/github", githubRouter);
-  routes.use("/auth", authRouter);
-  routes.use("/ai", aiRouter);
+  // Direct Mounting Fix: Absolute paths catch redirects regardless of proxy interference
+  app.use(["/api/runs", "/runs"], runLimiter, runsRouter);
+  app.use(["/api/github", "/github"], githubRouter);
+  app.use(["/api/auth", "/auth"], authRouter);
+  app.use(["/api/ai", "/ai"], aiRouter);
 
+  // Remaining generic routes (e.g. health checks)
   app.use("/api", routes);
   app.use("/", routes);
+
 
 
 
