@@ -8,6 +8,36 @@ const { env, isVercel } = require("../../config/env");
 const { getRunsQueue, getRedisClient, WORKER_HEARTBEAT_KEY } = require("./runs.queue");
 
 /**
+ * Extracts a meaningful "title" from the run's code.
+ * Skips boilerplate, headers, and comments to find the first functional line.
+ */
+function generateRunTitle(code, runtime) {
+  if (!code) return "Empty Run";
+  const lines = code.split("\n");
+  const skipPatterns = [
+    /^\s*#include/, /^\s*import/, /^\s*package/, /^\s*using namespace/,
+    /^\s*\/\//, /^\s*\/\*/, /^\s*\*/, /^\s*$/, /^\s*{\s*$/, /^\s*}\s*$/,
+    /\*\/\s*$/, 
+    /\b(int|void|public static void)\s+main\b/,
+    /\b(class|struct|module|namespace)\b/
+  ];
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (trimmed.length > 0 && !skipPatterns.some(p => p.test(line))) {
+      return trimmed.length > 50 ? trimmed.substring(0, 47) + "..." : trimmed;
+    }
+  }
+  
+  // Minimal fallback: find first non-empty line
+  for (const line of lines) {
+     if (line.trim().length > 0) return line.trim().substring(0, 50);
+  }
+
+  return "Untitled Run";
+}
+
+/**
  * Creates and executes a run directly on this server.
  * ALL languages are executed inline — no queue/worker dependency.
  */
@@ -19,6 +49,11 @@ async function createRun(input) {
   }
   const isConnected = mongoose.connection.readyState >= 1;
 
+  // Generate a meaningful title for the history panel
+  const mainFile = input.files?.find(f => f.path === input.entrypoint) || input.files?.[0];
+  const codeForTitle = mainFile ? mainFile.content : (input.code || "");
+  const runTitle = generateRunTitle(codeForTitle, input.runtime);
+
   let run;
   let useMongo = false;
 
@@ -28,6 +63,7 @@ async function createRun(input) {
         projectId: input.projectId,
         userId: userId,
         runtime: input.runtime,
+        title: runTitle,
         status: "running",
         entrypoint: input.entrypoint,
         files: input.files,

@@ -271,7 +271,7 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
                           whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                           lineHeight: 1.3,
                         }}>
-                          {code.split("\n")[0] || "// empty"}
+                          {run.title || code.split("\n")[0] || "// empty"}
                         </div>
                         <div style={{ fontSize: 9, color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.3)", marginTop: 2, fontFamily: "var(--font-body)", fontWeight: 600, letterSpacing: "0.08em" }}>
                           {timeAgo(run.createdAt || run.startedAt)}
