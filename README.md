@@ -120,20 +120,22 @@ graph TD
     classDef engine fill:#222,stroke:#444,stroke-width:2px,color:#fff;
 
     subgraph Interface [Vercel Edge Network]
-        UI[React 18 UI / Monaco]:::interface -->|Resilient WebSocket| Term[XTerm.js Console]:::interface
+        UI["React 18 UI / Monaco"]:::interface -->|Resilient WebSocket| Term["XTerm.js Console"]:::interface
     end
 
     subgraph Core [Render API Monolith]
-        API[Express Gateway]:::api -->|Cloud Persistence| DB[(MongoDB Atlas)]:::api
-        API -->|Task Scheduling| Queue[Resilient Event Loop]:::api
+        API["Express Gateway"]:::api -->|Cloud Persistence| DB[(MongoDB Atlas)]:::api
+        API -->|Task Scheduling| Queue["Resilient Event Loop"]:::api
     end
 
     subgraph Sandbox [Execution Container]
-        Queue -->|Payload Execution| Docker[Piston Runtime / gVisor]:::engine
-        AI[Gemini Intelligence]:::engine -->|Buffered Streaming| UI
+        Queue -->|Payload Execution| Docker["Piston Runtime / gVisor"]:::engine
+        Docker -->|stdout/stderr stream| Term
+        AI["Gemini Intelligence"]:::engine -->|Buffered Streaming| UI
     end
 
     linkStyle 0,1,2,3,4,5 stroke:#888,stroke-width:1px;
+
 ```
 
 ---
