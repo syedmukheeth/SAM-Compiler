@@ -53,34 +53,44 @@ export default function AiPanel({
       let assistantMsg = { role: "model", content: "" };
       setMessages(prev => [...prev, assistantMsg]);
 
+      let buffer = "";
       // eslint-disable-next-line no-constant-condition
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
 
-        const chunk = decoder.decode(value);
-        const lines = chunk.split("\n\n");
+        buffer += decoder.decode(value, { stream: true });
         
+        let lines = buffer.split("\n");
+        // The last element might be incomplete, keep it in the buffer
+        buffer = lines.pop() || "";
+
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const dataStr = line.replace("data: ", "");
-            if (dataStr === "[DONE]") break;
-            let parsed;
-            try {
-              parsed = JSON.parse(dataStr);
-            } catch (e) {
-              continue; // ignore incomplete chunks
-            }
+          const trimmedLine = line.trim();
+          if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
+          
+          const dataStr = trimmedLine.replace("data: ", "");
+          if (dataStr === "[DONE]") break;
+          
+          try {
+            const parsed = JSON.parse(dataStr);
             if (parsed.error) throw new Error(parsed.error);
-            assistantMsg.content += parsed.chunk;
-            setMessages(prev => {
-              const newMsgs = [...prev];
-              newMsgs[newMsgs.length - 1] = { ...assistantMsg };
-              return newMsgs;
-            });
+            if (parsed.chunk) {
+              assistantMsg.content += parsed.chunk;
+              setMessages(prev => {
+                const newMsgs = [...prev];
+                newMsgs[newMsgs.length - 1] = { ...assistantMsg };
+                return newMsgs;
+              });
+            }
+          } catch (e) {
+            console.warn("⚠️ [SAM AI] Failed to parse message line:", trimmedLine);
+            // If it's a real error from the backend, we should throw it
+            if (trimmedLine.includes('"error"')) throw new Error("AI stream corrupted or malformed. Please try again.");
           }
         }
       }
+
     } catch (err) {
       setMessages(prev => [...prev, { role: "model", content: `❌ Error: ${err.message}` }]);
     } finally {

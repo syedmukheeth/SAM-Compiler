@@ -21,6 +21,7 @@ Be concise but extremely insightful. End your response with a brief technical su
 
 /**
  * Basic retry wrapper for transient AI failures (503, 429)
+ * CRITICAL: This should only be used for the INITIAL API call.
  */
 async function withRetry(fn, maxRetries = 2) {
   let lastErr;
@@ -98,18 +99,30 @@ async function streamChat(context, onChunk) {
     ],
   });
 
-  return withRetry(async () => {
+  // INITIAL CONNECTION RETRY
+  const result = await withRetry(async () => {
     try {
-      const result = await chat.sendMessageStream(messages[messages.length - 1].content);
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        onChunk(chunkText);
-      }
+      return await chat.sendMessageStream(messages[messages.length - 1].content);
     } catch (err) {
-      logger.error({ err }, "Gemini AI streaming failed");
+      logger.error({ err }, "Gemini AI stream initialization failed");
       throw err;
     }
   });
+
+  // STREAM CONSUMPTION (No retry here to avoid corrupting active stream)
+  try {
+    for await (const chunk of result.stream) {
+      try {
+        const chunkText = chunk.text();
+        if (chunkText) onChunk(chunkText);
+      } catch (e) {
+        logger.warn("Empty chunk received or failed to parse chunk text");
+      }
+    }
+  } catch (err) {
+    logger.error({ err }, "Gemini AI streaming interrupted");
+    throw new Error("AI Stream interrupted due to connection issues. Please try again.");
+  }
 }
 
 module.exports = { generateRefactor, streamChat };
