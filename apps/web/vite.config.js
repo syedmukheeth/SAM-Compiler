@@ -32,7 +32,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin === self.location.origin,
+            urlPattern: ({ url }) => url.origin === url.origin, // Matches same-origin
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'sam-assets',

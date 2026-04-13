@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import Modal from "./Modal";
 import { login, register } from "../services/authApi";
-import { Mail, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 // The Render backend URL — OAuth MUST start here directly, it cannot be proxied
 const RENDER_API = "https://sam-compiler.onrender.com";

@@ -6,8 +6,8 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
-import AuthModal from "../components/AuthModal";
 import SettingsModal from "../components/SettingsModal";
+import AuthModal from "../components/AuthModal";
 import UpgradeModal from "../components/UpgradeModal";
 import HistoryPanel from "../components/HistoryPanel";
 import AiPanel from "../components/AiPanel";
@@ -19,7 +19,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
 import favicon from "../assets/favicon.svg";
 import faviconLight from "../assets/favicon-light.svg";
-import StatusBar from "../components/StatusBar";
 
 // Real SAM logo using imported assets
 function SamNavLogo({ theme }) {
@@ -163,10 +162,8 @@ export default function EditorPage() {
   const [theme, setTheme] = useState(localStorage.getItem("sam-theme") || "dark");
   
   const [showAiPanel, setShowAiPanel] = useState(false);
-  const [aiPanelWidth, setAiPanelWidth] = useState(() => {
-    const saved = localStorage.getItem('sam-ai-width');
-    return saved ? parseInt(saved) : 500;
-  });
+  const [aiPanelWidth, setAiPanelWidth] = useState(400);
+
   const [isResizingAi, setIsResizingAi] = useState(false);
 
   const startResizingAi = useCallback((e) => {
@@ -222,7 +219,6 @@ export default function EditorPage() {
   const [activeModal, setActiveModal] = useState(null); 
   const [showHistory, setShowHistory] = useState(false);
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
-  const [isApiOnline, setIsApiOnline] = useState(true);
   const [socketIsConnected, setSocketIsConnected] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
   
@@ -249,18 +245,6 @@ export default function EditorPage() {
     document.body.style.userSelect = 'auto';
   }, []);
 
-  const onReset = useCallback(() => {
-    if (window.confirm(`Are you sure? This will reset your ${activeLangId} code to the default boilerplate.`)) {
-      setBuffers(prev => ({ 
-        ...prev, 
-        [activeLangId]: languageConfigs[activeLangId]?.template || "" 
-      }));
-      toast.success("Code reset successful", {
-        icon: '🔄',
-        style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '10px', fontWeight: 700 }
-      });
-    }
-  }, [activeLangId]);
 
   // Load code from history into the editor
   const handleLoadFromHistory = useCallback((runtime, code) => {
@@ -316,7 +300,6 @@ export default function EditorPage() {
   useEffect(() => {
     const checkStatus = async () => {
       if (!navigator.onLine) {
-        setIsApiOnline(false);
         setIsWorkerOnline(false);
         return;
       }
@@ -324,14 +307,11 @@ export default function EditorPage() {
         const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
         if (res.ok) {
           const data = await res.json();
-          setIsApiOnline(true);
           setIsWorkerOnline(data.workerOnline);
         } else {
-          setIsApiOnline(false);
           setIsWorkerOnline(false);
         }
       } catch (err) {
-        setIsApiOnline(false);
         setIsWorkerOnline(false);
       }
     };
@@ -353,9 +333,6 @@ export default function EditorPage() {
   useEffect(() => {
     const handleStatus = (e) => {
       setSocketIsConnected(e.detail.connected);
-      if (!e.detail.connected) {
-        setIsApiOnline(false);
-      }
     };
     window.addEventListener("sam:socket:status", handleStatus);
     return () => window.removeEventListener("sam:socket:status", handleStatus);

@@ -30,7 +30,9 @@ export default [
         confirm: "readonly",
         alert: "readonly",
         URLSearchParams: "readonly",
-        URL: "readonly"
+        URL: "readonly",
+        CustomEvent: "readonly",
+        Event: "readonly"
       }
     },
     rules: {

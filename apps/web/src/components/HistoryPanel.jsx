@@ -177,7 +177,7 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
                     Sign in to see history
                   </div>
                   <div style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)", fontFamily: "var(--font-body)", lineHeight: 1.6 }}>
-                    Your compiled code runs are saved when you're logged in.
+                    Your compiled code runs are saved when you&apos;re logged in.
                   </div>
                 </div>
               )}

@@ -123,7 +123,7 @@ export default function AiPanel({
         <span className={`font-medium ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>{children}</span>
       </li>
     ),
-    code({ node, inline, className, children, ...props }) {
+    code({ inline, className, children, ...props }) {
       const match = /language-(\w+)/.exec(className || "");
       const codeStr = String(children).replace(/\n$/, "");
       const isDark = theme === 'dark';
