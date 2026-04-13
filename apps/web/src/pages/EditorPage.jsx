@@ -936,7 +936,7 @@ builtins.input = input_shim
         <StatusBar 
           language={activeLangId.toUpperCase()}
           position={`Ln ${metrics?.lastLine || 1}, Col ${metrics?.lastCol || 1}`}
-          status={busy ? "Executing..." : "Ready"}
+          status={busy ? "EXECUTING..." : "SAM ONLINE"}
           isOnline={socketIsConnected}
           onReportBug={() => setIsFeedbackModalOpen(true)}
           theme={theme}
