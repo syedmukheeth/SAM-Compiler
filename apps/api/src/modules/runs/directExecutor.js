@@ -301,7 +301,7 @@ async function executeDirectly(run, onLog) {
       
       try {
         await fs.access(cachedBinPath);
-        if (onLog) onLog(jobId, "stdout", "✨ \x1b[1;32mBinary Cache Hit! Skipping compilation...\x1b[0m\n\r\n");
+        // Silenced cache hit log for cleaner output
         await fs.copyFile(cachedBinPath, outPath);
       } catch (e) {
         await fs.writeFile(filePath, code);
@@ -321,7 +321,7 @@ async function executeDirectly(run, onLog) {
       
       try {
         await fs.access(cachedBinPath);
-        if (onLog) onLog(jobId, "stdout", "✨ \x1b[1;32mBinary Cache Hit! Skipping compilation...\x1b[0m\n\r\n");
+        // Silenced cache hit log for cleaner output
         await fs.copyFile(cachedBinPath, outPath);
       } catch (e) {
         await fs.writeFile(filePath, code);
@@ -353,7 +353,7 @@ async function executeDirectly(run, onLog) {
       
       try {
         await fs.access(cachedBinPath);
-        if (onLog) onLog(jobId, "stdout", "✨ \x1b[1;32mBinary Cache Hit! Skipping compilation...\x1b[0m\n\r\n");
+        // Silenced cache hit log for cleaner output
         await fs.copyFile(cachedBinPath, outClassPath);
       } catch (e) {
         await fs.writeFile(javaFilePath, code);
