@@ -939,6 +939,8 @@ builtins.input = input_shim
           status={busy ? "Executing..." : "Ready"}
           isOnline={socketIsConnected}
           onReportBug={() => setIsFeedbackModalOpen(true)}
+          theme={theme}
+          busy={busy}
         />
       </footer>
 
