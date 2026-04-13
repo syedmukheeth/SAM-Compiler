@@ -29,26 +29,46 @@ export function getSocket() {
   });
 
   socket.on("connect_error", (err) => {
+    // SILENT MODE: If the hardware says we are offline, don't spam the console.
+    if (!navigator.onLine) return;
+
     console.error("❌ [SAM Compiler] WebSocket Connection Error:", err.message);
-    // Force transport to polling if websocket fails consistently
+    
+    // Fallback strategy for Render
     if (socket.io.opts.transports.includes("websocket")) {
-       console.warn("⚠️ [SAM Compiler] WebSocket upgrade failed, sticking to polling...");
+       console.warn("⚠️ [SAM Compiler] Potential proxy block: Falling back to polling for stability.");
        socket.io.opts.transports = ["polling"];
     }
+
     window.dispatchEvent(new CustomEvent("sam:socket:status", { 
       detail: { connected: false, status: "error", message: err.message } 
     }));
   });
 
   socket.on("disconnect", (reason) => {
-    console.warn("⚠️ [SAM Compiler] WebSocket Disconnected:", reason);
+    // Only log if it's not a voluntary OS-level offline event
+    if (navigator.onLine) {
+      console.warn("⚠️ [SAM Compiler] WebSocket Disconnected:", reason);
+    }
+
     if (reason === "io server disconnect") {
-      // the disconnection was initiated by the server, you need to reconnect manually
       socket.connect();
     }
+
     window.dispatchEvent(new CustomEvent("sam:socket:status", { 
       detail: { connected: false, status: "offline", reason } 
     }));
+  });
+
+  // OS-LEVEL SYNC: Force socket state to match hardware state
+  window.addEventListener("online", () => {
+    console.log("🌐 [SAM Compiler] Internet recovered. Forcing clean reconnection...");
+    socket.connect();
+  });
+
+  window.addEventListener("offline", () => {
+    console.warn("🌐 [SAM Compiler] Internet hardware disconnected. Suspending sync.");
+    socket.disconnect();
   });
 
   return socket;
