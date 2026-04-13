@@ -36,9 +36,10 @@ aiRouter.post("/chat", async (req, res) => {
     res.end();
   } catch (err) {
     logger.error({ err }, "Chat stream route failed");
-    res.write(`data: ${JSON.stringify({ error: err.message })}\n\n`);
+    res.write(`data: ${JSON.stringify({ error: err.message, terminal: true })}\n\n`);
     res.end();
   }
+
 });
 
 module.exports = { aiRouter };

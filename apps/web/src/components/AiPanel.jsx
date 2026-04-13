@@ -74,7 +74,12 @@ export default function AiPanel({
           
           try {
             const parsed = JSON.parse(dataStr);
-            if (parsed.error) throw new Error(parsed.error);
+            if (parsed.error) {
+              // Only throw if it's a terminal error from the backend
+              if (parsed.terminal) throw new Error(parsed.error);
+              console.warn("⚠️ [SAM AI] Non-terminal error in stream:", parsed.error);
+              continue;
+            }
             if (parsed.chunk) {
               assistantMsg.content += parsed.chunk;
               setMessages(prev => {
@@ -84,12 +89,20 @@ export default function AiPanel({
               });
             }
           } catch (e) {
-            console.warn("⚠️ [SAM AI] Failed to parse message line:", trimmedLine);
-            // If it's a real error from the backend, we should throw it
-            if (trimmedLine.includes('"error"')) throw new Error("AI stream corrupted or malformed. Please try again.");
+            // Only throw if we have a definitive error signature or a terminal state issue
+            // Otherwise, we log and try to continue the stream if it's just a fragmentation glitch
+            const isTerminalError = dataStr.includes('"terminal":true') || dataStr.includes('"error"');
+            
+            if (isTerminalError) {
+               console.error("❌ [SAM AI] Terminal error received:", dataStr);
+               throw new Error(e.message.includes("JSON") ? "AI stream corrupted. Please try again." : e.message);
+            } else {
+               console.warn("⚠️ [SAM AI] Fragmented line received (ignoring):", dataStr);
+            }
           }
         }
       }
+
 
     } catch (err) {
       setMessages(prev => [...prev, { role: "model", content: `❌ Error: ${err.message}` }]);
