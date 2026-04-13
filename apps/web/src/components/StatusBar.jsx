@@ -1,4 +1,4 @@
-import { Bug, Linkedin } from "lucide-react";
+import { Bug, User } from "lucide-react";
 
 export default function StatusBar({ 
   language = "JavaScript", 
@@ -101,7 +101,7 @@ export default function StatusBar({
                ? 'bg-white/5 border-white/10 text-white/80 hover:bg-[#ff3b3b]/15 hover:border-[#ff3b3b]/40 hover:text-[#ff3b3b] hover:shadow-[0_0_12px_rgba(255,59,59,0.25)]' 
                : 'bg-slate-100 border-slate-200 text-slate-700 hover:bg-blue-600 hover:border-blue-600 hover:text-white'
           }`}>
-            <Linkedin className="h-3 w-3" />
+            <User className="h-3 w-3" />
             <span className={`text-[9px] font-black uppercase tracking-wider`}>
               SYED MUKHEETH
             </span>
