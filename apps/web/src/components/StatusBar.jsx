@@ -21,7 +21,7 @@ export default function StatusBar({
   busy = false 
 }) {
   return (
-    <div className={`relative flex w-full items-center justify-between px-6 py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 backdrop-blur-xl ${
+    <div className={`relative flex w-full items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 backdrop-blur-xl ${
       theme === 'dark' 
         ? 'bg-black/95 text-white/70 border-t border-white/5' 
         : 'bg-white/95 text-slate-600 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)] border-t border-slate-100'
@@ -51,7 +51,7 @@ export default function StatusBar({
         <span className="flex items-center gap-2 relative group cursor-default">
           <div className={`absolute -inset-1.5 rounded-full blur-md transition-all duration-500 ${isOnline ? 'bg-emerald-500/30' : 'bg-red-500/30'} animate-pulse`} />
           <div className={`relative h-2.5 w-2.5 rounded-full transition-all duration-500 ring-2 ring-black/20 ${isOnline ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]' : 'bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]'}`} />
-          <span className={`relative ml-1 tracking-[0.3em] transition-all duration-300 ${isOnline ? "text-emerald-500 font-black drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]"}`}>
+          <span className={`relative ml-1 text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 ${isOnline ? "text-emerald-500 font-black drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]"}`}>
             {isOnline ? status : "OFFLINE"}
           </span>
         </span>
@@ -82,15 +82,16 @@ export default function StatusBar({
           title="Report a bug"
         >
           <Bug className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
-          <span className="tracking-[0.2em] font-black opacity-80 group-hover:opacity-100">Report Bug</span>
+          <span className="tracking-[0.2em] font-black opacity-80 group-hover:opacity-100 hidden sm:inline">Report Bug</span>
+          <span className="tracking-[0.2em] font-black opacity-80 group-hover:opacity-100 inline sm:hidden">Report</span>
         </button>
       </div>
 
       <div className="flex items-center gap-4 md:gap-7">
-        <span className={`font-black tracking-[0.3em] hidden sm:block ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>SAM © 2026</span>
-        <span className={`opacity-10 hidden sm:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
+        <span className={`font-black tracking-[0.3em] hidden lg:block ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>SAM © 2026</span>
+        <span className={`opacity-10 hidden lg:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
 
-        <div className="flex items-center gap-4">
+        <div className="hidden sm:flex items-center gap-4">
           <span className={`font-mono tracking-widest opacity-60 ${theme === 'dark' ? 'text-white' : 'text-slate-600'}`}>{position}</span>
           <span className="rounded-md px-3 py-1 font-black shadow-lg transition-all hover:bg-opacity-80" style={{ 
             background: theme === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8fafc', 
@@ -105,21 +106,21 @@ export default function StatusBar({
           href="https://linkedin.com/in/syedmukheeth" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className={`group hidden lg:flex items-center gap-3 transition-all active:scale-95`}
+          className={`group flex items-center gap-2 sm:gap-3 transition-all active:scale-95`}
         >
-          <span className={`text-[8.5px] font-black uppercase tracking-[0.3em] transition-opacity lg:inline ${
+          <span className={`text-[8.5px] font-black uppercase tracking-[0.3em] transition-opacity hidden lg:inline ${
             theme === 'dark' ? 'text-white/30 group-hover:text-white/60' : 'text-slate-400 group-hover:text-slate-800'
           }`}>
             BUILT BY
           </span>
-          <div className={`flex items-center gap-2.5 rounded-md py-1.5 px-3 border transition-all duration-300 ${
+          <div className={`flex items-center gap-2 rounded-md py-1.5 px-2.5 sm:px-3 border transition-all duration-300 ${
              theme === 'dark' 
                ? 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] hover:bg-[#0077b5] hover:text-white hover:shadow-[0_0_25px_rgba(0,119,181,0.6)]' 
                : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-[#0077b5] hover:border-[#0077b5] hover:text-white hover:shadow-xl'
           }`}>
             <LinkedinIcon className="h-3.5 w-3.5 transition-transform group-hover:scale-110" />
-            <span className={`text-[9.5px] font-black uppercase tracking-[0.25em]`}>
-              SYED MUKHEETH
+            <span className={`text-[9.5px] font-black uppercase tracking-[0.2em] sm:tracking-[0.25em] whitespace-nowrap`}>
+              SYED M.
             </span>
           </div>
         </a>
