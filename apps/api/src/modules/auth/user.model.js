@@ -11,7 +11,9 @@ const UserSchema = new mongoose.Schema({
   githubToken: { type: String },
   githubUsername: { type: String },
   isVerified: { type: Boolean, default: false },
-  role: { type: String, enum: ['user', 'admin'], default: 'user' }
+  role: { type: String, enum: ['user', 'admin'], default: 'user' },
+  resetPasswordToken: { type: String },
+  resetPasswordExpires: { type: Date }
 }, {
   timestamps: true
 });

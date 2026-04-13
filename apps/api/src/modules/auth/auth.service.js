@@ -1,4 +1,5 @@
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("./user.model");
 const { env } = require("../../config/env");
 
@@ -49,9 +50,58 @@ async function getUserById(id) {
   return user;
 }
 
+/**
+ * 🔐 FORGOT PASSWORD: Generate reset token
+ */
+async function generateResetToken(email) {
+  const user = await User.findOne({ email, provider: 'email' });
+  if (!user) throw new Error("No account found with that email.");
+
+  // Generate 32-char hex token
+  const resetToken = crypto.randomBytes(32).toString("hex");
+  
+  // Hash the token so we don't store the raw secret in DB
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  user.resetPasswordToken = hashedToken;
+  user.resetPasswordExpires = Date.now() + 3600000; // 1 Hour
+
+  await user.save();
+  return resetToken; // Return the RAW token to the caller (it will be sent via email)
+}
+
+/**
+ * 🔓 RESET PASSWORD: Verify token and update password
+ */
+async function resetPassword(token, newPassword) {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() }
+  });
+
+  if (!user) throw new Error("Reset token is invalid or has expired.");
+
+  user.password = newPassword;
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpires = undefined;
+  
+  await user.save();
+  return user;
+}
+
 module.exports = {
   register,
   login,
   generateToken,
-  getUserById
+  getUserById,
+  generateResetToken,
+  resetPassword
 };

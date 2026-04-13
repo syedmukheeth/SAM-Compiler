@@ -1,9 +1,17 @@
 const express = require("express");
 const rateLimit = require("express-rate-limit");
-const { register, login, getUserById, generateToken } = require("./auth.service");
+const { 
+  register, 
+  login, 
+  getUserById, 
+  generateToken, 
+  generateResetToken, 
+  resetPassword 
+} = require("./auth.service");
 const { authMiddleware } = require("../../middleware/auth.middleware");
 const { env } = require("../../config/env");
 const passport = require("passport");
+const EmailService = require("../../services/email.service");
 
 const router = express.Router();
 
@@ -20,7 +28,6 @@ const authLimiter = rateLimit({
 // Social Auth Redirects
 router.get("/github", (req, res, next) => {
   if (!env.GITHUB_CLIENT_ID || env.GITHUB_CLIENT_ID === "placeholder") {
-
     return res.status(400).json({ 
       message: "GitHub Integration is not configured. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to your environment variables." 
     });
@@ -38,7 +45,6 @@ router.get("/google", (req, res, next) => {
 
 // Social Auth Callbacks
 router.get("/github/callback", (req, res, next) => {
-  // PRIME MODE: Absolute hard-enforcement of the Vercel production origin
   const frontendUrl = "https://sam-compiler-web.vercel.app";
       
   passport.authenticate("github", { 
@@ -56,9 +62,7 @@ router.get("/github/callback", (req, res, next) => {
 
 
 router.get("/google/callback", (req, res, next) => {
-  // PRIME MODE: Absolute hard-enforcement of the Vercel production origin
   const frontendUrl = "https://sam-compiler-web.vercel.app";
-
 
   passport.authenticate("google", { 
     failureRedirect: `${frontendUrl}/?error=auth_failed`, 
@@ -72,7 +76,6 @@ router.get("/google/callback", (req, res, next) => {
     res.redirect(`${frontendUrl}/?token=${token}`);
   })(req, res, next);
 });
-
 
 
 router.get("/me", authMiddleware, async (req, res) => {
@@ -113,25 +116,32 @@ router.post("/login", authLimiter, async (req, res, next) => {
   }
 });
 
-// 📬 RECOVER: Forgot Password Flow (Mocked Email)
+// 📬 RECOVER: Forgot Password Flow
 router.post("/forgot-password", authLimiter, async (req, res) => {
   try {
     const { email } = req.body;
-    // In a real app, you would generate a token and send an email
-    // For now, we simulate success for existing users
-    console.log(`[AUTH-DEBUG] Password reset requested for: ${email}`);
-    res.json({ message: "If an account exists, a reset link has been sent (Simulated)." });
+    if (!email) return res.status(400).json({ message: "Email is required" });
+
+    const token = await generateResetToken(email);
+    await EmailService.sendPasswordResetEmail(email, token);
+
+    res.json({ message: "If an account exists, a reset link has been sent." });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error(`[AUTH] Forgot password error: ${err.message}`);
+    // Return success anyway to prevent enumeration
+    res.json({ message: "If an account exists, a reset link has been sent." });
   }
 });
 
 router.post("/reset-password", authLimiter, async (req, res) => {
   try {
     const { token, password } = req.body;
-    // Token validation and password update logic would go here
-    console.log(`[AUTH-DEBUG] Attempting password reset with token: ${token}. Password length: ${password?.length}`);
-    res.json({ message: "Password has been reset successfully (Simulated)." });
+    if (!token || !password) {
+      return res.status(400).json({ message: "Token and password are required" });
+    }
+
+    await resetPassword(token, password);
+    res.json({ message: "Password has been reset successfully." });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

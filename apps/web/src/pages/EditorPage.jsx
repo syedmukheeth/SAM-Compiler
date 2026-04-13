@@ -21,6 +21,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
 import OfficialLogo, { OFFICIAL_LOGO_WHITE, OFFICIAL_LOGO_BLACK } from "../components/OfficialLogo";
+import analytics from "../services/analytics";
 
 // Real SAM logo using official high-fidelity vector assets
 function SamNavLogo({ theme }) {
@@ -207,6 +208,7 @@ builtins.input = input_shim
     const language = activeConfig.lang;
     if (busy) return;
     setBusy(true);
+    analytics.trackCodeRun(activeLangId, null); // Track execution attempt
     const socket = getSocket();
     if (runRef.current.jobId) {
       socket.emit("unsubscribe", { jobId: runRef.current.jobId });
@@ -247,7 +249,9 @@ builtins.input = input_shim
            else if (evt.type === "stderr") xtermRef.current.write(`\x1b[31m${evt.chunk}\x1b[0m`);
         }
         if (evt.type === "end") {
-          setRunStatus(evt.status === "succeeded" ? "Succeeded" : "Failed");
+          const success = evt.status === "succeeded";
+          setRunStatus(success ? "Succeeded" : "Failed");
+          analytics.trackCodeRun(activeLangId, success); // Track completion status
           if (evt.chunk?.metrics) setMetrics(evt.chunk.metrics);
           setBusy(false);
         }

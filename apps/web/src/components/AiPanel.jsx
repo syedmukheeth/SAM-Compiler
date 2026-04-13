@@ -6,6 +6,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ENDPOINTS from "../services/endpoints";
+import analytics from "../services/analytics";
 
 export default function AiPanel({ 
   isOpen, 
@@ -36,6 +37,7 @@ export default function AiPanel({
 
     const userMsg = { role: "user", content: input };
     setMessages(prev => [...prev, userMsg]);
+    analytics.trackAiInteraction("chat", input.length); // Track the interaction
     setInput("");
     setLoading(true);
 
