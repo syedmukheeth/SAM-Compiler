@@ -2,8 +2,10 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { logger } = require("../../config/logger");
 
 // Initialize Gemini
-// The API Key should be provided in the request or env
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
+
+// SAM AI Configuration
+const DEFAULT_MODEL = "gemini-1.5-flash"; 
 
 const SAM_AI_PERSONA = `
 You are Sam AI, an Elite Coding Partner and Principal Software Engineer.
@@ -18,12 +20,33 @@ Be concise but extremely insightful. End your response with a brief technical su
 `;
 
 /**
+ * Basic retry wrapper for transient AI failures (503, 429)
+ */
+async function withRetry(fn, maxRetries = 2) {
+  let lastErr;
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const statusCode = err.status || (err.response && err.response.status);
+      const isRetryable = statusCode === 503 || statusCode === 429 || err.message.includes("high demand");
+      
+      if (!isRetryable) throw err;
+      
+      logger.warn({ attempt: i + 1, err: err.message }, "Transient AI failure, retrying...");
+      await new Promise(r => setTimeout(r, 1000 * (i + 1))); 
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Generates an AI response based on the current editor context and SRE metrics.
  */
 async function generateRefactor(context) {
   const { code, language, metrics, query } = context;
-  
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
 
   const prompt = `
 ${SAM_AI_PERSONA}
@@ -43,14 +66,16 @@ ${code}
 \`\`\`
   `;
 
-  try {
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    return response.text();
-  } catch (err) {
-    logger.error({ err }, "Gemini AI generation failed");
-    throw new Error("AI Assistant is currently unavailable. Check your GEMINI_API_KEY.");
-  }
+  return withRetry(async () => {
+    try {
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text();
+    } catch (err) {
+      logger.error({ err }, "Gemini AI generation failed");
+      throw new Error(`AI Assistant is currently facing high demand (${err.message}). Please try again in a moment.`);
+    }
+  });
 }
 
 /**
@@ -58,7 +83,7 @@ ${code}
  */
 async function streamChat(context, onChunk) {
   const { code, language, messages } = context;
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
 
   const chat = model.startChat({
     history: [
@@ -73,16 +98,18 @@ async function streamChat(context, onChunk) {
     ],
   });
 
-  try {
-    const result = await chat.sendMessageStream(messages[messages.length - 1].content);
-    for await (const chunk of result.stream) {
-      const chunkText = chunk.text();
-      onChunk(chunkText);
+  return withRetry(async () => {
+    try {
+      const result = await chat.sendMessageStream(messages[messages.length - 1].content);
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        onChunk(chunkText);
+      }
+    } catch (err) {
+      logger.error({ err }, "Gemini AI streaming failed");
+      throw err;
     }
-  } catch (err) {
-    logger.error({ err }, "Gemini AI streaming failed");
-    throw err;
-  }
+  });
 }
 
 module.exports = { generateRefactor, streamChat };
