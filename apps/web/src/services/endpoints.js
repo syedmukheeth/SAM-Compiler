@@ -15,9 +15,19 @@ export const ENDPOINTS = {
   API_BASE_URL: "/api",
 
   // WebSocket Endpoint: Smart detection for Local vs Production
-  WS_ENDPOINT: (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
-    ? `http://${window.location.hostname}:8080`
-    : RENDER_BASE,
+  WS_ENDPOINT: (() => {
+    const host = window.location.hostname;
+    const isLocal = host === "localhost" || 
+                    host === "127.0.0.1" || 
+                    host === "0.0.0.0" ||
+                    host.startsWith("192.168.") || 
+                    host.startsWith("10.") || 
+                    host.startsWith("172.");
+    
+    const endpoint = isLocal ? `http://${host}:8080` : RENDER_BASE;
+    console.log(`📡 [SAM Compiler] Detected Host: ${host} | Routing to: ${endpoint}`);
+    return endpoint;
+  })(),
 
   // SOCKET_OPTIONS: Optimized for Render's container handshake
   SOCKET_OPTIONS: {
