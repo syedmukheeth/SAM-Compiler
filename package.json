@@ -12,7 +12,9 @@
     "start:api": "npm start -w @sam/api",
     "start:worker": "npm start -w @sam/worker",
     "dev": "concurrently -n api,worker,web -c blue,magenta,green \"npm run dev -w @sam/api\" \"npm run dev -w @sam/worker\" \"npm run dev -w @sam/web\"",
-    "build": "npm install && npm run build -ws",
+    "build": "npm run build -ws --if-present",
+    "build:web": "npm run build -w @sam/web",
+    "build:api": "npm run build -w @sam/api",
     "lint": "npm run lint -ws"
   },
   "devDependencies": {
