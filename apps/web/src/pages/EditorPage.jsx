@@ -17,15 +17,13 @@ import { Sparkles, Keyboard, Clock } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
-import favicon from "../assets/favicon.svg";
-import faviconLight from "../assets/favicon-light.svg";
+import OfficialLogo, { OFFICIAL_LOGO_WHITE, OFFICIAL_LOGO_BLACK } from "../components/OfficialLogo";
 
-// Real SAM logo using imported assets
+// Real SAM logo using official high-fidelity vector assets
 function SamNavLogo({ theme }) {
-  const src = theme === 'dark' ? favicon : faviconLight;
   return (
-    <div className="flex h-10 w-10 items-center justify-center transition-all duration-500 hover:scale-110">
-      <img src={src} alt="SAM" style={{ width: 32, height: 32 }} />
+    <div className="hover:scale-110 transition-all duration-500">
+      <OfficialLogo theme={theme} size={32} />
     </div>
   );
 }
@@ -121,50 +119,182 @@ function ThemeToggle({ theme, toggle }) {
 }
 
 export default function EditorPage() {
+  // --- State Initialization ---
   const [activeLangId, setActiveLangId] = useState("cpp");
   const [buffers, setBuffers] = useState(
     Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.template]))
   );
   const [runStatus, setRunStatus] = useState("Ready");
   const [metrics, setMetrics] = useState(null);
-  
   const [searchParams, setSearchParams] = useSearchParams();
-  
-  // High-fidelity session derivation
+  const [busy, setBusy] = useState(false);
+  const [activeModal, setActiveModal] = useState(null); 
+  const [showHistory, setShowHistory] = useState(false);
+  const [isWorkerOnline, setIsWorkerOnline] = useState(false);
+  const [socketIsConnected, setSocketIsConnected] = useState(true);
+  const [activeMobileTab, setActiveMobileTab] = useState('editor');
+  const [leftPanelWidth, setLeftPanelWidth] = useState(60); 
+  const [isResizing, setIsResizing] = useState(false);
+  const [theme, setTheme] = useState(localStorage.getItem("sam-theme") || "dark");
+  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [aiPanelWidth, setAiPanelWidth] = useState(Number(localStorage.getItem('sam-ai-width')) || 400);
+  const [isResizingAi, setIsResizingAi] = useState(false);
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [pyodide, setPyodide] = useState(null);
+  const [isPyodideLoading, setIsPyodideLoading] = useState(false);
+
+  const { user, token, loginUser, logoutUser } = useAuth();
+
+  const containerRef = useRef(null);
+  const terminalRef = useRef(null);
+  const xtermRef = useRef(null);
+  const fitAddonRef = useRef(null);
+  const runRef = useRef({ jobId: null });
+
+  // --- Helpers & Logic ---
+
   const sessionId = useMemo(() => {
     const s = searchParams.get("session");
     const raw = (s && s !== "default") ? s : "default";
     return `${raw}_${activeLangId}`;
   }, [searchParams, activeLangId]);
 
-  useEffect(() => {
-    // PRIME MODE: High-Fidelity Authentication Diagnostic
-    const sessionParam = searchParams.get("session");
-    const tokenParam = searchParams.get("token");
-    
-    if (tokenParam) {
-      console.log("[SAM-AUTH] Token found in URL, initiating verification...");
+  const onCodeChange = useCallback((value) => {
+    setBuffers((b) => ({ ...b, [activeLangId]: value ?? "" }));
+  }, [activeLangId]);
+
+  const handleLoadFromHistory = useCallback((runtime, code) => {
+    const langMap = { javascript: 'javascript', nodejs: 'javascript', python: 'python', cpp: 'cpp', c: 'c', java: 'java' };
+    const langId = langMap[runtime] || 'cpp';
+    setActiveLangId(langId);
+    window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: code } }));
+    setBuffers(prev => ({ ...prev, [langId]: code }));
+    toast.success('Code loaded from history', {
+      icon: '📦',
+      style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '11px', fontWeight: 700 }
+    });
+  }, []);
+
+  const runPythonInBrowser = useCallback(async (code) => {
+    if (!pyodide) throw new Error("Python engine is still booting...");
+    pyodide.setStdout({ batched: (str) => { xtermRef.current.write(str); } });
+    pyodide.setStderr({ batched: (str) => { xtermRef.current.write(str); } });
+    try {
+      await pyodide.runPythonAsync(`
+import builtins
+from js import window
+def input_shim(prompt=""):
+    return window.prompt(prompt) or ""
+builtins.input = input_shim
+      `);
+      await pyodide.runPythonAsync(code);
+      setRunStatus("Succeeded");
+    } catch (err) {
+      xtermRef.current.write(err.message + "\r\n");
+      setRunStatus("Failed");
     }
+  }, [pyodide]);
 
-    if (!sessionParam || sessionParam === "default") {
-      const fresh = Math.random().toString(36).substring(2, 9);
-      const newParams = { session: fresh };
-      if (tokenParam) newParams.token = tokenParam;
-      
-      console.log(`[SAM-SESSION] Initializing fresh session: ${fresh}`);
-      setSearchParams(newParams, { replace: true });
+  const onRun = useCallback(async () => {
+    const activeConfig = languageConfigs[activeLangId];
+    const code = buffers[activeLangId] ?? "";
+    const language = activeConfig.lang;
+    if (busy) return;
+    setBusy(true);
+    const socket = getSocket();
+    if (runRef.current.jobId) {
+      socket.emit("unsubscribe", { jobId: runRef.current.jobId });
+      socket.off("exec:log");
     }
-  }, [searchParams, setSearchParams]);
+    if (xtermRef.current) {
+      xtermRef.current.reset();
+      xtermRef.current.write("\x1b[2J\x1b[0;0H");
+    }
+    setRunStatus("Running");
+    setMetrics(null);
+    if (activeLangId === "python") {
+      try {
+        await runPythonInBrowser(code);
+        setBusy(false);
+        return;
+      } catch (err) {
+        xtermRef.current.write("\x1b[1;31m" + err.message + "\x1b[0m\r\n");
+        setRunStatus("Failed");
+        setBusy(false);
+        return;
+      }
+    }
+    try {
+      const { jobId } = await submitRun({ language, code });
+      runRef.current.jobId = jobId;
+      const sendSubscription = () => socket.emit("subscribe", { jobId });
+      if (!socket.connected) {
+        socket.once("connect", sendSubscription);
+        socket.connect();
+      } else {
+        sendSubscription();
+      }
+      const onLog = (evt) => {
+        if (!evt || runRef.current.jobId !== jobId) return;
+        if (xtermRef.current) {
+           if (evt.type === "stdout") xtermRef.current.write(evt.chunk);
+           else if (evt.type === "stderr") xtermRef.current.write(`\x1b[31m${evt.chunk}\x1b[0m`);
+        }
+        if (evt.type === "end") {
+          setRunStatus(evt.status === "succeeded" ? "Succeeded" : "Failed");
+          if (evt.chunk?.metrics) setMetrics(evt.chunk.metrics);
+          setBusy(false);
+        }
+      };
+      socket.on("exec:log", onLog);
+      await pollUntilDone(jobId, {
+        onUpdate: (s) => {
+          if (runRef.current.jobId !== jobId) return;
+          setRunStatus(s.status.charAt(0).toUpperCase() + s.status.slice(1));
+        }
+      });
+      socket.off("exec:log", onLog);
+      socket.emit("unsubscribe", { jobId });
+    } catch (e) {
+      setRunStatus("Failed");
+      if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${e?.message || String(e)}\x1b[0m\r\n`);
+    } finally {
+      setBusy(false);
+    }
+  }, [activeLangId, buffers, busy, runPythonInBrowser]);
 
+  const onClear = () => {
+    if (xtermRef.current) xtermRef.current.clear();
+    setRunStatus("Ready");
+  };
 
+  const handleCodeReset = useCallback(() => {
+    const template = languageConfigs[activeLangId]?.template || "";
+    if (window.confirm(`[SYSTEM OVERRIDE]\n\nAre you sure you want to sanitize the ${activeLangId.toUpperCase()} workspace?\nAll unsaved changes will be permanently purged to restore factory templates.`)) {
+      window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template } }));
+      setBuffers(prev => ({ ...prev, [activeLangId]: template }));
+    }
+  }, [activeLangId]);
 
+  const startResizing = useCallback(() => {
+    setIsResizing(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  }, []);
 
-  const [theme, setTheme] = useState(localStorage.getItem("sam-theme") || "dark");
-  
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [aiPanelWidth, setAiPanelWidth] = useState(400);
+  const stopResizing = useCallback(() => {
+    setIsResizing(false);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
+  }, []);
 
-  const [isResizingAi, setIsResizingAi] = useState(false);
+  const onResize = useCallback((e) => {
+    if (!isResizing || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+    if (newWidth > 20 && newWidth < 80) setLeftPanelWidth(newWidth);
+  }, [isResizing]);
 
   const startResizingAi = useCallback((e) => {
     e.preventDefault();
@@ -185,94 +315,141 @@ export default function EditorPage() {
   }, [isResizingAi]);
 
   useEffect(() => {
-    if (isResizingAi) {
-      window.addEventListener('mousemove', resizeAi);
-      window.addEventListener('mouseup', stopResizingAi);
-    } else {
-      window.removeEventListener('mousemove', resizeAi);
-      window.removeEventListener('mouseup', stopResizingAi);
+    if (isResizing) {
+      window.addEventListener('mousemove', onResize);
+      window.addEventListener('mouseup', stopResizing);
     }
     return () => {
-      window.removeEventListener('mousemove', resizeAi);
-      window.removeEventListener('mouseup', stopResizingAi);
+      window.removeEventListener('mousemove', onResize);
+      window.removeEventListener('mouseup', stopResizing);
     };
-  }, [isResizingAi, resizeAi, stopResizingAi]);
+  }, [isResizing, onResize, stopResizing]);
 
-  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  // --- Effects & Lifecycle ---
 
-  // Responsive Hook
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  // Initial session & token probe
+  useEffect(() => {
+    const sessionParam = searchParams.get("session");
+    const tokenParam = searchParams.get("token");
+    if (tokenParam) console.log("[SAM-AUTH] Token found in URL");
+
+    if (!sessionParam || sessionParam === "default") {
+      const fresh = Math.random().toString(36).substring(2, 9);
+      const newParams = { session: fresh };
+      if (tokenParam) newParams.token = tokenParam;
+      setSearchParams(newParams, { replace: true });
+    }
+  }, [searchParams, setSearchParams]);
+
+  // Health check & worker status
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!navigator.onLine) { setIsWorkerOnline(false); return; }
+      try {
+        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
+        const data = await res.json();
+        setIsWorkerOnline(data.workerOnline);
+      } catch (err) {
+        setIsWorkerOnline(false);
+      }
+    };
+    checkStatus();
+    const timer = setInterval(checkStatus, 15000);
+    return () => clearInterval(timer);
+  }, []);
+
+  // Theme synchronization
+  useEffect(() => {
+    if (theme === "light") document.documentElement.classList.add("light");
+    else document.documentElement.classList.remove("light");
+    localStorage.setItem("sam-theme", theme);
+  }, [theme]);
+
+  // Responsive logic
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Pre-connect socket for performance
+  // Socket status monitoring
   useEffect(() => {
-    const socket = getSocket();
-    if (!socket.connected) {
-      socket.connect();
+    const handleStatus = (e) => setSocketIsConnected(e.detail.connected);
+    window.addEventListener("sam:socket:status", handleStatus);
+    return () => window.removeEventListener("sam:socket:status", handleStatus);
+  }, []);
+
+  // Pyodide (Python-in-browser) engine
+  useEffect(() => {
+    if (!window.loadPyodide && !isPyodideLoading && !pyodide) {
+      setIsPyodideLoading(true);
+      const script = document.createElement("script");
+      script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+      script.onload = async () => {
+        try {
+          const py = await window.loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/" });
+          setPyodide(py);
+          setIsPyodideLoading(false);
+        } catch (err) {
+          console.error("Pyodide failed:", err);
+          setIsPyodideLoading(false);
+        }
+      };
+      document.body.appendChild(script);
     }
-  }, []);
-  const [busy, setBusy] = useState(false);
-  const [activeModal, setActiveModal] = useState(null); 
-  const [showHistory, setShowHistory] = useState(false);
-  const [isWorkerOnline, setIsWorkerOnline] = useState(false);
-  const [socketIsConnected, setSocketIsConnected] = useState(true);
-  const [activeMobileTab, setActiveMobileTab] = useState('editor');
-  
-  const { user, token, loginUser, logoutUser } = useAuth();
+  }, [isPyodideLoading, pyodide]);
 
-  // Layout Resizing Logic (60/40 Split)
-  const [leftPanelWidth, setLeftPanelWidth] = useState(60); // Percentage
-  const [isResizing, setIsResizing] = useState(false);
-  const containerRef = useRef(null);
-  const terminalRef = useRef(null);
-  const xtermRef = useRef(null);
-  const fitAddonRef = useRef(null);
-  const runRef = useRef({ jobId: null });
+  // High-fidelity branding & Title sync
+  useEffect(() => {
+    document.title = "SAM Compiler | Syntax Analysis Machine";
+    const fav = document.getElementById("favicon");
+    if (fav) {
+      fav.setAttribute("href", theme === 'light' ? OFFICIAL_LOGO_BLACK : OFFICIAL_LOGO_WHITE);
+    }
+  }, [theme]);
 
-  const startResizing = useCallback(() => {
-    setIsResizing(true);
-    document.body.style.cursor = 'col-resize';
-    document.body.style.userSelect = 'none';
-  }, []);
-
-  const stopResizing = useCallback(() => {
-    setIsResizing(false);
-    document.body.style.cursor = 'default';
-    document.body.style.userSelect = 'auto';
-  }, []);
-
-
-  // Load code from history into the editor
-  const handleLoadFromHistory = useCallback((runtime, code) => {
-    // Map runtime name to our langId key
-    const langMap = { javascript: 'javascript', nodejs: 'javascript', python: 'python', cpp: 'cpp', c: 'c', java: 'java' };
-    const langId = langMap[runtime] || 'cpp';
-    setActiveLangId(langId);
-    // Dispatch to CodeEditor via the same reset event channel
-    window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: code } }));
-    setBuffers(prev => ({ ...prev, [langId]: code }));
-    toast.success('Code loaded from history', {
-      icon: '📦',
-      style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '11px', fontWeight: 700 }
+  // Terminal (XTerm.js) initialization
+  useEffect(() => {
+    if (!terminalRef.current || xtermRef.current) return;
+    const isDark = theme === "dark";
+    const term = new XTerm({
+      theme: {
+        background: isDark ? '#000000' : '#F1F5F9',
+        foreground: isDark ? '#FFFFFF' : '#0F172A',
+        cursor: isDark ? '#FFFFFF' : '#0F172A',
+        selectionBackground: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(15, 23, 42, 0.15)',
+        black: isDark ? '#1A1A1A' : '#000000',
+        red: isDark ? '#FF3B3B' : '#DC2626',
+        green: isDark ? '#10B981' : '#059669',
+        white: isDark ? '#FFFFFF' : '#0F172A',
+      },
+      fontFamily: 'var(--font-mono)',
+      fontSize: 14,
+      lineHeight: 1.5,
+      cursorBlink: true,
+      convertEol: true,
     });
-  }, []);
+    const fitAddon = new FitAddon();
+    term.loadAddon(fitAddon);
+    term.open(terminalRef.current);
+    fitAddon.fit();
+    xtermRef.current = term;
+    fitAddonRef.current = fitAddon;
 
-  const onResize = useCallback((e) => {
-    if (!isResizing || !containerRef.current) return;
-    
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    
-    // Constraints: 20% min, 80% max
-    if (newWidth > 20 && newWidth < 80) {
-      setLeftPanelWidth(newWidth);
-    }
-  }, [isResizing]);
+    term.onData((data) => {
+      if (runRef.current.jobId) getSocket().emit("exec:input", { jobId: runRef.current.jobId, input: data });
+    });
 
+    const handleResize = () => fitAddon.fit();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      term.dispose();
+      xtermRef.current = null;
+    };
+  }, [theme]);
+
+  // Layout resize logic (Panels)
   useEffect(() => {
     if (isResizing) {
       window.addEventListener('mousemove', onResize);
@@ -284,363 +461,47 @@ export default function EditorPage() {
     };
   }, [isResizing, onResize, stopResizing]);
 
-  // Sync Monaco & Terminal Layout on Resize
+  useEffect(() => {
+    if (isResizingAi) {
+      window.addEventListener('mousemove', resizeAi);
+      window.addEventListener('mouseup', stopResizingAi);
+    }
+    return () => {
+      window.removeEventListener('mousemove', resizeAi);
+      window.removeEventListener('mouseup', stopResizingAi);
+    };
+  }, [isResizingAi, resizeAi, stopResizingAi]);
+
   useEffect(() => {
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
-      if (fitAddonRef.current) {
-        fitAddonRef.current.fit();
-      }
+      if (fitAddonRef.current) fitAddonRef.current.fit();
     }, 100);
     return () => clearTimeout(timer);
   }, [leftPanelWidth, showAiPanel]);
 
-
-  // Poll worker status & Sync theme
-  useEffect(() => {
-    const checkStatus = async () => {
-      if (!navigator.onLine) {
-        setIsWorkerOnline(false);
-        return;
-      }
-      try {
-        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
-        if (res.ok) {
-          const data = await res.json();
-          setIsWorkerOnline(data.workerOnline);
-        } else {
-          setIsWorkerOnline(false);
-        }
-      } catch (err) {
-        setIsWorkerOnline(false);
-      }
-    };
-    checkStatus();
-
-    // Sync theme class to root
-    if (theme === "light") {
-      document.documentElement.classList.add("light");
-    } else {
-      document.documentElement.classList.remove("light");
-    }
-    localStorage.setItem("sam-theme", theme);
-    
-    const timer = setInterval(checkStatus, 15000);
-    return () => clearInterval(timer);
-  }, [theme]);
-
-  // WebSocket Resilience: Real-time status sync
-  useEffect(() => {
-    const handleStatus = (e) => {
-      setSocketIsConnected(e.detail.connected);
-    };
-    window.addEventListener("sam:socket:status", handleStatus);
-    return () => window.removeEventListener("sam:socket:status", handleStatus);
-  }, []);
-
-
-
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem("sam_settings") || localStorage.getItem("liquid_settings");
-      if (!saved) return { fontSize: 14, tabSize: 2 };
-      const parsed = JSON.parse(saved);
-      return (parsed && typeof parsed === 'object') ? parsed : { fontSize: 14, tabSize: 2 };
-    } catch (e) {
-      return { fontSize: 14, tabSize: 2 };
-    }
-  });
-  
-  const onSettingsUpdate = (newSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem("sam_settings", JSON.stringify(newSettings));
-  };
-  
-  const [pyodide, setPyodide] = useState(null);
-  const [isPyodideLoading, setIsPyodideLoading] = useState(false);
-
-  // Pre-load Pyodide for instant Python execution
-  useEffect(() => {
-    if (!window.loadPyodide && !isPyodideLoading) {
-      setIsPyodideLoading(true);
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
-      script.onload = async () => {
-        try {
-          const py = await window.loadPyodide({
-            indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
-          });
-          setPyodide(py);
-          setIsPyodideLoading(false);
-        } catch (err) {
-          console.error("❌ Pyodide loading failed:", err);
-          setIsPyodideLoading(false);
-        }
-      };
-      document.body.appendChild(script);
-    }
-  }, [isPyodideLoading, pyodide]);
-
-  // Dynamic Monocromatic Brand Sync
-  useEffect(() => {
-    // 1. Force Page Title for Pro Brand
-    document.title = "SAM Compiler | Syntax Analysis Machine";
-
-    // 2. Sync High-Fidelity Favicon with Theme
-    const fav = document.getElementById("favicon");
-    if (fav) {
-      const highFidelityWhite = `data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='21' cy='7' r='2.5' fill='white'/%3E%3Ccircle cx='31' cy='7' r='2.5' fill='white'/%3E%3Ccircle cx='5' cy='24' r='2.5' fill='white'/%3E%3Ccircle cx='43' cy='24' r='2.5' fill='white'/%3E%3Ccircle cx='21' cy='41' r='2.5' fill='white'/%3E%3Ccircle cx='31' cy='41' r='2.5' fill='white'/%3E%3Cpath d='M12 18L4 24L12 30' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M36 18L44 24L36 30' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M28 14L20 24H28L20 34' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 12L20 8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 12L30 8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10 24H6' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M38 24H42' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18 36L20 40' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 36L30 40' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E`;
-      const highFidelityBlack = `data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='23' fill='white'/%3E%3Ccircle cx='21' cy='7' r='2.5' fill='black'/%3E%3Ccircle cx='31' cy='7' r='2.5' fill='black'/%3E%3Ccircle cx='5' cy='24' r='2.5' fill='black'/%3E%3Ccircle cx='43' cy='24' r='2.5' fill='black'/%3E%3Ccircle cx='21' cy='41' r='2.5' fill='black'/%3E%3Ccircle cx='31' cy='41' r='2.5' fill='black'/%3E%3Cpath d='M12 18L4 24L12 30' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M36 18L44 24L36 30' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M28 14L20 24H28L20 34' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 12L20 8' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 12L30 8' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10 24H6' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M38 24H42' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18 36L20 40' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 36L30 40' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E`;
-      fav.setAttribute("href", theme === 'light' ? highFidelityBlack : highFidelityWhite);
-    }
-  }, [theme]);
-
-  // Terminal logic below...
-  useEffect(() => {
-    if (!terminalRef.current || xtermRef.current) return;
-
-    const isDark = theme === "dark";
-    const term = new XTerm({
-      theme: {
-        background: isDark ? '#000000' : '#F1F5F9',
-        foreground: isDark ? '#FFFFFF' : '#0F172A',
-        cursor: isDark ? '#FFFFFF' : '#0F172A',
-        cursorAccent: isDark ? '#000000' : '#FFFFFF',
-        selectionBackground: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(15, 23, 42, 0.15)',
-        black: isDark ? '#1A1A1A' : '#000000',
-        red: isDark ? '#FF3B3B' : '#DC2626', // Toxic Red for errors
-        green: isDark ? '#10B981' : '#059669',
-        yellow: isDark ? '#FACC15' : '#D97706',
-        blue: isDark ? '#3B82F6' : '#2563EB',
-        magenta: isDark ? '#D946EF' : '#C026D3',
-        cyan: isDark ? '#06B6D4' : '#0891B2',
-        white: isDark ? '#FFFFFF' : '#0F172A',
-      },
-      fontFamily: 'var(--font-mono)',
-      fontSize: 14,
-      lineHeight: 1.5,
-      cursorBlink: true,
-      cursorStyle: 'block',
-      allowTransparency: true,
-      convertEol: true, // Fixes the stair-step missing \r bug in raw compiler logs
-    });
-
-    const fitAddon = new FitAddon();
-    term.loadAddon(fitAddon);
-    term.open(terminalRef.current);
-    fitAddon.fit();
-
-    xtermRef.current = term;
-    fitAddonRef.current = fitAddon;
-
-    term.onData((data) => {
-      if (runRef.current.jobId) {
-        const socket = getSocket();
-        socket.emit("exec:input", { jobId: runRef.current.jobId, input: data });
-      }
-    });
-
-    const handleResize = () => fitAddon.fit();
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      term.dispose();
-      xtermRef.current = null;
-    };
-  }, [theme]);
-
-  const handleCodeReset = useCallback(() => {
-    const template = languageConfigs[activeLangId]?.template || "";
-    if (window.confirm(`[SYSTEM OVERRIDE]\n\nAre you sure you want to sanitize the ${activeLangId.toUpperCase()} workspace?\nAll unsaved changes will be permanently purged to restore factory templates.`)) {
-      // Dispatch custom event for the Yjs-bound CodeEditor
-      window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template } }));
-
-      setBuffers(prev => ({ 
-        ...prev, 
-        [activeLangId]: template 
-      }));
-      // Note: The success toast is handled centrally inside CodeEditor.jsx
-      // to ensure it only fires when the network transaction actually completes.
-    }
-  }, [activeLangId]);
-
   // Keyboard Shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // CMD/CTRL + Enter = RUN
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-        e.preventDefault();
-        onRun();
-      }
-      // CMD/CTRL + S = SAVE (Mock)
-      if ((e.metaKey || e.ctrlKey) && e.key === "s") {
-        e.preventDefault();
-        toast.success("Workspace saved to cloud", {
-          style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '12px' },
-          icon: '💾'
-        });
-      }
-      // CMD/CTRL + L = CLEAR TERMINAL
-      if ((e.metaKey || e.ctrlKey) && e.key === "l") {
-        e.preventDefault();
-        if (xtermRef.current) xtermRef.current.clear();
-      }
-      // CMD/CTRL + / = TOGGLE AI
-      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
-        e.preventDefault();
-        setShowAiPanel(prev => !prev);
-      }
+      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); onRun(); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "l") { e.preventDefault(); onClear(); }
+      if ((e.metaKey || e.ctrlKey) && e.key === "/") { e.preventDefault(); setShowAiPanel(prev => !prev); }
     };
-
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onRun, setShowAiPanel, user]); // Stabilized dependencies
+  }, [onRun]);
 
-  const activeConfig = languageConfigs[activeLangId];
-
-  const onCodeChange = useCallback((value) => {
-    setBuffers((b) => ({ ...b, [activeLangId]: value ?? "" }));
-  }, [activeLangId]);
-
-  const runPythonInBrowser = useCallback(async (code) => {
-    if (!pyodide) throw new Error("Python engine is still booting...");
-    
-    pyodide.setStdout({ batched: (str) => { 
-      xtermRef.current.write(str);
-    } });
-    pyodide.setStderr({ batched: (str) => { 
-      xtermRef.current.write(str);
-    } });
-
+  // Settings management
+  const [settings, setSettings] = useState(() => {
     try {
-      // Shim input() to use window.prompt()
-      await pyodide.runPythonAsync(`
-import builtins
-from js import window
-def input_shim(prompt=""):
-    return window.prompt(prompt) or ""
-builtins.input = input_shim
-      `);
-      
-      await pyodide.runPythonAsync(code);
-      setRunStatus("Succeeded");
-    } catch (err) {
-      xtermRef.current.write(err.message + "\r\n");
-      setRunStatus("Failed");
-    }
-  }, [pyodide]); // xtermRef is a ref
+      const saved = localStorage.getItem("sam_settings");
+      return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
+    } catch (e) { return { fontSize: 14, tabSize: 2 }; }
+  });
 
-  const onRun = useCallback(async () => {
-    const code = buffers[activeLangId] ?? "";
-    const language = activeConfig.lang;
-
-    if (busy) return;
-    setBusy(true);
-
-    // ULTIMATE SYNC FIX: Explicitly unsubscribe from old job and reset terminal
-    const socket = getSocket();
-    if (runRef.current.jobId) {
-      socket.emit("unsubscribe", { jobId: runRef.current.jobId });
-      socket.off("exec:log"); // Wipe all previous log listeners
-    }
-
-    if (xtermRef.current) {
-      xtermRef.current.reset();
-      xtermRef.current.write("\x1b[2J\x1b[0;0H"); // Clear screen and move cursor to 0,0
-    }
-
-    setRunStatus("Running");
-    setMetrics(null);
-
-    if (activeLangId === "python") {
-      try {
-        await runPythonInBrowser(code);
-        setBusy(false);
-        return;
-      } catch (err) {
-        xtermRef.current.write("\x1b[1;31m" + err.message + "\x1b[0m\r\n");
-        setRunStatus("Failed");
-        setBusy(false);
-        return;
-      }
-    }
-
-    try {
-      const { jobId } = await submitRun({ language, code });
-      runRef.current.jobId = jobId;
-
-      // Ensure socket is connected before subscribing
-      const sendSubscription = () => socket.emit("subscribe", { jobId });
-      
-      if (!socket.connected) {
-        socket.once("connect", sendSubscription);
-        socket.connect();
-      } else {
-        sendSubscription();
-      }
-
-      const onLog = (evt) => {
-        if (!evt || runRef.current.jobId !== jobId) return;
-        if (xtermRef.current) {
-           if (evt.type === "stdout") {
-             xtermRef.current.write(evt.chunk);
-           } else if (evt.type === "stderr") {
-             xtermRef.current.write(`\x1b[31m${evt.chunk}\x1b[0m`); // Color stderr red
-           }
-        }
-        if (evt.type === "end") {
-          setRunStatus(evt.status === "succeeded" ? "Succeeded" : "Failed");
-          if (evt.chunk?.metrics) {
-            setMetrics(evt.chunk.metrics);
-          }
-          setBusy(false);
-        }
-      };
-
-      socket.on("exec:log", onLog);
-
-      let lastSeenStdout = 0;
-      let lastSeenStderr = 0;
-
-      await pollUntilDone(jobId, {
-        onUpdate: (s) => {
-          if (runRef.current.jobId !== jobId) return;
-          setRunStatus(s.status.charAt(0).toUpperCase() + s.status.slice(1));
-          
-          const sock = getSocket();
-          // Fallback if socket isn't connected
-          if (!sock.connected && xtermRef.current) {
-            if (s.stdout && s.stdout.length > lastSeenStdout) {
-              const newPart = s.stdout.slice(lastSeenStdout);
-              xtermRef.current.write(newPart);
-              lastSeenStdout = s.stdout.length;
-            }
-            if (s.stderr && s.stderr.length > lastSeenStderr) {
-              const newPart = s.stderr.slice(lastSeenStderr);
-              xtermRef.current.write(`\x1b[31m${newPart}\x1b[0m`);
-              lastSeenStderr = s.stderr.length;
-            }
-          }
-        }
-      });
-
-      // Cleanup
-      socket.off("exec:log", onLog);
-      socket.emit("unsubscribe", { jobId });
-    } catch (e) {
-      setRunStatus("Failed");
-      if (xtermRef.current) {
-        xtermRef.current.write(`\x1b[1;31mError: ${e?.message || String(e)}\x1b[0m\r\n`);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }, [activeConfig, activeLangId, buffers, busy, runPythonInBrowser]);
-
-  const onClear = () => {
-    xtermRef.current.clear();
-    setRunStatus("Ready");
+  const onSettingsUpdate = (newSettings) => {
+    setSettings(newSettings);
+    localStorage.setItem("sam_settings", JSON.stringify(newSettings));
   };
 
 

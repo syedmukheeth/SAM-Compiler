@@ -89,6 +89,39 @@ html, body, div, header, footer, section, nav, button, span, a {
               box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
+/* === Media Queries for Mobile Resilience === */
+@media (max-width: 768px) {
+  .sam-glass {
+    backdrop-filter: blur(12px) saturate(140%);
+    border-radius: 8px;
+  }
+  
+  header {
+    height: 52px !important;
+    padding: 0 12px !important;
+  }
+
+  main {
+    padding: 8px !important;
+    gap: 8px !important;
+  }
+
+  .sam-button-primary {
+    padding: 6px 14px;
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  /* Compact Terminal for Mobile */
+  .xterm-viewport {
+    background-color: transparent !important;
+  }
+  
+  .xterm-screen {
+    padding: 10px !important;
+  }
+}
+
 /* === Selection === */
 ::selection {
   background: var(--sam-accent-muted);

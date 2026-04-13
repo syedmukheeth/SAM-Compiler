@@ -1,0 +1,15 @@
+import React from "react";
+
+const OFFICIAL_LOGO_WHITE = `data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='21' cy='7' r='2.5' fill='white'/%3E%3Ccircle cx='31' cy='7' r='2.5' fill='white'/%3E%3Ccircle cx='5' cy='24' r='2.5' fill='white'/%3E%3Ccircle cx='43' cy='24' r='2.5' fill='white'/%3E%3Ccircle cx='21' cy='41' r='2.5' fill='white'/%3E%3Ccircle cx='31' cy='41' r='2.5' fill='white'/%3E%3Cpath d='M12 18L4 24L12 30' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M36 18L44 24L36 30' stroke='white' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M28 14L20 24H28L20 34' stroke='white' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 12L20 8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 12L30 8' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10 24H6' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M38 24H42' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18 36L20 40' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 36L30 40' stroke='white' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E`;
+const OFFICIAL_LOGO_BLACK = `data:image/svg+xml,%3Csvg width='48' height='48' viewBox='0 0 48 48' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='24' cy='24' r='23' fill='white'/%3E%3Ccircle cx='21' cy='7' r='2.5' fill='black'/%3E%3Ccircle cx='31' cy='7' r='2.5' fill='black'/%3E%3Ccircle cx='5' cy='24' r='2.5' fill='black'/%3E%3Ccircle cx='43' cy='24' r='2.5' fill='black'/%3E%3Ccircle cx='21' cy='41' r='2.5' fill='black'/%3E%3Ccircle cx='31' cy='41' r='2.5' fill='black'/%3E%3Cpath d='M12 18L4 24L12 30' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M36 18L44 24L36 30' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M28 14L20 24H28L20 34' stroke='black' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cpath d='M18 12L20 8' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 12L30 8' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M10 24H6' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M38 24H42' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M18 36L20 40' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3Cpath d='M28 36L30 40' stroke='black' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E`;
+
+export { OFFICIAL_LOGO_WHITE, OFFICIAL_LOGO_BLACK };
+
+export default function OfficialLogo({ theme = 'dark', size = 32, className = "" }) {
+  const src = theme === 'light' ? OFFICIAL_LOGO_BLACK : OFFICIAL_LOGO_WHITE;
+  return (
+    <div className={`flex items-center justify-center transition-all duration-500 ${className}`}>
+      <img src={src} alt="SAM Compiler" style={{ width: size, height: size }} />
+    </div>
+  );
+}

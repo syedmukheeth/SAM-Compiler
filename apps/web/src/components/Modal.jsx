@@ -1,15 +1,9 @@
 import React, { useEffect } from "react";
-import favicon from "../assets/favicon.svg";
-import faviconLight from "../assets/favicon-light.svg";
+import OfficialLogo from "./OfficialLogo";
 
 // Real SAM logo for modal header
 function SamLogoSmall({ theme }) {
-  const src = theme === 'light' ? faviconLight : favicon;
-  return (
-    <div className="flex h-8 w-8 items-center justify-center">
-      <img src={src} alt="SAM" style={{ width: 28, height: 28 }} />
-    </div>
-  );
+  return <OfficialLogo theme={theme} size={28} />;
 }
 
 export default function Modal({ isOpen, onClose, title, children, theme }) {
