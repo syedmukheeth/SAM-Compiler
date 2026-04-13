@@ -42,7 +42,10 @@ export default function AiPanel({
     try {
       const response = await fetch(`${ENDPOINTS.API_BASE_URL}/ai/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Accept": "text/event-stream"
+        },
         body: JSON.stringify({ code: currentCode, language, messages: [...messages, userMsg] })
       });
 
@@ -105,7 +108,17 @@ export default function AiPanel({
 
 
     } catch (err) {
-      setMessages(prev => [...prev, { role: "model", content: `❌ Error: ${err.message}` }]);
+      console.error("[AiPanel] Error in stream:", err);
+      setMessages(prev => {
+        // If the last message was the empty AI message we just created, update it to show the error
+        const lastMsg = prev[prev.length - 1];
+        if (lastMsg && lastMsg.role === "model" && lastMsg.content === "") {
+           const newMsgs = [...prev];
+           newMsgs[newMsgs.length - 1] = { role: "model", content: `❌ Error: ${err.message}` };
+           return newMsgs;
+        }
+        return [...prev, { role: "model", content: `❌ Error: ${err.message}` }];
+      });
     } finally {
       setLoading(false);
     }

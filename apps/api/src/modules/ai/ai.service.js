@@ -86,23 +86,30 @@ async function streamChat(context, onChunk) {
   const { code, language, messages } = context;
   const model = genAI.getGenerativeModel({ model: DEFAULT_MODEL });
 
+  const formattedHistory = [
+    {
+      role: "user",
+      parts: [{ text: `SYSTEM CONTEXT:\n${SAM_AI_PERSONA}\n\nLanguage: ${language}\nCurrent file content:\n\n${code}` }],
+    },
+    {
+      role: "model",
+      parts: [{ text: "Acknowledged. I am Sam AI, your elite coding partner. I am ready." }],
+    },
+    ...messages.slice(0, -1).map(m => ({
+      role: m.role,
+      parts: [{ text: m.content ? m.content : " " }] // Prevent empty text part crashing the SDK
+    }))
+  ];
+
   const chat = model.startChat({
-    history: [
-      {
-        role: "user",
-        parts: [{ text: `${SAM_AI_PERSONA} I am working on a ${language} project. Current file context:\n\n${code}` }],
-      },
-      {
-        role: "model",
-        parts: [{ text: "Acknowledged. I am Sam AI, your elite coding partner. How can I assist you in building something great today?" }],
-      },
-    ],
+    history: formattedHistory,
   });
 
   // INITIAL CONNECTION RETRY
   const result = await withRetry(async () => {
     try {
-      return await chat.sendMessageStream(messages[messages.length - 1].content);
+      const prompt = messages[messages.length - 1].content || " ";
+      return await chat.sendMessageStream(prompt);
     } catch (err) {
       logger.error({ err }, "Gemini AI stream initialization failed");
       throw err;
