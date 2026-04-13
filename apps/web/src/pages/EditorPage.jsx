@@ -19,6 +19,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
 import favicon from "../assets/favicon.svg";
 import faviconLight from "../assets/favicon-light.svg";
+import StatusBar from "../components/StatusBar";
 
 // Real SAM logo using imported assets
 function SamNavLogo({ theme }) {
@@ -222,6 +223,7 @@ export default function EditorPage() {
   const [showHistory, setShowHistory] = useState(false);
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [isApiOnline, setIsApiOnline] = useState(true);
+  const [socketIsConnected, setSocketIsConnected] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
   
   const { user, token, loginUser, logoutUser } = useAuth();
@@ -346,6 +348,18 @@ export default function EditorPage() {
     const timer = setInterval(checkStatus, 15000);
     return () => clearInterval(timer);
   }, [theme]);
+
+  // WebSocket Resilience: Real-time status sync
+  useEffect(() => {
+    const handleStatus = (e) => {
+      setSocketIsConnected(e.detail.connected);
+      if (!e.detail.connected) {
+        setIsApiOnline(false);
+      }
+    };
+    window.addEventListener("sam:socket:status", handleStatus);
+    return () => window.removeEventListener("sam:socket:status", handleStatus);
+  }, []);
 
 
 
@@ -661,6 +675,23 @@ builtins.input = input_shim
       <div className="noise-overlay" />
 
       <header className="relative z-20 flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 border-b-0 sam-glass" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-glass-bg)', backdropFilter: 'blur(30px)' }}>
+        {/* Connection Resilience Banner */}
+        <AnimatePresence>
+          {!socketIsConnected && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="absolute left-0 right-0 top-full z-[100] bg-rose-600/90 text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center justify-center p-2 backdrop-blur-xl border-y border-white/10"
+            >
+              <div className="flex items-center gap-3">
+                <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                Connection Lost — Attempting to reconnect...
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <div className="flex items-center gap-2 md:gap-14 shrink-0 overflow-hidden">
           <div className="flex items-center gap-2 sm:gap-5 shrink-0">
             <div className="flex items-center gap-2 sm:gap-3 transition-all hover:scale-105">
@@ -1087,13 +1118,13 @@ builtins.input = input_shim
         <div className="flex items-center gap-6 h-full">
           <div className="flex items-center gap-3">
             <div className={`relative flex items-center justify-center`}>
-              <div className={`absolute h-2.5 w-2.5 animate-ping rounded-full opacity-40 ${isApiOnline ? 'bg-emerald-500' : 'bg-rose-500'}`} />
-              <div className={`h-1.5 w-1.5 rounded-full ${isApiOnline ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
+              <div className={`absolute h-2.5 w-2.5 animate-ping rounded-full opacity-40 ${socketIsConnected ? 'bg-emerald-500' : 'bg-rose-500'}`} />
+              <div className={`h-1.5 w-1.5 rounded-full ${socketIsConnected ? 'bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]' : 'bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.8)]'}`} />
             </div>
             <span className={`text-[10px] font-black uppercase tracking-[0.2em] ${
               theme === 'dark' ? 'text-white' : 'text-slate-900'
             }`}>
-              {isApiOnline ? 'ONLINE' : 'OFFLINE'}
+              {socketIsConnected ? 'SYNC ONLINE' : 'SYNC OFFLINE'}
             </span>
           </div>
 

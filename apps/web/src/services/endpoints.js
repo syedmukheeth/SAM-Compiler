@@ -14,8 +14,10 @@ export const ENDPOINTS = {
   // REST API Endpoint: Tunneled through Vercel/Vite proxies for CORS-free communication
   API_BASE_URL: "/api",
 
-  // WebSocket Endpoint: Requires absolute domain for cross-origin Socket.io handshakes on Vercel
-  WS_ENDPOINT: RENDER_BASE,
+  // WebSocket Endpoint: Smart detection for Local vs Production
+  WS_ENDPOINT: (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")
+    ? `http://${window.location.hostname}:8080`
+    : RENDER_BASE,
 
   // SOCKET_OPTIONS: Optimized for Render's container handshake
   SOCKET_OPTIONS: {

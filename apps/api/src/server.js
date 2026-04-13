@@ -6,7 +6,11 @@ const { createApp } = require("./app");
 const { initSocket } = require("./modules/runs/socketHandler");
 
 async function main() {
-  await connectMongo();
+  // Fire and forget connection to MongoDB - Mongoose handles the queue/retry
+  connectMongo().catch(err => {
+    logger.error({ err }, "Initial background connect fail (Retrying...)");
+  });
+
   const app = createApp();
   const server = http.createServer(app);
   

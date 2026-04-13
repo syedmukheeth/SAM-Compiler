@@ -26,9 +26,10 @@ async function connectMongo() {
     return cachedConn;
   } catch (err) {
     cachedConn = null;
-    console.error("🔴 [DB] Failed to connect to MongoDB:", err.message);
-    logger.error({ err }, "Failed to connect to MongoDB");
-    throw err;
+    console.error("🔴 [DB] Connection to MongoDB failed. Reconnecting in background...", err.message);
+    logger.warn({ err }, "Initial MongoDB connection failed. Retrying in background.");
+    // Do NOT throw. Let the server start and Mongoose will retry.
+    return null;
   }
 }
 

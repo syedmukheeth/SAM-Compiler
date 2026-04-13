@@ -20,14 +20,17 @@ export function getSocket() {
 
   socket.on("connect", () => {
     console.log("✅ [SAM Compiler] WebSocket Connected to", endpoint);
+    window.dispatchEvent(new CustomEvent("sam:socket:status", { detail: { connected: true, status: "online", endpoint } }));
   });
 
   socket.on("connect_error", (err) => {
     console.error("❌ [SAM Compiler] WebSocket Connection Error:", err.message);
+    window.dispatchEvent(new CustomEvent("sam:socket:status", { detail: { connected: false, status: "error", message: err.message } }));
   });
 
   socket.on("disconnect", (reason) => {
     console.warn("⚠️ [SAM Compiler] WebSocket Disconnected:", reason);
+    window.dispatchEvent(new CustomEvent("sam:socket:status", { detail: { connected: false, status: "offline", reason } }));
   });
 
   return socket;
