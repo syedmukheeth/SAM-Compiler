@@ -1,7 +1,7 @@
 <div align="center">
   <br>
   <a href="https://sam-compiler-web.vercel.app/" target="_blank">
-    <img alt="SAM Compiler Logo" src="https://raw.githubusercontent.com/syedmukheeth/SAM-Compiler/main/apps/web/public/favicon.svg" width="140">
+    <img alt="SAM Compiler Logo" src="https://raw.githubusercontent.com/syedmukheeth/SAM-Compiler/main/apps/web/public/dark.svg" width="140">
   </a>
   
   <h1><b>SAM Compiler</b></h1>
