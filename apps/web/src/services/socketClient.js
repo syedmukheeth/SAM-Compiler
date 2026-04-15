@@ -7,11 +7,14 @@ export function getSocket(tokenArg) {
   // 🛡️ SECURITY Fix: Always ensure we have a token, fallback to localStorage
   const token = tokenArg || localStorage.getItem("token");
 
+  if (!token) {
+    console.warn("⚠️ [SAM Compiler] No authentication token found. Skipping connection.");
+    return null;
+  }
+
   if (socket) {
     // If we have a socket but the token changed, update auth
-    if (token) {
-      socket.auth = { token };
-    }
+    socket.auth = { token };
     return socket;
   }
   

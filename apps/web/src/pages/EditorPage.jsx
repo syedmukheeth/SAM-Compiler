@@ -179,11 +179,11 @@ builtins.input = input_shim
     setMetrics(null);
 
     // Ensure socket is alive for real-time logs before submission
-    if (!socket.connected && activeLangId !== "python") {
+    if (socket && !socket.connected && activeLangId !== "python") {
       try {
         await new Promise((resolve) => {
           const timeout = setTimeout(() => {
-            socket.off("connect", onConnect);
+            if (socket) socket.off("connect", onConnect);
             resolve(); // Proceed anyway, polling will catch the final state
           }, 2000);
           const onConnect = () => {
@@ -213,12 +213,14 @@ builtins.input = input_shim
     try {
       const { jobId } = await submitRun({ language, code });
       runRef.current.jobId = jobId;
-      const sendSubscription = () => socket.emit("subscribe", { jobId });
-      if (!socket.connected) {
-        socket.once("connect", sendSubscription);
-        socket.connect();
-      } else {
-        sendSubscription();
+      const sendSubscription = () => socket && socket.emit("subscribe", { jobId });
+      if (socket) {
+        if (!socket.connected) {
+          socket.once("connect", sendSubscription);
+          socket.connect();
+        } else {
+          sendSubscription();
+        }
       }
       const onLog = (evt) => {
         if (!evt || runRef.current.jobId !== jobId) return;
@@ -234,15 +236,17 @@ builtins.input = input_shim
           setBusy(false);
         }
       };
-      socket.on("exec:log", onLog);
+      if (socket) socket.on("exec:log", onLog);
       await pollUntilDone(jobId, {
         onUpdate: (s) => {
           if (runRef.current.jobId !== jobId) return;
           setRunStatus(s.status.charAt(0).toUpperCase() + s.status.slice(1));
         }
       });
-      socket.off("exec:log", onLog);
-      socket.emit("unsubscribe", { jobId });
+      if (socket) {
+        socket.off("exec:log", onLog);
+        socket.emit("unsubscribe", { jobId });
+      }
     } catch (e) {
       setRunStatus("Failed");
       // Senior Dev: Sanitize error output to prevent HTML dumping in terminal
