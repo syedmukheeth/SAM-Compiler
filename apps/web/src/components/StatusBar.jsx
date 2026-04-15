@@ -14,7 +14,7 @@ const LinkedinIcon = ({ className }) => (
 export default function StatusBar({ 
   language = "JavaScript", 
   position = "Ln 1, Col 1", 
-  status = "SAM ONLINE", 
+  status = "ONLINE", 
   isOnline = true, 
   onReportBug,
   theme = 'dark',
@@ -49,14 +49,26 @@ export default function StatusBar({
       <div className="flex items-center gap-5">
         {/* Left Side: Status & Bug */}
         <span className="flex items-center gap-2 relative group cursor-default">
-          <div className={`absolute -inset-1.5 rounded-full blur-md transition-all duration-500 ${isOnline ? 'bg-emerald-500/30' : 'bg-red-500/30'} animate-pulse`} />
-          <div className={`relative h-2.5 w-2.5 rounded-full transition-all duration-500 ring-2 ring-black/20 ${isOnline ? 'bg-emerald-500 shadow-[0_0_15px_rgba(16,185,129,0.8)]' : 'bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]'}`} />
-          <span className={`relative ml-1 text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 ${isOnline ? "text-emerald-500 font-black drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]"}`}>
+          <div className={`absolute -inset-1.5 rounded-full blur-md transition-all duration-500 ${isOnline ? 'bg-cyan-500/30' : 'bg-red-500/30'} animate-pulse`} />
+          <div className={`relative h-2.5 w-2.5 rounded-full transition-all duration-500 ring-2 ring-black/20 ${isOnline ? 'bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]' : 'bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]'}`} />
+          <span className={`relative ml-1 text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 ${isOnline ? "text-cyan-400 font-black drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]"}`}>
             {isOnline ? status : "OFFLINE"}
           </span>
         </span>
         
-        <span className={`opacity-20 ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
+        <span className={`opacity-20 hidden sm:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
+
+        {/* Editor Position & Language */}
+        <div className="flex items-center gap-4">
+          <span className={`text-[9.5px] font-mono tracking-widest ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`}>
+            {language}
+          </span>
+          <span className={`text-[8px] opacity-40 font-black tracking-widest hidden sm:inline ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+            {position}
+          </span>
+        </div>
+
+        <span className={`opacity-20 hidden lg:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
         
         {/* DYNAMIC METRICS: CPU / RAM */}
         <div className="hidden lg:flex items-center gap-6">
@@ -88,14 +100,14 @@ export default function StatusBar({
       </div>
 
       <div className="flex items-center gap-4 md:gap-7">
-        <span className={`font-black tracking-[0.3em] hidden lg:block ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>SAM © 2026</span>
+        <span className={`font-black tracking-[0.3em] hidden sm:block ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>SAM © 2026</span>
         <span className={`opacity-10 hidden lg:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
         
         <a 
           href="https://linkedin.com/in/syedmukheeth" 
           target="_blank" 
           rel="noopener noreferrer" 
-          className={`group flex items-center gap-2 sm:gap-3 transition-all active:scale-95 ${window.innerWidth < 640 ? 'hidden' : 'flex'}`}
+          className="group flex items-center gap-2 sm:gap-3 transition-all active:scale-95"
         >
           <span className={`text-[8.5px] font-black uppercase tracking-[0.3em] transition-opacity hidden lg:inline ${
             theme === 'dark' ? 'text-white/30 group-hover:text-white/60' : 'text-slate-400 group-hover:text-slate-800'

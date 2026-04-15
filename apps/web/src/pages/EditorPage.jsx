@@ -225,7 +225,7 @@ builtins.input = input_shim
     // Ensure socket is alive for real-time logs before submission
     if (!socket.connected && activeLangId !== "python") {
       try {
-        await new Promise((resolve, reject) => {
+        await new Promise((resolve) => {
           const timeout = setTimeout(() => {
             socket.off("connect", onConnect);
             resolve(); // Proceed anyway, polling will catch the final state
@@ -289,7 +289,14 @@ builtins.input = input_shim
       socket.emit("unsubscribe", { jobId });
     } catch (e) {
       setRunStatus("Failed");
-      if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${e?.message || String(e)}\x1b[0m\r\n`);
+      // Senior Dev: Sanitize error output to prevent HTML dumping in terminal
+      const rawMsg = e?.message || String(e);
+      const isHtml = /<[a-z][\s\S]*>/i.test(rawMsg);
+      const cleanMsg = isHtml 
+        ? "Server returned an invalid response (HTML). The engine might be under maintenance." 
+        : rawMsg.substring(0, 200);
+        
+      if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${cleanMsg}\x1b[0m\r\n`);
     } finally {
       setBusy(false);
     }
@@ -408,9 +415,24 @@ builtins.input = input_shim
     // Initial connection trigger
     getSocket();
     
-    const handleStatus = (e) => setSocketIsConnected(e.detail.connected);
+    let statusTimeout;
+    const handleStatus = (e) => {
+      if (e.detail.connected) {
+        if (statusTimeout) clearTimeout(statusTimeout);
+        setSocketIsConnected(true);
+      } else {
+        // Debounce disconnect notification to prevent "reconnecting" flickers during momentary drops
+        if (statusTimeout) clearTimeout(statusTimeout);
+        statusTimeout = setTimeout(() => {
+          setSocketIsConnected(false);
+        }, 2000);
+      }
+    };
     window.addEventListener("sam:socket:status", handleStatus);
-    return () => window.removeEventListener("sam:socket:status", handleStatus);
+    return () => {
+      if (statusTimeout) clearTimeout(statusTimeout);
+      window.removeEventListener("sam:socket:status", handleStatus);
+    };
   }, []);
 
   // Pyodide (Python-in-browser) engine
@@ -954,7 +976,7 @@ builtins.input = input_shim
               
               <div className={`flex-1 overflow-hidden relative ${theme === 'light' ? 'bg-[#F1F5F9]' : 'bg-[#000000]'}`}>
                 <div ref={terminalRef} className="h-full w-full overflow-hidden" 
-                  style={{ padding: '20px' }} 
+                  style={{ padding: '10px' }} 
                 />
                 
                 {!isWorkerOnline && busy && (
@@ -976,7 +998,7 @@ builtins.input = input_shim
           {showAiPanel && (
             <div 
               onMouseDown={startResizingAi}
-              className={`fixed top-0 bottom-12 z-[70] w-1.5 cursor-col-resize transition-all hover:bg-white/10 hidden md:block`}
+              className={`fixed top-14 md:top-16 bottom-10 md:bottom-12 z-[70] w-1.5 cursor-col-resize transition-all hover:bg-white/10 hidden md:block`}
               style={{ right: aiPanelWidth }}
             >
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-4 rounded-full bg-black/80 border border-white/5 flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
@@ -993,7 +1015,7 @@ builtins.input = input_shim
         <StatusBar 
           language={activeLangId.toUpperCase()}
           position={`Ln ${metrics?.lastLine || 1}, Col ${metrics?.lastCol || 1}`}
-          status={busy ? "EXECUTING..." : "SAM ONLINE"}
+          status={busy ? "EXECUTING..." : "ONLINE"}
           isOnline={socketIsConnected}
           onReportBug={() => setIsFeedbackModalOpen(true)}
           theme={theme}

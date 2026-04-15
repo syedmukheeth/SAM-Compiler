@@ -30,7 +30,7 @@ export function getSocket() {
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => {
       if (socket.connected) socket.emit("sam:ping");
-    }, 45000);
+    }, 20000); // Increased frequency for Render/Vercel stability
 
     window.dispatchEvent(new CustomEvent("sam:socket:status", { 
       detail: { connected: true, status: "online", endpoint, transport } 

@@ -2,6 +2,13 @@ import ENDPOINTS from "./endpoints";
 
 const API_BASE = `${ENDPOINTS.API_BASE_URL}/runs`;
 
+async function checkResponseType(res) {
+  const contentType = res.headers.get("content-type");
+  if (contentType && contentType.includes("text/html")) {
+    throw new Error("Execution engine returned an invalid response (HTML). The service may be under maintenance or redirected.");
+  }
+}
+
 export async function submitRun({ language, code }) {
   const token = localStorage.getItem("sam_token");
   const headers = { "content-type": "application/json" };
@@ -13,9 +20,12 @@ export async function submitRun({ language, code }) {
       headers,
       body: JSON.stringify({ language, code })
     });
+    
+    await checkResponseType(res);
+
     if (!res.ok) {
       const errorText = await res.text().catch(() => "Unknown error");
-      throw new Error(`Execution submission failed: ${res.status} ${res.statusText}. ${errorText}`);
+      throw new Error(`Execution submission failed: ${res.status}. ${errorText.substring(0, 100)}`);
     }
     return await res.json(); // { jobId }
   } catch (err) {
@@ -28,9 +38,12 @@ export async function submitRun({ language, code }) {
 
 export async function fetchStatus(jobId) {
   const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`);
+  
+  await checkResponseType(res);
+
   if (!res.ok) {
      const errorText = await res.text().catch(() => "Unknown error");
-     throw new Error(`Status check failed: ${res.status}. ${errorText}`);
+     throw new Error(`Status check failed: ${res.status}. ${errorText.substring(0, 100)}`);
   }
   const data = await res.json();
   // Map runId back to jobId for consistency
@@ -72,6 +85,8 @@ export async function fetchHistory() {
   const res = await fetch(`${API_BASE}/history`, {
     headers: { "Authorization": `Bearer ${token}` }
   });
+
+  await checkResponseType(res);
 
   if (!res.ok) {
      if (res.status === 401) return [];

@@ -242,9 +242,9 @@ export default function AiPanel({
             animate={{ x: 0, y: 0, opacity: 1 }}
             exit={{ x: window.innerWidth < 768 ? "0%" : "100%", y: window.innerWidth < 768 ? "100%" : "0%", opacity: 0.5 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className={`fixed right-0 top-0 md:top-0 bottom-0 md:bottom-12 z-[65] border-l shadow-[-20px_0_50px_rgba(0,0,0,0.1)] backdrop-blur-3xl overflow-hidden ${
+            className={`fixed right-0 top-14 md:top-16 bottom-10 md:bottom-12 z-[65] border-l shadow-[-20px_0_50px_rgba(0,0,0,0.1)] backdrop-blur-3xl overflow-hidden ${
               theme === 'dark' ? 'bg-black/95 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'
-            } ${window.innerWidth < 768 ? 'rounded-t-[32px] mt-20 h-[calc(100%-80px)]' : ''}`}
+            } ${window.innerWidth < 768 ? 'rounded-t-[32px] h-[calc(100%-120px)]' : ''}`}
             style={{ width: window.innerWidth < 768 ? '100vw' : width }}
           >
             {/* Mobile Handle */}
