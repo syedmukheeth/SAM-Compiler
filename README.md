@@ -54,17 +54,17 @@ graph TD
     classDef control fill:#111,stroke:#666,stroke-width:1px,color:#fff;
     classDef data fill:#222,stroke:#444,stroke-width:1px,color:#aaa;
 
-    subgraph ClientLayer [Client Layer]
+    subgraph ClientLayer ["Client Layer"]
         UI["React 18 / Monaco"]:::interface -->|Secure WebSocket| Sock["Socket.IO Adapter"]:::interface
     end
 
-    subgraph ControlPlane [Control Plane (API)]
+    subgraph ControlPlane ["Control Plane (API)"]
         Sock -->|JWT Auth Handshake| Hub["Express Gateway"]:::control
         Hub -->|BSON Guarded State| DB[(MongoDB Atlas)]:::control
         Hub -->|Persistent Queue| Redis["Redis / BullMQ"]:::control
     end
 
-    subgraph DataPlane [Data Plane (Execution)]
+    subgraph DataPlane ["Data Plane (Execution)"]
         Redis -->|Job Polling| Worker["Node Worker"]:::data
         Worker -->|Cgroup Restricted| Exec["Docker Container"]:::data
         Exec -->|Streamed Log| Redis
