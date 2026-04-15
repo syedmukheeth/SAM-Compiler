@@ -5,7 +5,7 @@ let socket = null;
 
 export function getSocket(tokenArg) {
   // 🛡️ SECURITY Fix: Always ensure we have a token, fallback to localStorage
-  const token = tokenArg || localStorage.getItem("token");
+  const token = tokenArg || localStorage.getItem("sam_token");
 
   if (socket) {
     // If we have a socket but the token changed, update auth
@@ -23,7 +23,7 @@ export function getSocket(tokenArg) {
   socket = io(endpoint, {
     transports: ["websocket"],
     auth: {
-      token: localStorage.getItem("token")
+      token: localStorage.getItem("sam_token")
     },
     withCredentials: true,
     path: "/socket.io", 
