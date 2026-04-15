@@ -90,10 +90,12 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
             }`}>
               {match[1]}
             </div>
-            <div className={`rounded-2xl border overflow-hidden shadow-xl ${
+            <div className={`rounded-2xl border overflow-hidden shadow-xl min-w-0 ${
               isDark ? 'bg-black/60 border-white/5' : 'bg-slate-50 border-slate-200'
             }`}>
-              <pre className={`p-4 font-mono text-[12px] leading-relaxed overflow-x-auto ${isDark ? 'text-white/80' : 'text-slate-700'}`}>
+              <pre className={`p-4 font-mono text-[12px] leading-relaxed overflow-x-auto whitespace-pre ${
+                isDark ? 'text-white/80' : 'text-slate-700'
+              }`} style={{ maxWidth: '100%', wordBreak: 'normal' }}>
                 <code className={className} {...props}>{children}</code>
               </pre>
               <div className={`flex items-center justify-end gap-2 border-t p-2 opacity-0 group-hover:opacity-100 transition-opacity ${
@@ -139,7 +141,7 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className={`group flex flex-col ${isUser ? 'items-end' : 'items-start'}`}
+      className={`group flex w-full min-w-0 flex-col ${isUser ? 'items-end' : 'items-start'}`}
     >
       {!isUser && (
         <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
@@ -149,8 +151,8 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
           <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Sam AI</span>
         </div>
       )}
-      <div className="relative">
-        <div className={`max-w-[95%] rounded-2xl px-4 py-3 text-[12px] leading-[1.65] border select-text ${
+      <div className="relative w-full min-w-0">
+        <div className={`w-full rounded-2xl px-4 py-3 text-[12px] leading-[1.65] border select-text overflow-hidden ${
           isUser
             ? (isDark ? 'bg-white/10 text-white border-white/10 rounded-tr-none' : 'bg-slate-100 text-slate-900 border-slate-200 rounded-tr-none')
             : (isDark ? 'bg-white/5 text-white/90 border-white/5 rounded-tl-none' : 'bg-white text-slate-800 border-slate-100 rounded-tl-none shadow-sm')
@@ -359,7 +361,7 @@ export default function AiPanel({
         </div>
 
         {/* Chat Messages */}
-        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4 custom-scrollbar min-w-0">
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => (
               <MessageBubble

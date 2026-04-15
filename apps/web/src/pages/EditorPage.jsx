@@ -939,7 +939,7 @@ builtins.input = input_shim
               metrics={metrics}
               onApplyRefactor={(refactoredCode) => {
                 setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
-                window.dispatchEvent(new CustomEvent('sam-editor-update', { detail: { code: refactoredCode } }));
+                window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
               }}
               theme={theme}
               width={aiWidth}
