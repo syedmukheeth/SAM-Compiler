@@ -1,6 +1,8 @@
 const { logger } = require("../../config/logger");
 const { YSocketIO } = require("y-socket.io/dist/server");
 const Y = require("yjs");
+const { createAdapter } = require("@socket.io/redis-adapter");
+const { getRedisClient } = require("./runs.queue");
 const { ProjectStateModel } = require("./project.model");
 
 let io = null;
@@ -44,6 +46,15 @@ function initSocket(server) {
     pingInterval: 30000,
     transports: ["websocket", "polling"]
   });
+  
+  // 🚀 HORIZONTAL SCALING: Sync events across multiple API instances via Redis
+  const redis = getRedisClient();
+  if (redis) {
+    const pubClient = redis.duplicate();
+    const subClient = redis.duplicate();
+    io.adapter(createAdapter(pubClient, subClient));
+    logger.info("Socket.IO Redis adapter initialized for horizontal scaling");
+  }
 
   // Initialize Yjs Sync over Socket.io
   const ysocket = new YSocketIO(io);
@@ -138,10 +149,8 @@ function initSocket(server) {
   });
 
   ysocket.initialize();
-
-  // Dedicated Redis Subscriber
-  const { getRedisClient } = require("./runs.queue");
-  const redis = getRedisClient();
+  
+  // Dedicated Redis Subscriber for execution logs
   if (redis) {
     redisSubscriber = redis.duplicate();
     redisSubscriber.on("message", (channel, message) => {
