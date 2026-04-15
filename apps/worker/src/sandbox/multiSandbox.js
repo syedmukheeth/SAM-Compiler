@@ -95,14 +95,13 @@ async function executeRun(opts, onLog) {
         metrics: { durationMs: duration, sandbox: "docker-hardened" } 
       };
     } catch (dockerErr) {
-      if (env.SECURITY_STRICT) {
-         return {
-           stdout: "",
-           stderr: `Security Error: Docker is unavailable and SECURITY_STRICT is enabled.\n${dockerErr.message}`,
-           exitCode: 1,
-           metrics: { sandbox: "failed" }
-         };
+      // 🚀 SENIOR FIX: Default to secure mode. Local execution without Docker is dangerous.
+      const isStrict = env.SECURITY_STRICT !== "false" && env.SECURITY_STRICT !== false;
+      
+      if (isStrict) {
+         throw new Error(`Security Error: Host execution disabled. Docker sandbox is required for executing untrusted code.\n(If running a local development environment, set SECURITY_STRICT=false)`);
       }
+      
       if (dockerErr.code !== "ENOENT") throw dockerErr;
       
       // 2. Fallback to Local execution if Docker is missing (and not in strict mode)
