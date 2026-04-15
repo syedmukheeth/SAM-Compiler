@@ -8,7 +8,7 @@ const EnvSchema = z.object({
   MONGO_URI: z.string().trim().optional(),
   REDIS_URL: z.string().trim().optional(),
   WEB_ORIGIN: z.string().trim().min(1).default("https://sam-compiler-web.vercel.app"),
-  JWT_SECRET: z.string().trim().min(12).default("sam_compiler_super_secret_key_2026"),
+  JWT_SECRET: z.string().trim().min(32, "JWT_SECRET must be at least 32 characters long"),
   JWT_EXPIRES_IN: z.string().trim().default("7d"),
   
   // OAuth (Optional placeholders)
@@ -32,7 +32,7 @@ if (!result.success) {
       MONGO_URI: process.env.MONGO_URI,
       REDIS_URL: process.env.REDIS_URL,
       WEB_ORIGIN: process.env.WEB_ORIGIN || "https://sam-compiler-web.vercel.app",
-      JWT_SECRET: process.env.JWT_SECRET || "sam-compiler-super-secret-key-2026",
+      JWT_SECRET: process.env.JWT_SECRET || (() => { throw new Error("CRITICAL SECURITY ERROR: JWT_SECRET is missing or empty. Server startup halted."); })(),
       JWT_EXPIRES_IN: "7d",
       CALLBACK_URL_BASE: process.env.CALLBACK_URL_BASE || "https://sam-compiler.onrender.com/api/auth",
 
