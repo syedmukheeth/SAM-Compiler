@@ -87,23 +87,33 @@ graph TD
 
 ---
 
-## 🛠️ THE SENIOR STACK
+## 🛠️ THE SENIOR STACK ARSENAL
 
 <div align="center">
-  <b>CORE RUNTIME & GATEWAY</b><br>
+  <b>FRONTEND KERNEL</b><br>
+  <img src="https://img.shields.io/badge/React_18-000?style=for-the-badge&logo=react&logoColor=white" alt="React">
+  <img src="https://img.shields.io/badge/Vite_Engine-000?style=for-the-badge&logo=vite&logoColor=white" alt="Vite">
+  <img src="https://img.shields.io/badge/Monaco_Interface-000?style=for-the-badge&logo=visual-studio-code&logoColor=white" alt="Monaco">
+  <img src="https://img.shields.io/badge/XTerm.js_Console-000?style=for-the-badge&logo=terminal&logoColor=white" alt="XTerm.js">
+  <img src="https://img.shields.io/badge/Yjs_CRDT-000?style=for-the-badge&logo=y_combinator&logoColor=white" alt="Yjs">
+  <img src="https://img.shields.io/badge/Framer_Motion_60FPS-000?style=for-the-badge&logo=framer&logoColor=white" alt="Framer">
+  <img src="https://img.shields.io/badge/Tailwind_High_Fidelity-000?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind">
+  <br><br>
+  
+  <b>DISTRIBUTED CONTROL PLANE</b><br>
   <img src="https://img.shields.io/badge/Node.js_LTS-000?style=for-the-badge&logo=node.js&logoColor=white" alt="Node.js">
+  <img src="https://img.shields.io/badge/Express_Gateway-000?style=for-the-badge&logo=express&logoColor=white" alt="Express">
   <img src="https://img.shields.io/badge/Socket.io_Redis-000?style=for-the-badge&logo=socket.io&logoColor=white" alt="Socket.io">
   <img src="https://img.shields.io/badge/BullMQ_Jobs-000?style=for-the-badge&logo=redis&logoColor=white" alt="BullMQ">
+  <img src="https://img.shields.io/badge/MongoDB_Persistence-000?style=for-the-badge&logo=mongodb&logoColor=white" alt="MongoDB">
+  <img src="https://img.shields.io/badge/JWT_Security_Layer-000?style=for-the-badge&logo=json-web-tokens&logoColor=white" alt="JWT">
   <br><br>
   
-  <b>ISOLATION & KERNEL</b><br>
-  <img src="https://img.shields.io/badge/Docker_Ghost-000?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
-  <img src="https://img.shields.io/badge/gVisor_Sandboxing-000?style=for-the-badge&logo=google&logoColor=white" alt="gVisor">
-  <br><br>
-  
-  <b>INTELLIGENCE & UI</b><br>
-  <img src="https://img.shields.io/badge/Gemini_1.5_Flash-000?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini">
-  <img src="https://img.shields.io/badge/React_18_Framer-000?style=for-the-badge&logo=react&logoColor=white" alt="React">
+  <b>EXECUTION DATA PLANE</b><br>
+  <img src="https://img.shields.io/badge/Docker_Ghost_Containers-000?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+  <img src="https://img.shields.io/badge/gVisor_Isolation-000?style=for-the-badge&logo=google&logoColor=white" alt="gVisor">
+  <img src="https://img.shields.io/badge/Google_Gemini_1.5_Flash-000?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini">
+  <img src="https://img.shields.io/badge/Piston_Kernel-000?style=for-the-badge&logo=linux&logoColor=white" alt="Piston">
 </div>
 
 ---
