@@ -224,152 +224,109 @@ export default function AiPanel({
   };
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <>
-          {/* Backdrop (Mobile Only) */}
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 z-[60] bg-black/60 backdrop-blur-md md:hidden"
-          />
-
-          {/* Panel */}
-          <motion.aside
-            initial={{ x: window.innerWidth < 768 ? "0%" : "100%", y: window.innerWidth < 768 ? "100%" : "0%", opacity: 0.5 }}
-            animate={{ x: 0, y: 0, opacity: 1 }}
-            exit={{ x: window.innerWidth < 768 ? "0%" : "100%", y: window.innerWidth < 768 ? "100%" : "0%", opacity: 0.5 }}
-            transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className={`fixed z-[65] shadow-[-20px_0_50px_rgba(0,0,0,0.1)] backdrop-blur-3xl overflow-hidden transition-all duration-300 ${
-              theme === 'dark' ? 'bg-black/95 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'
-            } ${
-              window.innerWidth < 768 
-                ? 'right-0 top-[104px] bottom-10 left-0 rounded-t-[32px] h-[calc(100%-150px)]' 
-                : 'right-6 top-[88px] bottom-[72px] rounded-2xl border'
+    <section 
+      className={`flex flex-col h-full overflow-hidden transition-all duration-300 ${
+        activeMobileTab === 'ai' ? 'flex-1' : 'hidden md:flex'
+      }`}
+      style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${width}%`, flex: `0 0 ${width}%` }}
+    >
+      <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
+        {/* Panel Header - Standardized with Editor/Terminal */}
+        <div className={`flex h-11 shrink-0 items-center justify-between px-4 md:px-5 border-b ${
+          theme === 'dark' ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50'
+        }`}>
+          <div className="flex items-center gap-2.5">
+            <div className={`flex h-6 w-6 items-center justify-center rounded-lg shadow-lg ${
+              theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'
+            }`}>
+              <Sparkles className="h-3.5 w-3.5" />
+            </div>
+            <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
+              SAM AI
+            </span>
+            <div className={`flex items-center gap-1 opacity-60`}>
+              <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${
+                theme === 'dark' ? 'bg-white' : 'bg-black'
+              }`} />
+            </div>
+          </div>
+          <button 
+            onClick={onClose} 
+            className={`rounded-lg p-1.5 transition-all hover:bg-white/5 ${
+              theme === 'dark' ? 'text-white/30 hover:text-white' : 'text-slate-400 hover:text-slate-900'
             }`}
-            style={{ 
-              width: window.innerWidth < 768 ? '100vw' : width,
-              border: window.innerWidth >= 768 ? '1px solid var(--sam-glass-border)' : undefined,
-              boxShadow: window.innerWidth >= 768 ? 'var(--sam-shadow-xl)' : undefined
-            }}
           >
-            {/* Mobile Handle */}
-            <div className="flex md:hidden justify-center pt-3 pb-1">
-              <div className="h-1.5 w-12 rounded-full bg-white/20" />
-            </div>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
 
-            {/* Ambient Background Glow */}
-            <div className="pointer-events-none absolute inset-0 overflow-hidden">
-               <div className="absolute -right-20 -top-20 h-64 w-64 rounded-full bg-white/5 blur-[80px]" />
-            </div>
-
-            <div className="relative flex h-full flex-col z-10">
-              <div className={`flex h-16 md:h-20 items-center justify-between border-b px-6 md:px-8 ${
-                theme === 'dark' ? 'border-white/5' : 'border-slate-100'
+        {/* Chat Area - Scrollable */}
+        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 select-text custom-scrollbar">
+          {messages.map((msg, i) => (
+            <div 
+              key={i}
+              className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+            >
+              <div className={`max-w-[95%] rounded-2xl px-4 py-3 text-[12px] leading-[1.6] shadow-sm select-text border ${
+                msg.role === "user" 
+                  ? (theme === 'dark' ? "bg-white/10 text-white border-white/10" : "bg-slate-100 text-slate-900 border-slate-200") + " rounded-tr-none" 
+                  : (theme === 'dark' ? "bg-white/5 text-white/90 border-white/5" : "bg-white text-slate-800 border-slate-100") + " rounded-tl-none"
               }`}>
-                <div className="flex items-center gap-3 md:gap-4">
-                  <div className={`flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-2xl shadow-lg transition-transform hover:scale-110 ${
-                    theme === 'dark' ? 'bg-white text-black shadow-white/10' : 'bg-black text-white shadow-black/10'
-                  }`}>
-                    <Sparkles className="h-4 w-4 md:h-5 md:w-5" />
-                  </div>
-                  <div>
-                    <h2 className={`text-sm md:text-base font-black tracking-tight sam-headline ${
-                       theme === 'dark' ? 'text-white' : 'text-slate-900'
-                    }`}>Sam AI</h2>
-                    <div className={`flex items-center gap-1.5 text-[9px] md:text-[10px] font-bold uppercase tracking-widest opacity-90 text-label ${
-                        theme === 'dark' ? 'text-white/40' : 'text-slate-400'
-                    }`}>
-                       <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-                         theme === 'dark' ? 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.8)]' : 'bg-black shadow-[0_0_8px_rgba(0,0,0,0.3)]'
-                       }`} />
-                       Intelligence
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={onClose} 
-                  className={`rounded-xl p-2 md:p-2.5 transition-all hover:scale-110 active:scale-95 ${
-                    theme === 'dark' ? 'text-white/30 hover:bg-white/5 hover:text-white' : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'
-                  }`}
+                <ReactMarkdown 
+                  remarkPlugins={[remarkGfm]}
+                  components={MarkdownComponents}
                 >
-                  <X className="h-5 w-5" />
-                </button>
-              </div>
-
-              {/* Chat Area */}
-              <div ref={scrollRef} className="flex-1 overflow-y-auto p-8 select-text">
-                <div className="flex flex-col gap-8">
-                  {messages.map((msg, i) => (
-                    <motion.div 
-                      key={i}
-                      initial={{ opacity: 0, y: 15, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
-                    >
-                      <div className={`max-w-[95%] rounded-3xl px-5 py-4 text-[13px] leading-[1.6] shadow-xl select-text relative z-20 ${
-                        msg.role === "user" 
-                          ? (theme === 'dark' ? "bg-white/10 text-white border border-white/10" : "bg-slate-100 text-slate-900 border border-slate-200") + " rounded-tr-none shadow-2xl" 
-                          : (theme === 'dark' ? "bg-white/5 text-white/90 border border-white/5" : "bg-white text-slate-800 border border-slate-100") + " backdrop-blur-xl rounded-tl-none"
-                      }`}>
-                        <ReactMarkdown 
-                          remarkPlugins={[remarkGfm]}
-                          components={MarkdownComponents}
-                        >
-                          {msg.content}
-                        </ReactMarkdown>
-                      </div>
-                    </motion.div>
-                  ))}
-                  {loading && (
-                    <div className={`flex items-center gap-3 ml-2 ${theme === 'dark' ? 'text-white/40' : 'text-slate-400'}`}>
-                       <div className={`h-1.5 w-1.5 rounded-full animate-pulse ${theme === 'dark' ? 'bg-white/40' : 'bg-slate-300'}`} />
-                       <span className="text-[10px] font-bold uppercase tracking-widest ml-1 opacity-70">Sam AI is thinking</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className={`border-t p-8 backdrop-blur-md ${
-                theme === 'dark' ? 'border-white/5 bg-black/40' : 'border-slate-100 bg-slate-50/80'
-              }`}>
-                <div className="mb-5 flex flex-wrap gap-2.5">
-                  <ChatQuickAction icon={<Zap />} label="Optimize" onClick={handleRefactor} theme={theme} />
-                  <ChatQuickAction icon={<Check />} label="Fix Bugs" onClick={() => setInput("Identify and fix potential issues in this code.")} theme={theme} />
-                  <ChatQuickAction icon={<Terminal />} label="Explain" onClick={() => setInput("Explain the logic used here in simple terms.")} theme={theme} />
-                </div>
-                <form onSubmit={handleSendMessage} className="relative group">
-                  <div className={`absolute -inset-0.5 rounded-[24px] opacity-0 blur transition duration-500 group-focus-within:opacity-100 ${
-                    theme === 'dark' ? 'bg-white/10' : 'bg-black/5'
-                  }`} />
-                  <textarea
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    placeholder="Ask Sam AI anything..."
-                    className={`relative h-28 w-full resize-none rounded-[22px] border p-5 text-sm transition-all scrollbar-hide shadow-2xl backdrop-blur-sm focus:outline-none ${
-                        theme === 'dark' 
-                          ? 'border-white/10 bg-black/40 text-white placeholder:text-white/20 focus:border-white/30' 
-                          : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400'
-                    }`}
-                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
-                  />
-                  <button 
-                    disabled={!input.trim() || loading}
-                    className={`absolute bottom-4 right-4 flex h-10 w-10 items-center justify-center rounded-2xl transition-all hover:scale-110 hover:brightness-110 active:scale-90 disabled:opacity-20 disabled:grayscale shadow-lg ${
-                        theme === 'dark' ? 'bg-white text-black shadow-white/40' : 'bg-black text-white shadow-black/40'
-                    }`}
-                  >
-                    {loading ? <RefreshCw className={`h-4 w-4 animate-spin ${theme === 'dark' ? 'text-black' : 'text-white'}`} /> : <Send className="h-4 w-4" />}
-                  </button>
-                </form>
+                  {msg.content}
+                </ReactMarkdown>
               </div>
             </div>
-          </motion.aside>
-        </>
-      )}
-    </AnimatePresence>
+          ))}
+          {loading && (
+            <div className={`flex items-center gap-2 ml-1 ${theme === 'dark' ? 'text-white/40' : 'text-slate-400'}`}>
+               <div className={`h-1 w-1 rounded-full animate-pulse ${theme === 'dark' ? 'bg-white/40' : 'bg-slate-300'}`} />
+               <span className="text-[9px] font-black uppercase tracking-widest opacity-60">Thinking...</span>
+            </div>
+          )}
+        </div>
+
+        {/* Action Bar & Input - Non-Floating */}
+        <div className={`border-t p-4 space-y-4 ${
+          theme === 'dark' ? 'border-white/5 bg-black/20' : 'border-slate-50 bg-slate-50/50'
+        }`}>
+          <div className="flex flex-wrap gap-2">
+            <ChatQuickAction icon={<Zap />} label="Optimize" onClick={handleRefactor} theme={theme} />
+            <ChatQuickAction icon={<Check />} label="Fix" onClick={() => setInput("Identify and fix potential issues in this code.")} theme={theme} />
+          </div>
+          
+          <form onSubmit={handleSendMessage} className="relative">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask Sam AI..."
+              className={`h-20 w-full resize-none rounded-xl border p-3 text-sm transition-all focus:outline-none ${
+                  theme === 'dark' 
+                    ? 'border-white/10 bg-black/40 text-white placeholder:text-white/20 focus:border-white/30' 
+                    : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400 shadow-sm'
+              }`}
+              onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), handleSendMessage())}
+            />
+            <button 
+              disabled={!input.trim() || loading}
+              className={`absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-90 disabled:opacity-20 shadow-lg ${
+                  theme === 'dark' ? 'bg-white text-black' : 'bg-black text-white'
+              }`}
+            >
+              {loading ? <RefreshCw className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
+            </button>
+          </form>
+        </div>
+        
+        {/* Panel Footer - Standardized Terminal Style */}
+        <div className="flex h-8 md:h-10 shrink-0 items-center justify-center border-t border-[var(--sam-glass-border)]" style={{ background: 'var(--sam-surface-low)' }}>
+           <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', opacity: 0.6 }}>SAM AI ASSISTANT</span>
+        </div>
+      </div>
+    </section>
   );
 }
 

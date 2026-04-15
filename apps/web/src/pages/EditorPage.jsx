@@ -137,12 +137,12 @@ export default function EditorPage() {
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [socketIsConnected, setSocketIsConnected] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
-  const [leftPanelWidth, setLeftPanelWidth] = useState(60); 
-  const [isResizing, setIsResizing] = useState(false);
-  const [theme, setTheme] = useState(localStorage.getItem("sam-theme") || "dark");
-  const [showAiPanel, setShowAiPanel] = useState(false);
-  const [aiPanelWidth, setAiPanelWidth] = useState(Number(localStorage.getItem('sam-ai-width')) || 400);
+  const [editorWidth, setEditorWidth] = useState(Number(localStorage.getItem('sam-editor-width')) || 40);
+  const [terminalWidth, setTerminalWidth] = useState(Number(localStorage.getItem('sam-terminal-width')) || 30);
+  const [aiWidth, setAiWidth] = useState(Number(localStorage.getItem('sam-ai-width-pct')) || 30);
+  const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
+  const [showAiPanel, setShowAiPanel] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [pyodide, setPyodide] = useState(null);
@@ -315,53 +315,72 @@ builtins.input = input_shim
     }
   }, [activeLangId]);
 
-  const startResizing = useCallback(() => {
-    setIsResizing(true);
+  const startResizingEditor = useCallback(() => {
+    setIsResizingEditor(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
   }, []);
 
-  const stopResizing = useCallback(() => {
-    setIsResizing(false);
+  const stopResizingEditor = useCallback(() => {
+    setIsResizingEditor(false);
     document.body.style.cursor = 'default';
     document.body.style.userSelect = 'auto';
   }, []);
 
-  const onResize = useCallback((e) => {
-    if (!isResizing || !containerRef.current) return;
+  const onResizeEditor = useCallback((e) => {
+    if (!isResizingEditor || !containerRef.current) return;
     const containerRect = containerRef.current.getBoundingClientRect();
-    const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
-    if (newWidth > 20 && newWidth < 80) setLeftPanelWidth(newWidth);
-  }, [isResizing]);
+    const x = e.clientX - containerRect.left;
+    const pct = (x / containerRect.width) * 100;
+    
+    // Safety boundaries
+    if (pct > 15 && pct < (showAiPanel ? 100 - aiWidth - 15 : 85)) {
+      setEditorWidth(pct);
+      localStorage.setItem('sam-editor-width', pct.toString());
+    }
+  }, [isResizingEditor, showAiPanel, aiWidth]);
 
   const startResizingAi = useCallback((e) => {
     e.preventDefault();
     setIsResizingAi(true);
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
   }, []);
 
   const stopResizingAi = useCallback(() => {
     setIsResizingAi(false);
+    document.body.style.cursor = 'default';
+    document.body.style.userSelect = 'auto';
   }, []);
 
-  const resizeAi = useCallback((e) => {
-    if (!isResizingAi) return;
-    const newWidth = window.innerWidth - e.clientX;
-    if (newWidth > 320 && newWidth < window.innerWidth * 0.8) {
-      setAiPanelWidth(newWidth);
-      localStorage.setItem('sam-ai-width', newWidth.toString());
+  const onResizeAi = useCallback((e) => {
+    if (!isResizingAi || !containerRef.current) return;
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const x = e.clientX - containerRect.left;
+    const pct = 100 - ((x / containerRect.width) * 100);
+    
+    if (pct > 15 && pct < 100 - editorWidth - 15) {
+      setAiWidth(pct);
+      localStorage.setItem('sam-ai-width-pct', pct.toString());
     }
-  }, [isResizingAi]);
+  }, [isResizingAi, editorWidth]);
 
   useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', onResize);
-      window.addEventListener('mouseup', stopResizing);
+    if (isResizingEditor) {
+      window.addEventListener('mousemove', onResizeEditor);
+      window.addEventListener('mouseup', stopResizingEditor);
+    }
+    if (isResizingAi) {
+      window.addEventListener('mousemove', onResizeAi);
+      window.addEventListener('mouseup', stopResizingAi);
     }
     return () => {
-      window.removeEventListener('mousemove', onResize);
-      window.removeEventListener('mouseup', stopResizing);
+      window.removeEventListener('mousemove', onResizeEditor);
+      window.removeEventListener('mouseup', stopResizingEditor);
+      window.removeEventListener('mousemove', onResizeAi);
+      window.removeEventListener('mouseup', stopResizingAi);
     };
-  }, [isResizing, onResize, stopResizing]);
+  }, [isResizingEditor, isResizingAi, onResizeEditor, onResizeAi, stopResizingEditor, stopResizingAi]);
 
   // --- Effects & Lifecycle ---
 
@@ -840,14 +859,13 @@ builtins.input = input_shim
 
       <div 
         ref={containerRef}
-        className={`flex flex-1 overflow-hidden transition-all duration-200 ease-out`}
-        style={showAiPanel && window.innerWidth >= 768 ? { paddingRight: aiPanelWidth } : {}}
+        className="flex flex-1 overflow-hidden transition-all duration-200 ease-out"
       >
         <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-6 pb-20 md:pb-24 gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
           <section 
             className={`flex flex-col overflow-hidden ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex`}
-            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${leftPanelWidth}%`, flex: `0 0 ${leftPanelWidth}%` }}
+            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${editorWidth}%`, flex: `0 0 ${editorWidth}%` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
@@ -886,7 +904,7 @@ builtins.input = input_shim
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 24px', borderRadius: 8,
                     background: busy ? 'var(--sam-accent-dim)' : 'var(--sam-accent)',
-                    color: theme === 'light' ? '#FFFFFF' : '#000000',
+                    color: theme === 'light' ? '#000000' : '#000000',
                     fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
                     cursor: busy ? 'not-allowed' : 'pointer',
@@ -906,44 +924,34 @@ builtins.input = input_shim
               
               <div className="flex-1 overflow-hidden relative">
                 <CodeEditor
-                  key={`${sessionId}-${activeLangId}`}
-                  language={activeLangId}
-                  value={buffers[activeLangId]}
-                  onChange={onCodeChange}
-                  sessionId={sessionId}
-                  userName={user?.name}
-                  theme={theme}
-                  options={{
-                    fontSize: settings.fontSize,
-                    tabSize: settings.tabSize,
-                  }}
+                   key={`${sessionId}-${activeLangId}`}
+                   language={activeLangId}
+                   value={buffers[activeLangId]}
+                   onChange={onCodeChange}
+                   sessionId={sessionId}
+                   userName={user?.name}
+                   theme={theme}
+                   options={{
+                     fontSize: settings.fontSize,
+                     tabSize: settings.tabSize,
+                   }}
                 />
               </div>
             </div>
           </section>
 
-          {/* DRAGGABLE SPLITTER - Always available for senior users */}
+          {/* SPLITTER 1 (Editor | Terminal) */}
           <div 
-            onMouseDown={startResizing}
-            onTouchStart={(e) => {
-              // Simple touch proxy for startResizing
-              const touch = e.touches[0];
-              const event = { clientX: touch.clientX };
-              startResizing(event);
-            }}
-            className="hidden md:flex group relative w-1 md:w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30 resizer-handle-touch"
+             onMouseDown={startResizingEditor}
+             className="hidden md:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
           >
-            <div className="h-24 w-[1px] bg-white/10 group-hover:bg-white/30 transition-all" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-4 rounded-full bg-black/80 border border-white/5 opacity-0 md:group-hover:opacity-100 transition-all flex items-center justify-center gap-0.5">
-              <div className="w-[1px] h-3 bg-white/20" />
-              <div className="w-[1px] h-3 bg-white/20" />
-            </div>
+            <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'} group-hover:bg-white/30 transition-all`} />
           </div>
 
           {/* TERMINAL SECTION */}
           <section 
             className={`flex flex-col overflow-hidden ${activeMobileTab === 'terminal' ? 'flex-1' : 'hidden'} md:flex`}
-            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${100 - leftPanelWidth}%`, flex: `0 0 ${100 - leftPanelWidth}%` }}
+            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${showAiPanel ? 100 - editorWidth - aiWidth : 100 - editorWidth}%`, flex: `1 1 auto` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)', border: '1px solid var(--sam-glass-border)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
@@ -964,40 +972,17 @@ builtins.input = input_shim
                     animation: busy ? 'sam-pulse 1s infinite' : 'none',
                     transition: 'all 0.5s',
                   }} />
-                  <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
-                    {isWorkerOnline ? 'SAM RUNTIME' : 'CLOUD OUTPUT'}
+                  <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
+                    CLOUD OUTPUT
                   </span>
-                  {metrics && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginLeft: 8, paddingLeft: 8, borderLeft: '1px solid var(--sam-glass-border)' }}>
-                      <span style={{ fontSize: 9, fontBold: 800, color: 'var(--sam-text)', textTransform: 'uppercase', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)', opacity: 0.9 }}>
-                        {metrics.sandbox?.replace('docker-', '')}
-                      </span>
-                      <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>
-                        {metrics.durationMs}ms
-                      </span>
-                    </div>
-                  )}
                 </div>
-                <div style={{ 
-                  fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', 
-                  color: runStatus === 'Failed' ? '#FF3B3B' : 'var(--sam-text-muted)', 
-                  fontFamily: 'var(--font-body)',
-                  textShadow: runStatus === 'Failed' ? '0 0 12px rgba(255,59,59,0.3)' : 'none'
-                }}>{runStatus}</div>
+                <div style={{ fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? '#FF3B3B' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
               <div className={`flex-1 overflow-hidden relative ${theme === 'light' ? 'bg-[#F1F5F9]' : 'bg-[#000000]'}`}>
                 <div ref={terminalRef} className="h-full w-full overflow-hidden" 
-                  style={{ padding: '10px' }} 
+                   style={{ padding: '10px' }} 
                 />
-                
-                {!isWorkerOnline && busy && (
-                  <div className="absolute top-4 left-4 right-4 z-10">
-                    <div className="text-[10px] font-bold text-amber-500/50 uppercase tracking-widest bg-amber-500/10 p-2 rounded-lg border border-amber-500/10 backdrop-blur-md">
-                       ⚠️ Cloud Sandbox - Interactivity limited. Run API locally for full stdin.
-                    </div>
-                  </div>
-                )}
               </div>
   
               <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
@@ -1006,18 +991,34 @@ builtins.input = input_shim
               </div>
             </div>
           </section>
-          {/* AI PANEL RESIZER */}
-          {showAiPanel && (
+
+          {/* SPLITTER 2 (Terminal | SAM AI) */}
+          {showAiPanel && !isMobile && (
             <div 
-              onMouseDown={startResizingAi}
-              className={`fixed top-14 md:top-16 bottom-10 md:bottom-12 z-[70] w-1.5 cursor-col-resize transition-all hover:bg-white/10 hidden md:block`}
-              style={{ right: aiPanelWidth }}
+               onMouseDown={startResizingAi}
+               className="flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
             >
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-10 w-4 rounded-full bg-black/80 border border-white/5 flex items-center justify-center gap-0.5 opacity-0 group-hover:opacity-100 transition-all">
-                <div className="w-[1px] h-4 bg-white/20" />
-                <div className="w-[1px] h-4 bg-white/20" />
-              </div>
+              <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'} group-hover:bg-white/30 transition-all`} />
             </div>
+          )}
+
+          {/* SAM AI PANEL - Now Integrated */}
+          {showAiPanel && (
+            <AiPanel 
+              isOpen={showAiPanel}
+              onClose={() => setShowAiPanel(false)}
+              currentCode={buffers[activeLangId]}
+              language={activeLangId}
+              metrics={metrics}
+              onApplyRefactor={(refactoredCode) => {
+                setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
+                window.dispatchEvent(new CustomEvent('sam-editor-update', { detail: { code: refactoredCode } }));
+              }}
+              theme={theme}
+              width={aiWidth}
+              isMobile={isMobile}
+              activeMobileTab={activeMobileTab}
+            />
           )}
         </main>
       </div>
