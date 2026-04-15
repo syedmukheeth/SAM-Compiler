@@ -48,19 +48,33 @@ function initSocket(server) {
   // Initialize Yjs Sync over Socket.io
   const ysocket = new YSocketIO(io);
   
-  // Persistence 
-  ysocket.on("document-update", async (doc, _update) => { // eslint-disable-line no-unused-vars
-    try {
-      const sessionId = doc.name; // Room name
-      const binaryState = Buffer.from(Y.encodeStateAsUpdate(doc));
-      await ProjectStateModel.findOneAndUpdate(
-        { sessionId },
-        { binaryState, lastSaved: new Date() },
-        { upsert: true }
-      );
-    } catch (err) {
-      logger.error({ err, doc: doc.name }, "Failed to persist Yjs update to MongoDB");
+  // Persistence — Optimized with a 2-second debounce to prevent DB spam
+  const persistenceTimers = new Map();
+
+  ysocket.on("document-update", (doc) => {
+    const sessionId = doc.name;
+    
+    // Clear existing timer for this session
+    if (persistenceTimers.has(sessionId)) {
+      clearTimeout(persistenceTimers.get(sessionId));
     }
+
+    // Schedule new save after 2 seconds of inactivity
+    const timer = setTimeout(async () => {
+      try {
+        const binaryState = Buffer.from(Y.encodeStateAsUpdate(doc));
+        await ProjectStateModel.findOneAndUpdate(
+          { sessionId },
+          { binaryState, lastSaved: new Date() },
+          { upsert: true }
+        );
+        persistenceTimers.delete(sessionId);
+      } catch (err) {
+        logger.error({ err, sessionId }, "Failed to persist debounced Yjs update to MongoDB");
+      }
+    }, 2000);
+
+    persistenceTimers.set(sessionId, timer);
   });
 
   // Pre-load state from DB when doc is first created
