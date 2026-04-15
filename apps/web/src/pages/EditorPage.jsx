@@ -131,13 +131,14 @@ export default function EditorPage() {
   const [runStatus, setRunStatus] = useState("Ready");
   const [metrics, setMetrics] = useState(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const [theme, setTheme] = useState(localStorage.getItem('sam-theme') || 'dark');
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [showHistory, setShowHistory] = useState(false);
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [socketIsConnected, setSocketIsConnected] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
-  const [editorWidth, setEditorWidth] = useState(Number(localStorage.getItem('sam-editor-width')) || 33.33);
+  const [editorWidth, setEditorWidth] = useState(Number(localStorage.getItem('sam-editor-width')) || 50);
   const [terminalWidth, setTerminalWidth] = useState(Number(localStorage.getItem('sam-terminal-width')) || 33.33);
   const [aiWidth, setAiWidth] = useState(Number(localStorage.getItem('sam-ai-width-pct')) || 33.33);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
@@ -149,6 +150,17 @@ export default function EditorPage() {
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [settings, setSettings] = useState(() => {
+    try {
+      const saved = localStorage.getItem("sam_settings");
+      return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
+    } catch (e) { return { fontSize: 14, tabSize: 2 }; }
+  });
+
+  const onSettingsUpdate = (newSettings) => {
+    setSettings(newSettings);
+    localStorage.setItem("sam_settings", JSON.stringify(newSettings));
+  };
 
 
   const { user, token, loginUser, logoutUser } = useAuth();
@@ -533,36 +545,14 @@ builtins.input = input_shim
     };
   }, [theme]);
 
-  // Layout resize logic (Panels)
-  useEffect(() => {
-    if (isResizing) {
-      window.addEventListener('mousemove', onResize);
-      window.addEventListener('mouseup', stopResizing);
-    }
-    return () => {
-      window.removeEventListener('mousemove', onResize);
-      window.removeEventListener('mouseup', stopResizing);
-    };
-  }, [isResizing, onResize, stopResizing]);
-
-  useEffect(() => {
-    if (isResizingAi) {
-      window.addEventListener('mousemove', resizeAi);
-      window.addEventListener('mouseup', stopResizingAi);
-    }
-    return () => {
-      window.removeEventListener('mousemove', resizeAi);
-      window.removeEventListener('mouseup', stopResizingAi);
-    };
-  }, [isResizingAi, resizeAi, stopResizingAi]);
-
+  // Consolidate layout fit on change
   useEffect(() => {
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
       if (fitAddonRef.current) fitAddonRef.current.fit();
     }, 100);
     return () => clearTimeout(timer);
-  }, [leftPanelWidth, showAiPanel]);
+  }, [editorWidth, aiWidth, showAiPanel]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -575,23 +565,12 @@ builtins.input = input_shim
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onRun]);
 
-  // Settings management
-  const [settings, setSettings] = useState(() => {
-    try {
-      const saved = localStorage.getItem("sam_settings");
-      return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
-    } catch (e) { return { fontSize: 14, tabSize: 2 }; }
-  });
-
-  const onSettingsUpdate = (newSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem("sam_settings", JSON.stringify(newSettings));
-  };
+  // Settings management moved to top to satisfy hook ordering rules
 
 
 
   return (
-    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10 pb-12" style={{ background: 'var(--sam-bg)' }}>
+    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10" style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -693,7 +672,18 @@ builtins.input = input_shim
 
           <div className="flex items-center gap-1.5 md:gap-3">
             <button 
-              onClick={() => setShowAiPanel(!showAiPanel)}
+              onClick={() => {
+                const next = !showAiPanel;
+                setShowAiPanel(next);
+                if (!isMobile) {
+                  if (next) {
+                    setEditorWidth(33.33);
+                    setAiWidth(33.33);
+                  } else {
+                    setEditorWidth(50);
+                  }
+                }
+              }}
               className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-auto md:px-4 items-center justify-center gap-2 rounded-xl border transition-all duration-300 shrink-0"
               style={{ 
                 background: showAiPanel ? 'var(--sam-accent-muted)' : 'var(--sam-surface-low)',
@@ -847,10 +837,10 @@ builtins.input = input_shim
         ref={containerRef}
         className="flex flex-1 overflow-hidden transition-all duration-200 ease-out"
       >
-        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-3 md:p-6 pb-20 md:pb-24 gap-0 transition-all duration-200 ease-out">
+        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-0 pb-14 md:p-6 gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden ${activeMobileTab === 'editor' ? 'flex-1' : 'hidden'} md:flex`}
+            className={`flex flex-col overflow-hidden ${(!isMobile || (activeMobileTab === 'editor' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
             style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${editorWidth}%`, flex: `0 0 ${editorWidth}%` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)' }}>
@@ -936,7 +926,7 @@ builtins.input = input_shim
 
           {/* TERMINAL SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden ${activeMobileTab === 'terminal' ? 'flex-1' : 'hidden'} md:flex`}
+            className={`flex flex-col overflow-hidden ${(!isMobile || (activeMobileTab === 'terminal' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
             style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${showAiPanel ? 100 - editorWidth - aiWidth : 100 - editorWidth}%`, flex: `1 1 auto` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)', border: '1px solid var(--sam-glass-border)' }}>
@@ -1014,7 +1004,7 @@ builtins.input = input_shim
         <StatusBar 
           language={activeLangId.toUpperCase()}
           position={`Ln ${metrics?.lastLine || 1}, Col ${metrics?.lastCol || 1}`}
-          status={busy ? "EXECUTING..." : "ONLINE"}
+          status={busy ? "EXECUTING..." : "CONNECTED"}
           isOnline={socketIsConnected}
           onReportBug={() => setIsFeedbackModalOpen(true)}
           theme={theme}
