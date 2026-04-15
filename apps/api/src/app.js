@@ -15,6 +15,11 @@ const path = require("path");
 
 
 function createApp() {
+  const app = express();
+
+  // Enable trust proxy for correct IP detection behind Vercel/Render
+  app.set("trust proxy", 1);
+
   // 🛡️ ABSOLUTE PRIORITY: Manual CORS Middleware (Bypass middleware ordering issues)
   app.use((req, res, next) => {
     const origin = req.headers.origin;
