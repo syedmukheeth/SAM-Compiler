@@ -597,21 +597,7 @@ builtins.input = input_shim
 
       <header className="relative z-[80] flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 border-b-0 sam-glass" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-glass-bg)', backdropFilter: 'blur(30px)' }}>
         {/* Connection Resilience Banner */}
-        <AnimatePresence>
-          {!socketIsConnected && (
-            <motion.div 
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: 'auto', opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              className="absolute left-0 right-0 top-full z-[100] bg-rose-600/90 text-[10px] font-black uppercase tracking-[0.2em] text-white flex items-center justify-center p-2 backdrop-blur-xl border-y border-white/10"
-            >
-              <div className="flex items-center gap-3">
-                <div className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-                Connection Lost — Attempting to reconnect...
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {/* Connection banner removed as per user request - StatusBar handles status now */}
 
         <div className="flex items-center gap-2 md:gap-14 overflow-hidden">
           <div className="flex items-center gap-2 sm:gap-5 shrink-0">
