@@ -831,7 +831,7 @@ builtins.input = input_shim
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 24px', borderRadius: 8,
                     background: busy ? 'var(--sam-accent-dim)' : 'var(--sam-accent)',
-                    color: theme === 'light' ? '#000000' : '#000000',
+                    color: '#FFFFFF',
                     fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
                     boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
                     cursor: busy ? 'not-allowed' : 'pointer',
