@@ -665,7 +665,10 @@ builtins.input = input_shim
                 border: '1px solid var(--sam-glass-border)',
                 background: 'var(--sam-accent-muted)',
               }}>
-                <span className={`hidden lg:block text-[11px] font-semibold max-w-[100px] truncate ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>
+                <span 
+                  className="hidden lg:block text-[11px] font-semibold max-w-[100px] truncate"
+                  style={{ color: 'var(--sam-text)' }}
+                >
                   {user.name}
                 </span>
                 <img
@@ -783,7 +786,7 @@ builtins.input = input_shim
                   <div className="mt-2 flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
                     <div className="flex items-center gap-3">
                       <img src={user.avatar} className="h-8 w-8 rounded-full border border-white/10" />
-                      <span className="text-xs font-bold text-white/80">{user.name}</span>
+                      <span className="text-xs font-bold" style={{ color: 'var(--sam-text)' }}>{user.name}</span>
                     </div>
                     <button onClick={logoutUser} className="text-[9px] font-black uppercase tracking-widest text-rose-500 px-3 py-1.5 rounded-lg bg-rose-500/10">Sign Out</button>
                   </div>
