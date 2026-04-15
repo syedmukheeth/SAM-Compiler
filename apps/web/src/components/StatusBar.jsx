@@ -53,7 +53,7 @@ export default function StatusBar({
           <div className={`absolute -inset-1.5 rounded-full blur-md transition-all duration-500 ${isOnline ? 'bg-cyan-500/30' : 'bg-red-500/30'} animate-pulse`} />
           <div className={`relative h-2.5 w-2.5 rounded-full transition-all duration-500 ring-2 ring-black/20 ${isOnline ? 'bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]' : 'bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.8)]'}`} />
           <span className={`relative ml-1 text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 ${isOnline ? "text-cyan-400 font-black drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]"}`}>
-            {isOnline ? status : "RECONNECTING"}
+            {isOnline && status}
           </span>
         </span>
 
