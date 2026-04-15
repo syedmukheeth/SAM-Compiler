@@ -253,21 +253,16 @@ async function getQueueStatus() {
   }
 
   return {
-    online: true, 
+    status: "healthy",
+    uptime: process.uptime(),
     workerOnline,
-    workerStats: workerStats || { status: isSandbox ? "sandbox-mode" : "idle", activeJobs: 0 },
-    version: "2.1.0-ENTERPRISE",
-    mode: isVercel ? "cloud-native" : "hybrid-distributed",
-    regions: [
-      { id: "us-east-1", name: "US East (N. Virginia)", status: "online", latency: "24ms" },
-      { id: "ap-south-1", name: "India (Mumbai)", status: workerOnline ? "online" : "degraded", latency: "12ms" },
-      { id: "eu-central-1", name: "EU (Frankfurt)", status: "online", latency: "38ms" }
-    ],
-    message: isVercel
-      ? "Enterprise Core is running in Cloud-Native mode."
-      : (workerOnline 
-          ? "Global cluster is active with hardened gVisor nodes." 
-          : "Regional worker offline. Failover to Piston API mode active."),
+    workerStats: workerStats || { status: isSandbox ? "cloud-sandbox" : "idle", activeJobs: 0 },
+    version: "3.5.2-stable",
+    runtimeMode: isVercel ? "serverless" : "distributed-worker",
+    cluster: isVercel ? "cloud-edge" : "local-node",
+    message: workerOnline 
+      ? "SAM Compiler engine is fully operational." 
+      : "Primary worker offline. Falling back to Piston/Judge0 execution.",
     timestamp: new Date().toISOString()
   };
 }

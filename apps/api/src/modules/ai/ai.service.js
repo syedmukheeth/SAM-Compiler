@@ -5,7 +5,7 @@ const { logger } = require("../../config/logger");
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
 
 // SAM AI Configuration
-const DEFAULT_MODEL = "gemini-1.5-flash"; 
+const DEFAULT_MODEL = process.env.GEMINI_MODEL || "gemini-1.5-flash"; 
 
 const SAM_AI_PERSONA = `
 You are Sam AI, a World-Class Code Helper and Compiler Assistant.

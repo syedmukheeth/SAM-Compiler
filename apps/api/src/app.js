@@ -10,6 +10,7 @@ const { runsRouter } = require("./modules/runs/runs.routes");
 const { githubRouter } = require("./modules/github/github.routes");
 const { authRouter } = require("./modules/auth/auth.routes");
 const { aiRouter } = require("./modules/ai/ai.routes");
+const { userRateLimiter } = require("./middleware/rateLimiter.middleware");
 const path = require("path");
 
 
@@ -111,7 +112,7 @@ function createApp() {
   }));
 
   // Standardized API mounting for production-grade proxying
-  app.use("/api/runs", runLimiter, runsRouter);
+  app.use("/api/runs", userRateLimiter, runLimiter, runsRouter);
   app.use("/api/github", githubRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/ai", aiRouter);
