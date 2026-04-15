@@ -20,23 +20,21 @@ function createApp() {
   // Enable trust proxy for correct IP detection behind Vercel/Render
   app.set("trust proxy", 1);
 
-  // 🛡️ ABSOLUTE PRIORITY: Manual CORS Middleware (Bypass middleware ordering issues)
-  app.use((req, res, next) => {
-    const origin = req.headers.origin;
-    const allowedOrigins = ["https://sam-compiler-web.vercel.app", "http://localhost:5173", "http://localhost:3000"];
-    
-    if (allowedOrigins.includes(origin)) {
-      res.header("Access-Control-Allow-Origin", origin);
-    }
-    
-    res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization, X-Sam-Api");
-    res.header("Access-Control-Allow-Credentials", "true");
-    res.header("X-Sam-Api", "v3.0-stable");
+  // 🛡️ SECURITY Audit Fix: Hardened CORS Policy
+  app.use(cors({
+    origin: "https://sam-compiler-web.vercel.app",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  }));
 
-    // Immediately respond to preflight
-    if (req.method === "OPTIONS") {
-      return res.status(204).end();
+  // Handle preflight requests across all routes
+  app.options("*", cors());
+
+  app.use((req, res, next) => {
+    res.setHeader("X-Sam-Api", "v3.0-stable");
+    if (req.url.includes("/auth")) {
+      logger.info({ url: req.url, method: req.method });
     }
     next();
   });
