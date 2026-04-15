@@ -35,12 +35,11 @@ setInterval(() => {
 function initSocket(server) {
   const { Server } = require("socket.io");
   io = new Server(server, {
+    transports: ["websocket"],
     cors: {
       origin: "https://sam-compiler-web.vercel.app",
-      methods: ["GET", "POST"],
       credentials: true
     },
-    transports: ["websocket"],
     pingTimeout: 120000,
     pingInterval: 30000
   });

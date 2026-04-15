@@ -21,12 +21,14 @@ export function getSocket(tokenArg) {
   console.log(`📡 [SAM Compiler] Initializing Secure WebSocket @ ${endpoint}`);
 
   socket = io(endpoint, {
+    transports: ["websocket"],
+    auth: {
+      token: localStorage.getItem("token")
+    },
+    withCredentials: true,
     path: "/socket.io", 
-    ...ENDPOINTS.SOCKET_OPTIONS,
-    auth: { token }, // 🛡️ Pass JWT for server-side verification
     reconnectionDelay: 2000,
     reconnectionDelayMax: 10000,
-    randomizationFactor: 0.5,
     autoConnect: true
   });
 
