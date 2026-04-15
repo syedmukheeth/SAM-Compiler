@@ -23,14 +23,10 @@ import ENDPOINTS from "../services/endpoints";
 import OfficialLogo, { OFFICIAL_LOGO_WHITE, OFFICIAL_LOGO_BLACK } from "../components/OfficialLogo";
 import analytics from "../services/analytics";
 
-// Real SAM logo using official high-fidelity vector assets
-function SamNavLogo({ theme }) {
-  return (
-    <div className="hover:scale-110 transition-all duration-500">
-      <OfficialLogo theme={theme} size={32} />
-    </div>
-  );
-}
+// Standalone components imported for clean scoping
+import ThemeToggle from "../components/ThemeToggle";
+import SamNavLogo from "../components/SamNavLogo";
+import ShortcutItem from "../components/ShortcutItem";
 
 const languageConfigs = {
   cpp: {
@@ -65,111 +61,54 @@ const languageConfigs = {
   }
 };
 
-function ThemeToggle({ theme, toggle }) {
-  const isDark = theme === 'dark';
-  
-  return (
-    <motion.button
-      onClick={toggle}
-      className={`relative flex h-8 w-14 items-center rounded-full p-1 focus:outline-none overflow-hidden transition-colors border ${
-        isDark ? 'border-white/10 bg-white/10' : 'border-black/10 bg-black/5'
-      }`}
-      style={{ backdropFilter: 'blur(10px)' }}
-      whileTap={{ scale: 0.95 }}
-    >
-      <motion.div
-        className="absolute left-1 flex h-6 w-6 items-center justify-center rounded-full shadow-md"
-        animate={{ 
-          x: isDark ? 0 : 24,
-          background: isDark ? '#FFFFFF' : '#000000',
-        }}
-        transition={{ 
-          type: "spring",
-          stiffness: 500,
-          damping: 30,
-          mass: 0.8
-        }}
-      >
-        <AnimatePresence mode="wait">
-          {isDark ? (
-            <motion.div
-              key="moon"
-              initial={{ opacity: 0, rotate: -90, scale: 0.3 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: 90, scale: 0.3 }}
-              transition={{ duration: 0.15 }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#000000" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
-              </svg>
-            </motion.div>
-          ) : (
-            <motion.div
-              key="sun"
-              initial={{ opacity: 0, rotate: 90, scale: 0.3 }}
-              animate={{ opacity: 1, rotate: 0, scale: 1 }}
-              exit={{ opacity: 0, rotate: -90, scale: 0.3 }}
-              transition={{ duration: 0.15 }}
-            >
-              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
-              </svg>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-    </motion.button>
-  );
-}
-
 export default function EditorPage() {
-  // --- State Initialization ---
+  // --- 1. Framework Hooks (High Priority) ---
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { user, token, loginUser, logoutUser } = useAuth();
+
+  // --- 2. State Hooks ---
   const [activeLangId, setActiveLangId] = useState("cpp");
   const [buffers, setBuffers] = useState(
     Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.template]))
   );
   const [runStatus, setRunStatus] = useState("Ready");
   const [metrics, setMetrics] = useState(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [theme, setTheme] = useState(localStorage.getItem('sam-theme') || 'dark');
+  const [theme, setTheme] = useState(() => localStorage.getItem('sam-theme') || 'dark');
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
+  const [showAiPanel, setShowAiPanel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [socketIsConnected, setSocketIsConnected] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
-  const [editorWidth, setEditorWidth] = useState(Number(localStorage.getItem('sam-editor-width')) || 50);
-  const [terminalWidth, setTerminalWidth] = useState(Number(localStorage.getItem('sam-terminal-width')) || 33.33);
-  const [aiWidth, setAiWidth] = useState(Number(localStorage.getItem('sam-ai-width-pct')) || 33.33);
+  const [editorWidth, setEditorWidth] = useState(() => Number(localStorage.getItem('sam-editor-width')) || 50);
+  const [terminalWidth, setTerminalWidth] = useState(() => Number(localStorage.getItem('sam-terminal-width')) || 33.33);
+  const [aiWidth, setAiWidth] = useState(() => Number(localStorage.getItem('sam-ai-width-pct')) || 33.33);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
-  const [showAiPanel, setShowAiPanel] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [pyodide, setPyodide] = useState(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
   const [settings, setSettings] = useState(() => {
     try {
-      const saved = localStorage.getItem("sam_settings");
+      const saved = typeof localStorage !== 'undefined' ? localStorage.getItem("sam_settings") : null;
       return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
     } catch (e) { return { fontSize: 14, tabSize: 2 }; }
   });
 
-  const onSettingsUpdate = (newSettings) => {
-    setSettings(newSettings);
-    localStorage.setItem("sam_settings", JSON.stringify(newSettings));
-  };
-
-
-  const { user, token, loginUser, logoutUser } = useAuth();
-
+  // --- 3. Ref Hooks ---
   const containerRef = useRef(null);
   const terminalRef = useRef(null);
   const xtermRef = useRef(null);
   const fitAddonRef = useRef(null);
   const runRef = useRef({ jobId: null });
+  const isMounted = useRef(true);
+
+  // --- 4. Logic & Memoization ---
 
   // --- Helpers & Logic ---
 
@@ -223,7 +162,7 @@ builtins.input = input_shim
     setBusy(true);
     analytics.trackCodeRun(activeLangId, null); // Track execution attempt
     const socket = getSocket();
-    if (runRef.current.jobId) {
+    if (runRef.current.jobId && socket) {
       socket.emit("unsubscribe", { jobId: runRef.current.jobId });
       socket.off("exec:log");
     }
@@ -439,6 +378,12 @@ builtins.input = input_shim
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Lifecycle safety
+  useEffect(() => {
+    isMounted.current = true;
+    return () => { isMounted.current = false; };
   }, []);
 
   // Socket status monitoring
@@ -681,6 +626,7 @@ builtins.input = input_shim
                     setAiWidth(33.33);
                   } else {
                     setEditorWidth(50);
+                    setAiWidth(33.33); // Normal defaults
                   }
                 }
               }}
@@ -1084,23 +1030,6 @@ builtins.input = input_shim
       />
       
       <Toaster position="bottom-right" reverseOrder={false} />
-    </div>
-  );
-}
-
-
-
-function ShortcutItem({ keys, label, theme }) {
-  return (
-    <div className="flex items-center justify-between">
-       <span className={`text-[10px] font-bold uppercase tracking-widest ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>{label}</span>
-       <div className="flex gap-1">
-          {keys.map(k => (
-            <kbd key={k} className={`flex h-5 items-center justify-center rounded px-1.5 text-[9px] font-black ${
-               theme === 'dark' ? 'bg-white/10 text-white/80' : 'bg-slate-200 text-slate-700'
-            }`}>{k}</kbd>
-          ))}
-       </div>
     </div>
   );
 }
