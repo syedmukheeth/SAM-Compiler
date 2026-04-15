@@ -100,6 +100,11 @@ export default function EditorPage() {
     } catch (e) { return { fontSize: 14, tabSize: 2 }; }
   });
 
+  const onSettingsUpdate = useCallback((newSettings) => {
+    setSettings(newSettings);
+    localStorage.setItem("sam_settings", JSON.stringify(newSettings));
+  }, []);
+
   // --- 3. Ref Hooks ---
   const containerRef = useRef(null);
   const terminalRef = useRef(null);
