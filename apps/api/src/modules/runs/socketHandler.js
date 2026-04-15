@@ -31,11 +31,14 @@ function initSocket(server) {
   const { Server } = require("socket.io");
   io = new Server(server, {
     cors: {
-      origin: [
-        "https://sam-compiler-web.vercel.app",
-        "http://localhost:3000",
-        "http://localhost:5173"
-      ],
+      origin: function (origin, callback) {
+        const allowedPatterns = [/vercel\.app$/, /localhost:\d+/];
+        if (!origin || allowedPatterns.some(pattern => pattern.test(origin))) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       methods: ["GET", "POST"],
       credentials: true
     },

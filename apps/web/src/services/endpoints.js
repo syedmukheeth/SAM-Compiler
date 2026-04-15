@@ -32,6 +32,7 @@ export const ENDPOINTS = {
   // SOCKET_OPTIONS: Optimized for Render's container handshake
   SOCKET_OPTIONS: {
      transports: ["polling", "websocket"],
+     withCredentials: true, // 🛡️ Required for cross-origin handshaking with hardened CORS
      reconnection: true,
      reconnectionAttempts: 50,
      timeout: 30000

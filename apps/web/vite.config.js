@@ -31,9 +31,16 @@ export default defineConfig({
       workbox: {
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5MiB (Allow larger Monaco/XTerm bundles)
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        // 🛠️ STABILITY Fix: Prevent Service Worker from intercepting real-time communication
+        navigateFallbackDenylist: [/^\/socket\.io/, /^\/api/],
         runtimeCaching: [
           {
-            urlPattern: ({ url }) => url.origin === url.origin, // Matches same-origin
+            // Skip caching for socket.io polling requests COMPLETELY
+            urlPattern: ({ url }) => url.pathname.startsWith('/socket.io'),
+            handler: 'NetworkOnly', 
+          },
+          {
+            urlPattern: ({ url }) => url.origin === url.origin && !url.pathname.startsWith('/api'), // Matches same-origin (excluding API)
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'sam-assets',
@@ -45,10 +52,7 @@ export default defineConfig({
           },
           {
             urlPattern: ({ url }) => url.pathname.startsWith('/api'),
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'sam-api'
-            }
+            handler: 'NetworkOnly', // Prefer fresh execution data over stale results
           }
         ]
       }
