@@ -6,11 +6,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
 
 // SAM AI Configuration - Priority list for fallback resilience
 const MODELS = [
-  process.env.GEMINI_MODEL || "gemini-2.0-flash",
-  "gemini-1.5-flash",
-  "gemini-1.5-pro",
-  "gemini-2.0-pro-exp",
-  "gemini-1.0-pro"
+  process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  "gemini-2.5-pro",
+  "gemini-3-flash-preview",
+  "gemini-3.1-pro-preview",
+  "gemini-2.0-flash"
 ];
 
 const DEFAULT_MODEL = MODELS[0];
