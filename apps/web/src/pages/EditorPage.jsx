@@ -137,9 +137,9 @@ export default function EditorPage() {
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
   const [socketIsConnected, setSocketIsConnected] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
-  const [editorWidth, setEditorWidth] = useState(Number(localStorage.getItem('sam-editor-width')) || 40);
-  const [terminalWidth, setTerminalWidth] = useState(Number(localStorage.getItem('sam-terminal-width')) || 30);
-  const [aiWidth, setAiWidth] = useState(Number(localStorage.getItem('sam-ai-width-pct')) || 30);
+  const [editorWidth, setEditorWidth] = useState(Number(localStorage.getItem('sam-editor-width')) || 33.33);
+  const [terminalWidth, setTerminalWidth] = useState(Number(localStorage.getItem('sam-terminal-width')) || 33.33);
+  const [aiWidth, setAiWidth] = useState(Number(localStorage.getItem('sam-ai-width-pct')) || 33.33);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(false);
@@ -1029,28 +1029,6 @@ builtins.input = input_shim
       />
 
 
-      <AiPanel 
-        isOpen={showAiPanel} 
-        onClose={() => setShowAiPanel(false)}
-        language={activeLangId}
-        currentCode={buffers[activeLangId]}
-        metrics={metrics}
-        theme={theme}
-        width={aiPanelWidth}
-        onApplyRefactor={(newCode) => {
-          // DISPATCH FORCE SYNC EVENT for collaborative editor
-          const event = new CustomEvent('sam-editor-reset', { 
-            detail: { template: newCode } 
-          });
-          window.dispatchEvent(event);
-          
-          setBuffers(prev => ({ ...prev, [activeLangId]: newCode }));
-          setShowAiPanel(false);
-          toast.success("AI refactor applied", {
-            style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '10px' }
-          });
-        }}
-      />
 
       <AnimatePresence>
         {showShortcutsHelp && (
