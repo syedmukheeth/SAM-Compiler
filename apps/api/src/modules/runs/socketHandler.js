@@ -8,6 +8,24 @@ let redisSubscriber = null;
 const inputBuffers = new Map(); // jobId -> string[]
 const logBuffers = new Map(); // jobId -> { type, chunk }[]
 const activeSubscriptions = new Set(); // jobId
+const jobTimestamps = new Map(); // jobId -> timestamp
+
+// Prevent memory leaks for orphaned execution buffers
+setInterval(() => {
+  const cutoff = Date.now() - 5 * 60 * 1000; // 5 minutes TTL
+  for (const [jobId, timestamp] of jobTimestamps.entries()) {
+    if (timestamp < cutoff) {
+      logBuffers.delete(jobId);
+      inputBuffers.delete(jobId);
+      jobTimestamps.delete(jobId);
+      if (redisSubscriber && activeSubscriptions.has(jobId)) {
+        redisSubscriber.unsubscribe(`run:logs:${jobId}`).catch(() => {});
+        activeSubscriptions.delete(jobId);
+      }
+      logger.info({ jobId }, "Cleaned up orphaned socket resources via TTL");
+    }
+  }
+}, 60000); // Clean every 1 min
 
 function initSocket(server) {
   const { Server } = require("socket.io");
@@ -178,6 +196,7 @@ function initSocket(server) {
     socket.on("exec:log:end", ({ jobId }) => {
        inputBuffers.delete(jobId);
        logBuffers.delete(jobId);
+       jobTimestamps.delete(jobId);
        if (redisSubscriber && activeSubscriptions.has(jobId)) {
          redisSubscriber.unsubscribe(`run:logs:${jobId}`);
          activeSubscriptions.delete(jobId);
@@ -206,9 +225,14 @@ function getIO() {
 function emitLog(jobId, type, chunk) {
   if (!io) return;
   
+  jobTimestamps.set(jobId, Date.now());
+  
   if (type === "end") {
     inputBuffers.delete(jobId);
-    setTimeout(() => logBuffers.delete(jobId), 10000); // Keep logs for 10s after completion
+    setTimeout(() => {
+      logBuffers.delete(jobId);
+      jobTimestamps.delete(jobId);
+    }, 10000); // Keep logs for 10s after completion
     // Cleanup Redis sub on job completion
     if (redisSubscriber && activeSubscriptions.has(jobId)) {
        redisSubscriber.unsubscribe(`run:logs:${jobId}`);
