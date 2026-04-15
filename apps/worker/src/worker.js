@@ -112,7 +112,7 @@ async function main() {
         activeJobs = Math.max(0, activeJobs - 1);
       }
     },
-    { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "20") }
+    { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "3") }
   );
 
   await startHeartbeat(redisClient, () => ({ activeJobs }));
