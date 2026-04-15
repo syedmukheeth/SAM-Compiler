@@ -8,6 +8,15 @@ const FileSchema = new Schema(
   { _id: false }
 );
 
+function truncateOutput(val) {
+  if (typeof val !== 'string') return '';
+  const limit = 500000; // 500KB cap
+  if (val.length > limit) {
+    return val.substring(0, limit) + "\n\n... [Output truncated to 500KB limit]";
+  }
+  return val;
+}
+
 const RunSchema = new Schema(
   {
     projectId: { type: String, required: true, index: true },
@@ -17,8 +26,8 @@ const RunSchema = new Schema(
     status: { type: String, required: true, index: true },
     entrypoint: { type: String, required: true },
     files: { type: [FileSchema], required: true },
-    stdout: { type: String, default: "" },
-    stderr: { type: String, default: "" },
+    stdout: { type: String, default: "", set: truncateOutput },
+    stderr: { type: String, default: "", set: truncateOutput },
     exitCode: { type: Number, required: false, default: null },
     metrics: { type: Schema.Types.Mixed, default: {} },
     startedAt: { type: Date, required: false, default: null },
