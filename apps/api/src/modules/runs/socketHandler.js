@@ -5,6 +5,8 @@ const { ProjectStateModel } = require("./project.model");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { logger } = require("../../config/logger");
 const { getRedisClient } = require("./runs.queue");
+const Y = require("yjs");
+const { YSocketIO } = require("y-socket.io/dist/server");
 
 let io = null;
 let redisSubscriber = null;
