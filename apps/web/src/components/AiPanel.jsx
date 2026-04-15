@@ -242,10 +242,18 @@ export default function AiPanel({
             animate={{ x: 0, y: 0, opacity: 1 }}
             exit={{ x: window.innerWidth < 768 ? "0%" : "100%", y: window.innerWidth < 768 ? "100%" : "0%", opacity: 0.5 }}
             transition={{ type: "spring", damping: 25, stiffness: 200 }}
-            className={`fixed right-0 top-14 md:top-16 bottom-10 md:bottom-12 z-[65] border-l shadow-[-20px_0_50px_rgba(0,0,0,0.1)] backdrop-blur-3xl overflow-hidden ${
+            className={`fixed z-[65] shadow-[-20px_0_50px_rgba(0,0,0,0.1)] backdrop-blur-3xl overflow-hidden transition-all duration-300 ${
               theme === 'dark' ? 'bg-black/95 border-white/5 text-white' : 'bg-white border-slate-200 text-slate-900'
-            } ${window.innerWidth < 768 ? 'rounded-t-[32px] h-[calc(100%-120px)]' : ''}`}
-            style={{ width: window.innerWidth < 768 ? '100vw' : width }}
+            } ${
+              window.innerWidth < 768 
+                ? 'right-0 top-[104px] bottom-10 left-0 rounded-t-[32px] h-[calc(100%-150px)]' 
+                : 'right-6 top-[88px] bottom-[72px] rounded-2xl border'
+            }`}
+            style={{ 
+              width: window.innerWidth < 768 ? '100vw' : width,
+              border: window.innerWidth >= 768 ? '1px solid var(--sam-glass-border)' : undefined,
+              boxShadow: window.innerWidth >= 768 ? 'var(--sam-shadow-xl)' : undefined
+            }}
           >
             {/* Mobile Handle */}
             <div className="flex md:hidden justify-center pt-3 pb-1">

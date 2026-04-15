@@ -665,7 +665,7 @@ builtins.input = input_shim
                 border: '1px solid var(--sam-glass-border)',
                 background: 'var(--sam-accent-muted)',
               }}>
-                <span className="hidden lg:block text-[11px] font-semibold text-white/90 max-w-[100px] truncate">
+                <span className={`hidden lg:block text-[11px] font-semibold max-w-[100px] truncate ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>
                   {user.name}
                 </span>
                 <img
@@ -928,7 +928,7 @@ builtins.input = input_shim
               const event = { clientX: touch.clientX };
               startResizing(event);
             }}
-            className="flex group relative w-1 md:w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30 resizer-handle-touch"
+            className="hidden md:flex group relative w-1 md:w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30 resizer-handle-touch"
           >
             <div className="h-24 w-[1px] bg-white/10 group-hover:bg-white/30 transition-all" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-8 w-4 rounded-full bg-black/80 border border-white/5 opacity-0 md:group-hover:opacity-100 transition-all flex items-center justify-center gap-0.5">
