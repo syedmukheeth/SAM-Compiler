@@ -94,6 +94,8 @@ export default function EditorPage() {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
+  const [isEngineReady, setIsEngineReady] = useState(false);
+  const [engineMode, setEngineMode] = useState("preparing");
   const [socketStatus, setSocketStatus] = useState("connecting");
   const [showStatusBanner, setShowStatusBanner] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
@@ -429,35 +431,43 @@ builtins.input = input_shim
     }
   }, [searchParams, setSearchParams]);
 
-  // Health check for worker availability (Backend sanity) & PROACTIVE PREWARMING
   useEffect(() => {
-    const checkStatus = async () => {
-      if (!navigator.onLine) { setIsWorkerOnline(false); return; }
-      try {
-        // Prewarm Backend & Check Worker
-        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
-        const data = await res.json();
-        setIsWorkerOnline(data.workerOnline);
-        
-        // Suppress cold starts by pinging API
-        fetch(`${ENDPOINTS.API_BASE_URL}/ping`).catch(() => {});
-        console.log("📡 [SAM-AUDIT] [FRONTEND] Prewarming pulse successful");
-      } catch (err) {
-        setIsWorkerOnline(false);
-      }
-    };
-
     // Proactive Socket Initialization (Zero-Lag Handshake)
     const socket = getSocket(token);
     if (socket) {
       setSocketStatus("connecting");
       socket.on("connect", () => setSocketStatus("connected"));
     }
+  }, [token]);
+
+  // Health check for worker availability (Backend sanity) & ADAPTIVE HEARTBEAT
+  useEffect(() => {
+    const checkStatus = async () => {
+      if (!navigator.onLine) { 
+        setIsEngineReady(false);
+        setEngineMode("offline");
+        return; 
+      }
+      try {
+        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
+        const data = await res.json();
+        
+        setIsEngineReady(data.canExecute || data.workerOnline);
+        setIsWorkerOnline(data.workerOnline);
+        setEngineMode(data.workerOnline ? "primary" : data.canExecute ? "sandbox" : "preparing");
+        
+        console.log(`📡 [SAM-AUDIT] [FRONTEND] Health check successful. Mode: ${data.mode || 'unknown'}`);
+      } catch (err) {
+        setIsEngineReady(false);
+        setEngineMode("preparing");
+      }
+    };
 
     checkStatus();
-    const timer = setInterval(checkStatus, 3 * 60 * 1000); // Pulse every 3 mins to stay hot
-    return () => clearInterval(timer);
-  }, [token]);
+    // Use a fast 5s poll while not ready, otherwise standard 3m interval
+    const interval = setInterval(checkStatus, isEngineReady ? 180000 : 5000);
+    return () => clearInterval(interval);
+  }, [isEngineReady, token]);
 
   // Persist buffers to localStorage
   useEffect(() => {
@@ -761,10 +771,12 @@ builtins.input = input_shim
             )}
             
             {/* 🔥 INTERVIEW MODE: Engine Status Pill */}
-            <div className={`sam-engine-indicator ${isWorkerOnline ? 'is-live' : 'is-preparing'}`}>
+            <div className={`sam-engine-indicator ${isEngineReady ? 'is-live' : 'is-preparing'}`}>
               <div className="indicator-dot"></div>
               <span className="indicator-text">
-                {isWorkerOnline ? 'ENGINE LIVE' : 'PREPARING ENGINE'}
+                {engineMode === 'primary' ? 'ENGINE LIVE' : 
+                 engineMode === 'sandbox' ? 'ENGINE LIVE (SANDBOX)' : 
+                 'PREPARING ENGINE'}
               </span>
             </div>
           </div>
@@ -1031,7 +1043,7 @@ builtins.input = input_shim
               
               <div className={`flex-1 overflow-hidden relative ${theme === 'light' ? 'bg-[#F1F5F9]' : 'bg-[#000000]'}`}>
                 {/* 🔥 INTERVIEW MODE: Cold Start Overlay */}
-                {!isWorkerOnline && (
+                {!isEngineReady && (
                   <div className="sam-cold-start-overlay">
                     <div className="flex flex-col items-center gap-4">
                       <div className="sam-spinner w-8 h-8" />

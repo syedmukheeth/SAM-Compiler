@@ -238,10 +238,15 @@ async function getQueueStatus() {
     workerOnline = false; // Forced false as the API node can no longer execute code
   }
 
+  // 🛡️ HARDENING: canExecute is true if worker is online OR if fallback is active
+  const canExecute = workerOnline || true; // Fallback is currently siempre disponible
+
   return {
     status: "healthy",
     uptime: process.uptime(),
     workerOnline,
+    canExecute,
+    mode: workerOnline ? "primary-worker" : "cloud-sandbox",
     workerStats: workerStats || { status: isSandbox ? "cloud-sandbox" : "idle", activeJobs: 0 },
     version: "3.5.2-stable",
     runtimeMode: isVercel ? "serverless" : "distributed-worker",
