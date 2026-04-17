@@ -19,7 +19,7 @@ import StatusBar from "../components/StatusBar";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
 
-import { Sparkles, Keyboard, Clock, Menu, X } from "lucide-react";
+import { Sparkles, Keyboard, Clock, Menu, X, Play, Check, RotateCcw } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
@@ -254,7 +254,18 @@ builtins.input = input_shim
       await pollUntilDone(jobId, {
         onUpdate: (s) => {
           if (runRef.current.jobId !== jobId) return;
-          setRunStatus(s.status.charAt(0).toUpperCase() + s.status.slice(1));
+          const statusMap = {
+            'queued': 'QUEUED',
+            'processing': 'COMPILING',
+            'executing': 'EXECUTING',
+            'succeeded': 'SUCCESS',
+            'failed': 'RETRY'
+          };
+          setRunStatus(statusMap[s.status.toLowerCase()] || s.status.toUpperCase());
+          
+          if (s.status === 'succeeded') {
+            setTimeout(() => setRunStatus("Ready"), 2000);
+          }
         }
       });
       if (socket) {
@@ -863,19 +874,44 @@ builtins.input = input_shim
                     {languageConfigs[activeLangId]?.name}
                   </span>
                 </div>
-                <button
+                <motion.button
                   id="editor-run-btn"
                   onClick={onRun}
                   disabled={busy}
-                  className={`sam-button-primary ${busy ? 'opacity-80' : ''} shrink-0 !py-1.5 !px-5 !rounded-xl active:scale-[0.97] transition-all`}
+                  whileTap={{ scale: 0.95 }}
+                  className={`sam-button-run transition-all duration-300 ${
+                    runStatus === 'SUCCESS' ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/30' :
+                    runStatus === 'RETRY' ? 'bg-rose-500/20 text-rose-500 border-rose-500/30' :
+                    busy ? 'bg-white/5 text-white/40' : 'sam-button-primary'
+                  } shrink-0 !py-1.5 !px-5 !rounded-xl flex items-center gap-2 overflow-hidden`}
                 >
-                  {busy ? (
-                    <div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--sam-accent)', animation: 'spin 0.8s linear infinite' }} />
-                  ) : (
-                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>
-                  )}
-                  Run
-                </button>
+                  <AnimatePresence mode="wait">
+                    {runStatus === 'Ready' && (
+                      <motion.div key="ready" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex items-center gap-2">
+                        <Play width={12} height={12} fill="currentColor" />
+                        <span className="font-black uppercase tracking-widest text-[10px]">Run</span>
+                      </motion.div>
+                    )}
+                    {(busy || runStatus === 'Running' || runStatus === 'QUEUED' || runStatus === 'COMPILING' || runStatus === 'EXECUTING') && (
+                      <motion.div key="busy" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex items-center gap-2">
+                        <div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'currentColor', animation: 'spin 0.8s linear infinite' }} />
+                        <span className="font-black uppercase tracking-[0.15em] text-[9px]">{runStatus === 'Ready' || runStatus === 'Running' ? 'RUNNING' : runStatus}</span>
+                      </motion.div>
+                    )}
+                    {runStatus === 'SUCCESS' && (
+                      <motion.div key="success" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }} className="flex items-center gap-2">
+                        <Check width={12} height={12} strokeWidth={4} />
+                        <span className="font-black uppercase tracking-widest text-[10px]">Success</span>
+                      </motion.div>
+                    )}
+                    {runStatus === 'RETRY' && (
+                      <motion.div key="retry" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex items-center gap-2">
+                        <RotateCcw width={12} height={12} strokeWidth={3} />
+                        <span className="font-black uppercase tracking-widest text-[10px]">Retry</span>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.button>
               </div>
               
               <div className="flex-1 overflow-hidden relative">

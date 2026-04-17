@@ -98,14 +98,16 @@
 
 /* === Global Transitions (Elite Physics) === */
 html, body, div, header, footer, section, nav, button, span, a {
-  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1), 
-              color 220ms cubic-bezier(0.16, 1, 0.3, 1), 
-              border-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
-              box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
-              transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
-              opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
-              filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
+  transition: background-color 150ms cubic-bezier(0.16, 1, 0.3, 1), 
+              color 150ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 150ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 150ms cubic-bezier(0.16, 1, 0.3, 1);
 }
+
+.transition-micro { transition-duration: 150ms !important; }
 
 /* === Media Queries for Mobile Resilience === */
 @media (max-width: 768px) {
@@ -410,3 +412,23 @@ body {
   animation: spin 0.8s linear infinite;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
+/* === Advanced Button States === */
+.sam-button-run {
+  border: 1px solid var(--sam-glass-border);
+  cursor: pointer;
+}
+
+.sam-button-run:hover:not(:disabled) {
+  border-color: var(--sam-accent-dim);
+  background: var(--sam-surface-high);
+}
+
+.sam-button-run:active:not(:disabled) {
+  transform: scale(0.96);
+  background: var(--sam-surface-top);
+}
+
+.sam-button-run:disabled {
+  cursor: not-allowed;
+  filter: grayscale(1);
+}
