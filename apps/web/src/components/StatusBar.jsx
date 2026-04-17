@@ -12,6 +12,11 @@ const LinkedinIcon = ({ className }) => (
   </svg>
 );
 
+export default function StatusBar({ 
+  language = "JavaScript", 
+  position = "Ln 1, Col 1", 
+  onReportBug,
+  theme = 'dark',
   busy = false,
   socketStatus = "connected",
   showBanner = true
