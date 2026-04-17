@@ -65,14 +65,19 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
                 </h3>
               </div>
 
-              <div className="flex flex-col gap-3">
                 <a 
                   href="https://linkedin.com/in/syedmukheeth" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-2xl bg-[#0077b5]/10 border border-[#0077b5]/20 p-4 transition-all hover:bg-[#0077b5] group"
+                  className={`flex items-center justify-between rounded-2xl p-4 transition-all group ${
+                    theme === 'dark' 
+                      ? 'bg-[#0077b5]/10 border border-[#0077b5]/20 hover:bg-[#0077b5]' 
+                      : 'bg-[#0077b5]/5 border border-[#0077b5]/10 hover:bg-[#0077b5]'
+                  }`}
                 >
-                  <div className="flex items-center gap-3 text-[#0077b5] group-hover:text-white transition-colors">
+                  <div className={`flex items-center gap-3 transition-colors ${
+                    theme === 'dark' ? 'text-[#0077b5] group-hover:text-white' : 'text-[#0077b5] group-hover:text-white'
+                  }`}>
                     <LinkedinIcon className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Connect on LinkedIn</span>
                   </div>
@@ -83,15 +88,22 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
                   href="https://github.com/syedmukheeth" 
                   target="_blank" 
                   rel="noopener noreferrer"
-                  className="flex items-center justify-between rounded-2xl bg-white/5 border border-white/10 p-4 transition-all hover:bg-white hover:text-black group"
+                  className={`flex items-center justify-between rounded-2xl p-4 transition-all group ${
+                    theme === 'dark' 
+                      ? 'bg-white/5 border border-white/10 hover:bg-white hover:text-black' 
+                      : 'bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900 hover:text-white'
+                  }`}
                 >
-                  <div className="flex items-center gap-3 text-white transition-colors group-hover:text-black">
+                  <div className={`flex items-center gap-3 transition-colors ${
+                    theme === 'dark' ? 'text-white group-hover:text-black' : 'text-slate-900 group-hover:text-white'
+                  }`}>
                     <GithubIcon className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Follow on GitHub</span>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-white group-hover:text-black transition-colors" />
+                  <ExternalLink className={`h-4 w-4 transition-colors ${
+                    theme === 'dark' ? 'text-white group-hover:text-black' : 'text-slate-900 group-hover:text-white'
+                  }`} />
                 </a>
-              </div>
             </div>
 
             <div className="mt-8 flex items-center gap-2 opacity-30">

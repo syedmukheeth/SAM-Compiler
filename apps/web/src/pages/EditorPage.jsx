@@ -1089,7 +1089,12 @@ builtins.input = input_shim
                     onClick={onRun}
                     disabled={busy}
                     whileTap={{ scale: 0.95 }}
-                    className="sam-button-run transition-all duration-300 flex items-center justify-center min-w-[80px]"
+                    className="sam-button-run transition-all duration-300 flex items-center justify-center min-w-[100px] h-8 rounded-lg border shadow-sm px-4"
+                    style={{
+                      background: theme === 'dark' ? 'var(--sam-accent)' : 'var(--sam-bg)',
+                      borderColor: theme === 'dark' ? 'transparent' : 'var(--sam-glass-border)',
+                      color: theme === 'dark' ? 'var(--sam-bg)' : 'var(--sam-text)',
+                    }}
                   >
                     <AnimatePresence mode="wait">
                       {runStatus === 'Ready' && (
@@ -1110,10 +1115,10 @@ builtins.input = input_shim
                           <span className="font-black uppercase tracking-widest text-[10px]">Success</span>
                         </motion.div>
                       )}
-                      {runStatus === 'RETRY' && (
+                      {(runStatus === 'RETRY' || runStatus === 'Failed') && (
                         <motion.div key="retry" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex items-center gap-2">
                           <RotateCcw width={12} height={12} strokeWidth={3} />
-                          <span className="font-black uppercase tracking-widest text-[10px]">Retry</span>
+                          <span className="font-black uppercase tracking-widest text-[10px]">{runStatus === 'Failed' ? 'RETRY' : 'RETRY'}</span>
                         </motion.div>
                       )}
                     </AnimatePresence>
