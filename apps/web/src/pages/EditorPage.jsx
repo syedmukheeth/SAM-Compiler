@@ -180,6 +180,7 @@ builtins.input = input_shim
     const code = buffers[activeLangId] ?? "";
     const language = activeConfig.lang;
     if (busy) return;
+    console.log(`📡 [SAM-AUDIT] [FRONTEND] Click RUN detected for language: ${activeLangId}`);
     setBusy(true);
     analytics.trackCodeRun(activeLangId, null); // Track execution attempt
     const socket = getSocket(token);
@@ -227,6 +228,7 @@ builtins.input = input_shim
     }
     try {
       const { jobId } = await submitRun({ language, code });
+      console.log(`📡 [SAM-AUDIT] [FRONTEND] Job Created successfully. jobId: ${jobId}`);
       runRef.current.jobId = jobId;
       const sendSubscription = () => socket && socket.emit("subscribe", { jobId });
       if (socket) {
@@ -239,6 +241,7 @@ builtins.input = input_shim
       }
       const onLog = (evt) => {
         if (!evt || runRef.current.jobId !== jobId) return;
+        console.log(`📡 [SAM-AUDIT] [FRONTEND] Received Socket Event: ${evt.type}`, evt.chunk || "");
         if (xtermRef.current) {
            if (evt.type === "stdout") xtermRef.current.write(evt.chunk);
            else if (evt.type === "stderr") xtermRef.current.write(`\x1b[31m${evt.chunk}\x1b[0m`);

@@ -131,6 +131,9 @@ function sanitizeRelPath(p) {
 function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
   const { onLog, ...spawnOpts } = opts;
   return new Promise((resolve, reject) => {
+    let stdout = "";
+    let stderr = "";
+    console.log(`📡 [SAM-AUDIT] [SANDBOX] Spawning command: ${cmd}`);
     try {
       const child = spawn(cmd, args, { ...spawnOpts, windowsHide: true });
       const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB guard rail
@@ -175,6 +178,7 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
 
       child.on("close", (code) => {
         clearTimeout(timeout);
+        console.log(`📡 [SAM-AUDIT] [SANDBOX] Command finished with exitCode: ${code}`);
         resolve({ stdout, stderr, exitCode: isLimitExceeded ? 137 : code });
       });
     } catch (err) {

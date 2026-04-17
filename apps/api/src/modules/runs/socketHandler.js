@@ -181,6 +181,7 @@ function initSocket(server) {
       try {
         const jobId = channel.replace("run:logs:", "");
         const data = JSON.parse(message);
+        logger.info({ jobId, type: data.type }, "📡 [SAM-AUDIT] [SOCKET] Received log from Redis channel");
         emitLog(jobId, data.type, data.chunk);
       } catch (err) {
         logger.error({ err, channel }, "Failed to process Redis log message");
@@ -325,6 +326,7 @@ function emitLog(jobId, type, chunk) {
     }
   }
 
+  logger.info({ jobId, type }, "📡 [SAM-AUDIT] [SOCKET] Emitting to client via Socket.io");
   io.to(`run:${jobId}`).emit("exec:log", { type, chunk });
 }
 

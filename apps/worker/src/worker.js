@@ -69,7 +69,7 @@ async function main() {
           return;
         }
 
-        logger.info({ runId: run._id, runtime: run.runtime }, "Starting job");
+        logger.info({ runId: job.data.runId }, "📡 [SAM-AUDIT] [WORKER] Job picked up from queue");
         run.status = "running";
         run.startedAt = new Date();
         await run.save();
@@ -103,6 +103,7 @@ async function main() {
         } finally {
           run.finishedAt = new Date();
           await run.save();
+          logger.info({ runId: run._id }, "📡 [SAM-AUDIT] [WORKER] Job execution completed. Publishing 'end' log to Redis");
           publishLog("end", { status: run.status, metrics: run.metrics });
           logger.info({ runId: run._id, status: run.status }, "Job finished");
         }

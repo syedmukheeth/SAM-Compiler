@@ -47,6 +47,7 @@ function generateRunTitle(code, _runtime) { // eslint-disable-line no-unused-var
  */
 async function createRun(input) {
   const { userId } = input;
+  logger.info({ userId, runtime: input.runtime }, "📡 [SAM-AUDIT] [API] createRun called");
   if (!input.runtime) throw new Error("Runtime/Language is required");
   if (!input.code && (!input.files || input.files.length === 0)) {
     throw new Error("No code or files provided for execution");
@@ -117,7 +118,9 @@ async function createRun(input) {
 
       if (queue && workerOnline) {
         if (emitLog) emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33mDelegating to Hardened Worker...\x1b[0m\n\r\n`);
+        logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Adding job to BullMQ");
         await queue.add("execute", { runId: run._id.toString() });
+        logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Job added successfully to BullMQ");
         run.status = "queued";
         if (useMongo) {
           await RunModel.findByIdAndUpdate(run._id, { 
