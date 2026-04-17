@@ -215,7 +215,7 @@ function initSocket(server) {
           return socket.emit("error", { message: "Unauthorized: You do not own this job" });
         }
 
-        logger.info({ socketId: socket.id, jobId }, "Socket authorized and subscribed to job");
+        logger.info({ socketId: socket.id, jobId }, "📡 [SAM-AUDIT] [SOCKET] authorized and subscribed to job");
         socket.join(`run:${jobId}`);
         
         // Also subscribe to Redis logs if not already active

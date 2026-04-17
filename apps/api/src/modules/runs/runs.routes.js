@@ -15,6 +15,7 @@ runsRouter.post("/", optionalAuth, async (req, res, next) => {
   try {
     const { language, code } = CreateRunSchema.parse(req.body);
     const userId = req.user ? req.user.id : null;
+    console.log(`📡 [SAM-AUDIT] [BACKEND] POST / created for user: ${userId || 'guest'} | lang: ${language}`);
     const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
     
     // Transform simplified payload to existing internal run format
@@ -48,6 +49,7 @@ runsRouter.get("/:runId", async (req, res, next) => {
   try {
     const run = await getRun(req.params.runId);
     if (!run) return res.status(404).json({ message: "Run not found" });
+    console.log(`📡 [SAM-AUDIT] [BACKEND] GET /${req.params.runId} | status: ${run.status}`);
     res.json({
       runId: run._id.toString(),
       status: run.status,

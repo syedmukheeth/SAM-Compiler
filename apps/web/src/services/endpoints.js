@@ -10,24 +10,26 @@ const RENDER_BASE = "https://sam-compiler.onrender.com";
 const isProduction = import.meta.env.PROD;
 const isVercel = window.location.hostname.includes("vercel.app");
 
+const getBaseEndpoint = () => {
+  const host = window.location.hostname;
+  const isLocal = host === "localhost" || 
+                  host === "127.0.0.1" || 
+                  host === "0.0.0.0" ||
+                  host.startsWith("192.168.") || 
+                  host.startsWith("10.") || 
+                  host.startsWith("172.");
+  
+  return isLocal ? `http://${host}:8080` : RENDER_BASE;
+};
+
+const DYNAMIC_BASE = getBaseEndpoint();
+
 export const ENDPOINTS = {
-  // REST API Endpoint: Tunneled through Vercel/Vite proxies for CORS-free communication
-  API_BASE_URL: "/api",
+  // REST API Endpoint: Consistently targets the same node as Sockets
+  API_BASE_URL: `${DYNAMIC_BASE}/api`,
 
   // WebSocket Endpoint: Smart detection for Local vs Production
-  WS_ENDPOINT: (() => {
-    const host = window.location.hostname;
-    const isLocal = host === "localhost" || 
-                    host === "127.0.0.1" || 
-                    host === "0.0.0.0" ||
-                    host.startsWith("192.168.") || 
-                    host.startsWith("10.") || 
-                    host.startsWith("172.");
-    
-    const endpoint = isLocal ? `http://${host}:8080` : RENDER_BASE;
-    console.log(`📡 [SAM Compiler] Detected Host: ${host} | Routing to: ${endpoint}`);
-    return endpoint;
-  })(),
+  WS_ENDPOINT: DYNAMIC_BASE,
 
   // SOCKET_OPTIONS: Optimized for Render's container handshake
   SOCKET_OPTIONS: {

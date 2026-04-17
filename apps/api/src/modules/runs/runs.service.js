@@ -133,7 +133,9 @@ async function createRun(input) {
       } else {
         // 🚀 Fallback to external sandbox (Judge0/Piston)
         try {
+          logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker Offline. Invoking Cloud Fallback (Piston)");
           const result = await executeViaPiston(runData, emitLog);
+          logger.info({ runId: run._id.toString(), status: result.status }, "📡 [SAM-AUDIT] [API] Piston Fallback completed");
           run.stdout = result.stdout;
           run.stderr = result.stderr;
           run.exitCode = result.exitCode;
