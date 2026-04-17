@@ -12,69 +12,60 @@ const LinkedinIcon = ({ className }) => (
   </svg>
 );
 
-export default function StatusBar({ 
-  language = "JavaScript", 
-  position = "Ln 1, Col 1", 
-  status = "ONLINE", 
-  isOnline = true, 
-  onReportBug,
-  theme = 'dark',
   busy = false,
-  isColdStarting = false
+  socketStatus = "connected",
+  showBanner = true
 }) {
-  const displayStatus = isColdStarting ? "WAKING UP SERVER..." : status;
-  const statusColorClass = isColdStarting 
+  const isOnline = socketStatus === "connected";
+  const isRecovering = socketStatus === "reconnecting" || socketStatus === "connecting";
+  const isWaking = socketStatus === "waking";
+  const isFailed = socketStatus === "failed";
+
+  const displayStatus = isWaking 
+    ? "WAKING SERVER..." 
+    : isRecovering 
+      ? "RECONNECTING..." 
+      : isOnline 
+        ? "CONNECTED" 
+        : "OFFLINE";
+
+  const statusColorClass = isWaking || isRecovering
     ? "text-amber-400 font-black drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]"
     : isOnline 
       ? "text-cyan-400 font-black drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" 
       : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]";
 
-  const glowClass = isColdStarting
+  const glowClass = isWaking || isRecovering
     ? "bg-amber-500/30 animate-pulse"
     : isOnline ? "bg-cyan-500/30 animate-pulse" : "bg-red-500/30 animate-pulse";
     
-  const dotClass = isColdStarting
+  const dotClass = isWaking || isRecovering
     ? "bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.8)] animate-bounce"
     : isOnline 
       ? "bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]" 
       : "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-pulse";
+
   return (
-    <div className={`relative flex w-full items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300 backdrop-blur-xl ${
+    <div className={`relative flex w-full items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-700 backdrop-blur-xl ${
       theme === 'dark' 
         ? 'bg-black/95 text-white/70 border-t border-white/5' 
         : 'bg-white/95 text-slate-600 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)] border-t border-slate-100'
     }`}>
-      {/* Top Accent Bar — SYMMETRIC HIGH-POWEREED NEON */}
-      <div className="absolute top-0 left-0 right-0 h-[3px] z-10 overflow-visible">
-        <div 
-          className={`w-full h-full ${
-            theme === 'dark' 
-              ? 'bg-gradient-to-r from-transparent via-[#ff0000] to-transparent shadow-[0_0_50px_rgba(255,0,0,1)] animate-pulse' 
-              : 'bg-gradient-to-r from-transparent via-[#0077b5] to-transparent shadow-[0_0_50px_rgba(0,119,181,1)]'
-          }`}
-        />
-        {/* Core Blade */}
-        <div 
-          className={`absolute top-0 left-0 right-0 h-[1.5px] ${
-            theme === 'dark' 
-              ? 'bg-gradient-to-r from-transparent via-[#ff4d4d] to-transparent' 
-              : 'bg-gradient-to-r from-transparent via-[#60a5fa] to-transparent'
-          }`}
-          style={{ opacity: 1 }}
-        />
+      {/* Top Accent Bar */}
+      <div className={`absolute top-0 left-0 right-0 h-[3px] z-10 overflow-visible transition-opacity duration-1000 ${showBanner || !isOnline ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`w-full h-full ${theme === 'dark' ? 'bg-[#ff0000] animate-pulse shadow-[0_0_50px_rgba(255,0,0,1)]' : 'bg-[#0077b5] shadow-[0_0_50px_rgba(0,119,181,1)]'}`} />
       </div>
 
       <div className="flex items-center gap-5">
-        {/* Left Side: Status & Bug */}
-        <span className="flex items-center gap-2 relative group cursor-default">
+        <span className={`flex items-center gap-2 relative group cursor-default transition-all duration-700 ${!showBanner && isOnline ? 'opacity-40 grayscale-[0.5] scale-95' : 'opacity-100'}`}>
           <div className={`absolute -inset-1.5 rounded-full blur-md transition-all duration-500 ${glowClass}`} />
           <div className={`relative h-2.5 w-2.5 rounded-full transition-all duration-500 ring-2 ring-black/20 ${dotClass}`} />
-          <span className={`relative ml-1 text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 ${statusColorClass}`}>
+          <span className={`relative ml-1 text-[9px] sm:text-[10px] tracking-[0.2em] sm:tracking-[0.3em] transition-all duration-300 ${statusColorClass} ${!showBanner && isOnline ? 'hidden' : 'inline'}`}>
             {displayStatus}
           </span>
         </span>
 
-        {!isOnline && (
+        {isFailed && (
           <button 
             onClick={() => reconnect()}
             className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[8px] font-black animate-pulse"
@@ -83,6 +74,7 @@ export default function StatusBar({
             RECONNECT
           </button>
         )}
+
         
         <span className={`opacity-20 ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'} ${!isOnline ? 'hidden' : ''}`}>|</span>
 

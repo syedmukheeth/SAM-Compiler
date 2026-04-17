@@ -1,35 +1,55 @@
 import { io } from "socket.io-client";
 import ENDPOINTS from "./endpoints";
 
+export const SOCKET_STATES = {
+  IDLE: "idle",
+  CONNECTING: "connecting",
+  CONNECTED: "connected",
+  RECONNECTING: "reconnecting",
+  FAILED: "failed",
+  WAKING: "waking"
+};
+
 let socket = null;
+let currentStatus = SOCKET_STATES.IDLE;
+let wakingTimer = null;
+
+function emitStatus(status, details = {}) {
+  currentStatus = status;
+  window.dispatchEvent(new CustomEvent("sam:socket:status", { 
+    detail: { status, ...details } 
+  }));
+}
 
 export function getSocket(tokenArg) {
-  // 🛡️ SECURITY Fix: Always ensure we have a token, fallback to localStorage
   const token = tokenArg || localStorage.getItem("token");
 
   if (!token) {
-    console.warn("⚠️ [SAM Compiler] No authentication token found. Skipping connection.");
+    console.warn("⚠️ [SAM Compiler] No auth token. Connection suspended.");
     return null;
   }
 
   if (socket) {
-    // If we have a socket but the token changed, update auth
     socket.auth = { token };
     return socket;
   }
   
-  // Use centralized production/dev endpoint
   const endpoint = ENDPOINTS.WS_ENDPOINT;
+  console.log(`📡 [SAM Compiler] Initializing Secure WebSocket machine @ ${endpoint}`);
 
-  console.log(`📡 [SAM Compiler] Initializing Secure WebSocket @ ${endpoint}`);
+  emitStatus(SOCKET_STATES.CONNECTING);
+
+  // 3s Waking Engine: If connecting takes too long, it's likely a cold start
+  wakingTimer = setTimeout(() => {
+    if (currentStatus === SOCKET_STATES.CONNECTING || currentStatus === SOCKET_STATES.RECONNECTING) {
+      emitStatus(SOCKET_STATES.WAKING);
+    }
+  }, 3500);
 
   socket = io(endpoint, {
     transports: ["websocket"],
-    auth: {
-      token
-    },
+    auth: { token },
     withCredentials: true,
-    path: "/socket.io", 
     reconnectionDelay: 2000,
     reconnectionDelayMax: 10000,
     autoConnect: true
@@ -38,69 +58,62 @@ export function getSocket(tokenArg) {
   let heartbeatInterval = null;
 
   socket.on("connect", () => {
-    const transport = socket.io.engine.transport.name;
-    console.log(`✅ [SAM Compiler] WebSocket Connected | Host: ${endpoint} | Transport: ${transport}`);
+    if (wakingTimer) clearTimeout(wakingTimer);
+    emitStatus(SOCKET_STATES.CONNECTED, { transport: socket.io.engine.transport.name });
     
-    // Heartbeat to keep Render proxy alive
     if (heartbeatInterval) clearInterval(heartbeatInterval);
     heartbeatInterval = setInterval(() => {
       if (socket.connected) socket.emit("sam:ping");
-    }, 20000); // Increased frequency for Render/Vercel stability
-
-    window.dispatchEvent(new CustomEvent("sam:socket:status", { 
-      detail: { connected: true, status: "online", endpoint, transport } 
-    }));
+    }, 20000);
   });
 
   socket.on("connect_error", (err) => {
-    // SILENT MODE: If the hardware says we are offline, don't spam the console.
     if (!navigator.onLine) return;
-
-    console.error("❌ [SAM Compiler] WebSocket Connection Error:", err.message);
-    
-    window.dispatchEvent(new CustomEvent("sam:socket:status", { 
-      detail: { connected: false, status: "error", message: err.message } 
-    }));
+    console.error("❌ [SAM Compiler] Socket Error:", err.message);
+    emitStatus(SOCKET_STATES.RECONNECTING, { error: err.message });
   });
 
   socket.on("disconnect", (reason) => {
-    // Only log if it's not a voluntary OS-level offline event
-    if (navigator.onLine) {
-      console.warn("⚠️ [SAM Compiler] WebSocket Disconnected:", reason);
+    if (wakingTimer) clearTimeout(wakingTimer);
+    
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
     }
 
     if (reason === "io server disconnect") {
       socket.connect();
     }
 
-    if (heartbeatInterval) {
-      clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
-    }
-
-    window.dispatchEvent(new CustomEvent("sam:socket:status", { 
-      detail: { connected: false, status: "offline", reason } 
-    }));
+    // Only broadcast as RECONNECTING if we expect to recover
+    const nextState = navigator.onLine ? SOCKET_STATES.RECONNECTING : SOCKET_STATES.FAILED;
+    emitStatus(nextState, { reason });
   });
 
-  // OS-LEVEL SYNC: Force socket state to match hardware state
   window.addEventListener("online", () => {
-    console.log("🌐 [SAM Compiler] Internet recovered. Forcing clean reconnection...");
-    socket.connect();
+    if (socket && !socket.connected) {
+      emitStatus(SOCKET_STATES.RECONNECTING);
+      socket.connect();
+    }
   });
 
   window.addEventListener("offline", () => {
-    console.warn("🌐 [SAM Compiler] Internet hardware disconnected. Suspending sync.");
-    socket.disconnect();
+    emitStatus(SOCKET_STATES.FAILED, { reason: "Network offline" });
+    if (socket) socket.disconnect();
   });
 
   return socket;
 }
 
 export function reconnect() {
-  const s = getSocket();
-  if (s) {
-    console.log("🔄 [SAM Compiler] Manual reconnection triggered.");
-    s.connect();
+  if (socket) {
+    emitStatus(SOCKET_STATES.CONNECTING);
+    socket.connect();
+  } else {
+    getSocket();
   }
+}
+
+export function getSocketStatus() {
+  return currentStatus;
 }

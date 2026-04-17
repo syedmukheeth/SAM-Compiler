@@ -84,7 +84,8 @@ export default function EditorPage() {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [isWorkerOnline, setIsWorkerOnline] = useState(false);
-  const [socketIsConnected, setSocketIsConnected] = useState(true);
+  const [socketStatus, setSocketStatus] = useState("connecting");
+  const [showStatusBanner, setShowStatusBanner] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
   const [editorWidth, setEditorWidth] = useState(() => Number(localStorage.getItem('sam-editor-width')) || 50);
   const [terminalWidth, setTerminalWidth] = useState(() => Number(localStorage.getItem('sam-terminal-width')) || 33.33);
@@ -363,27 +364,16 @@ builtins.input = input_shim
     }
   }, [searchParams, setSearchParams]);
 
-  // Health check & worker status (with Cold Start detection)
+  // Health check for worker availability (Backend sanity)
   useEffect(() => {
     const checkStatus = async () => {
       if (!navigator.onLine) { setIsWorkerOnline(false); return; }
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => {
-        setIsColdStarting(true);
-      }, 5000); // 5s threshold for Cold Start detection
-
       try {
-        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`, { signal: controller.signal });
-        clearTimeout(timeoutId);
+        const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
         const data = await res.json();
         setIsWorkerOnline(data.workerOnline);
-        setIsColdStarting(false);
       } catch (err) {
-        clearTimeout(timeoutId);
         setIsWorkerOnline(false);
-        // If aborted or failed, keep cold starting flag if network is fine
-        if (navigator.onLine) setIsColdStarting(true);
       }
     };
     checkStatus();
@@ -416,34 +406,55 @@ builtins.input = input_shim
     return () => { isMounted.current = false; };
   }, []);
 
-  // Socket status monitoring
+  // Socket status monitoring with Stability Timer
   useEffect(() => {
-    // Initial connection trigger
     getSocket(token);
     
-    let statusTimeout;
-    const handleStatus = (e) => {
-      if (e.detail.connected) {
-        if (statusTimeout) clearTimeout(statusTimeout);
-        setSocketIsConnected(true);
+    let stabilityTimer = null;
+    let flickerTimer = null;
+
+    const handleStatusUpdate = (e) => {
+      const newStatus = e.detail.status;
+      
+      // Flickering prevention for disconnects
+      if (newStatus === "reconnecting" || newStatus === "failed") {
+        if (flickerTimer) clearTimeout(flickerTimer);
+        flickerTimer = setTimeout(() => {
+          setSocketStatus(newStatus);
+          setShowStatusBanner(true);
+        }, 1200); // Wait 1.2s before showing "Reconnecting" UI
+        return;
+      }
+
+      // If we are now healthy
+      if (newStatus === "connected") {
+        if (flickerTimer) clearTimeout(flickerTimer);
+        setSocketStatus(newStatus);
+        
+        // Auto-hide banner after 5 seconds of stability
+        if (stabilityTimer) clearTimeout(stabilityTimer);
+        stabilityTimer = setTimeout(() => {
+          setShowStatusBanner(false);
+        }, 5000);
       } else {
-        // Debounce disconnect notification to prevent "reconnecting" flickers during momentary drops
-        if (statusTimeout) clearTimeout(statusTimeout);
-        statusTimeout = setTimeout(() => {
-          setSocketIsConnected(false);
-        }, 2000);
+        // Any other state (connecting, waking)
+        if (flickerTimer) clearTimeout(flickerTimer);
+        setSocketStatus(newStatus);
+        setShowStatusBanner(true);
       }
     };
-    window.addEventListener("sam:socket:status", handleStatus);
+
+    window.addEventListener("sam:socket:status", handleStatusUpdate);
     return () => {
-      if (statusTimeout) clearTimeout(statusTimeout);
-      window.removeEventListener("sam:socket:status", handleStatus);
+      if (stabilityTimer) clearTimeout(stabilityTimer);
+      if (flickerTimer) clearTimeout(flickerTimer);
+      window.removeEventListener("sam:socket:status", handleStatusUpdate);
     };
-  }, []);
+  }, [token]);
 
   // Resubscribe Guardian: Pick up lost streams after reconnection
   useEffect(() => {
-    if (socketIsConnected && busy && runRef.current.jobId) {
+    if (socketStatus === "connected" && busy && runRef.current.jobId) {
       try {
         const socket = getSocket(token);
         if (socket) {
@@ -454,7 +465,7 @@ builtins.input = input_shim
         console.warn("⚠️ [SAM] Resubscribe failed:", err);
       }
     }
-  }, [socketIsConnected, busy]);
+  }, [socketStatus, busy]);
 
   // Pyodide (Python-in-browser) engine
   useEffect(() => {
@@ -996,9 +1007,8 @@ builtins.input = input_shim
         <StatusBar 
           language={activeLangId.toUpperCase()}
           position={`Ln ${metrics?.lastLine || 1}, Col ${metrics?.lastCol || 1}`}
-          status={busy ? "EXECUTING..." : "CONNECTED"}
-          isOnline={isWorkerOnline}
-          isColdStarting={isColdStarting}
+          socketStatus={socketStatus}
+          showBanner={showStatusBanner}
           onReportBug={() => setIsFeedbackModalOpen(true)}
           theme={theme}
           busy={busy}
