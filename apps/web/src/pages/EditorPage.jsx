@@ -726,7 +726,33 @@ builtins.input = input_shim
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
-      <header className="relative z-[80] flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 sam-glass !rounded-none !border-x-0 !border-t-0">
+      {/* MOBILE COMPACT HEADER */}
+      <header className="flex xl:hidden h-14 shrink-0 items-center justify-between border-b border-[var(--sam-glass-border)] bg-black/80 px-4 backdrop-blur-xl z-[80] safe-top">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white text-black shadow-lg shadow-white/10">
+            <span className="text-[14px] font-[900] tracking-tighter">S</span>
+          </div>
+          <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white/90">SAM</span>
+        </div>
+        
+        <div className="flex items-center gap-4">
+           <button 
+             onClick={() => setActiveModal('about')}
+             className="p-2 text-white/60 active:text-white transition-colors"
+           >
+             <CircleHelp className="h-5 w-5" />
+           </button>
+           <button 
+             onClick={() => setMobileMenuOpen(true)}
+             className="p-2 text-white/60 active:text-white transition-colors"
+           >
+             <Menu className="h-5 w-5" />
+           </button>
+        </div>
+      </header>
+
+      {/* DESKTOP HEADER */}
+      <header className="hidden xl:flex relative z-[80] h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 sam-glass !rounded-none !border-x-0 !border-t-0">
         {/* Connection Resilience Banner */}
         {/* Connection banner removed as per user request - StatusBar handles status now */}
 
@@ -1146,46 +1172,74 @@ builtins.input = input_shim
                 theme={theme}
                 width={aiWidth}
                 isMobile={isMobile}
-                activeMobileTab={activeMobileTab}
               />
             </React.Suspense>
           )}
         </main>
       </div>
 
+      {/* Floating Mobile Execution Button (Elite FAB) */}
+      {isMobile && (
+        <motion.button 
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.9 }}
+          onClick={onRun}
+          className={`fixed bottom-24 right-6 z-[95] flex h-16 w-16 items-center justify-center rounded-[28px] text-white shadow-[0_20px_60px_rgba(0,0,0,0.8)] border border-white/10 overflow-hidden ${
+            busy ? 'bg-[var(--sam-amber)]' : 'bg-white'
+          }`}
+        >
+          {busy ? (
+            <Loader2 className="h-7 w-7 animate-spin text-black" />
+          ) : (
+            <Play className="h-7 w-7 fill-black text-black" />
+          )}
+        </motion.button>
+      )}
 
       <footer className="fixed bottom-0 left-0 right-0 z-[100] flex flex-col">
         {/* Mobile Tab Navigator (Bottom Integrated) */}
-        <div className="flex xl:hidden h-14 shrink-0 bg-black/90 backdrop-blur-xl border-t border-[var(--sam-glass-border)] z-[70] shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
-          <button
+        <div className="flex xl:hidden mobile-nav-bar shrink-0 border-t border-white/5 shadow-[0_-10px_50px_rgba(0,0,0,1)]">
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             onClick={() => { setActiveMobileTab('editor'); setShowAiPanel(false); }}
-            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1 transition-all ${activeMobileTab === 'editor' && !showAiPanel ? 'text-[var(--sam-accent)]' : 'text-[var(--sam-text-dim)]'}`}
+            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1.5 transition-all ${activeMobileTab === 'editor' && !showAiPanel ? 'text-white' : 'text-white/40'}`}
+            style={{ flexBasis: 0 }}
           >
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-            <span className="text-[8px] font-black uppercase tracking-[0.2em]">Code</span>
-            {activeMobileTab === 'editor' && !showAiPanel && <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[var(--sam-accent)]" />}
-          </button>
+            <Code2 className="h-5 w-5" strokeWidth={activeMobileTab === 'editor' && !showAiPanel ? 2.5 : 2} />
+            <span className="text-[8px] font-black uppercase tracking-[0.2em]">{isMobile ? 'Editor' : 'Code'}</span>
+            {activeMobileTab === 'editor' && !showAiPanel && (
+              <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[3px] bg-white shadow-[0_-4px_12px_rgba(255,255,255,0.4)]" />
+            )}
+          </motion.button>
           
-          <button
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             onClick={() => { setActiveMobileTab('terminal'); setShowAiPanel(false); }}
-            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1 transition-all ${activeMobileTab === 'terminal' && !showAiPanel ? 'text-[var(--sam-accent)]' : 'text-[var(--sam-text-dim)]'}`}
+            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1.5 transition-all ${activeMobileTab === 'terminal' && !showAiPanel ? 'text-white' : 'text-white/40'}`}
+            style={{ flexBasis: 0 }}
           >
             <div className="relative">
-              <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2-2v12a2 2 0 002 2z" /></svg>
-              {busy && <div className="absolute -top-1 -right-1 h-1.5 w-1.5 rounded-full bg-[var(--sam-accent)] animate-pulse" />}
+              <TerminalIcon className="h-5 w-5" strokeWidth={activeMobileTab === 'terminal' && !showAiPanel ? 2.5 : 2} />
+              {busy && <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_white]" />}
             </div>
             <span className="text-[8px] font-black uppercase tracking-[0.2em]">Output</span>
-            {activeMobileTab === 'terminal' && !showAiPanel && <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[var(--sam-accent)]" />}
-          </button>
-
-          <button
+            {activeMobileTab === 'terminal' && !showAiPanel && (
+              <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[3px] bg-white shadow-[0_-4px_12px_rgba(255,255,255,0.4)]" />
+            )}
+          </motion.button>
+ 
+          <motion.button
+            whileTap={{ scale: 0.9 }}
             onClick={() => { setActiveMobileTab('ai'); setShowAiPanel(true); }}
-            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1 transition-all ${activeMobileTab === 'ai' || showAiPanel ? 'text-[var(--sam-accent)]' : 'text-[var(--sam-text-dim)]'}`}
+            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1.5 transition-all ${activeMobileTab === 'ai' || showAiPanel ? 'text-white' : 'text-white/40'}`}
+            style={{ flexBasis: 0 }}
           >
-            <Sparkles className="h-4 w-4" />
-            <span className="text-[8px] font-black uppercase tracking-widest">SAM AI</span>
-            {(activeMobileTab === 'ai' || (isMobile && showAiPanel)) && <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[2.5px] bg-[var(--sam-accent)]" />}
-          </button>
+            <Sparkles className="h-5 w-5" fill={activeMobileTab === 'ai' || showAiPanel ? "currentColor" : "none"} strokeWidth={activeMobileTab === 'ai' || showAiPanel ? 2.5 : 2} />
+            <span className="text-[8px] font-black uppercase tracking-widest">Sam AI</span>
+            {(activeMobileTab === 'ai' || (isMobile && showAiPanel)) && (
+              <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[3px] bg-white shadow-[0_-4px_12px_rgba(255,255,255,0.4)]" />
+            )}
+          </motion.button>
         </div>
 
         <StatusBar 

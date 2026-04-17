@@ -53,10 +53,13 @@
   --text-lg: clamp(1rem, 0.9rem + 0.5vw, 1.25rem);
   --text-xl: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
   
-  /* Adaptive Spacing */
+  /* Adaptive Spacing (Standardized 12px/16px gutters) */
   --space-1: clamp(0.25rem, 0.2rem + 0.2rem, 0.5rem);
-  --space-2: clamp(0.5rem, 0.4rem + 0.4rem, 1rem);
-  --space-4: clamp(1rem, 0.8rem + 0.8rem, 2rem);
+  --space-2: clamp(0.5rem, 0.45rem + 0.25vw, 0.75rem);
+  --space-3: clamp(0.75rem, 0.7rem + 0.25vw, 1rem);
+  --space-4: clamp(1rem, 0.9rem + 0.5vw, 1.5rem);
+  --space-6: clamp(1.5rem, 1.35rem + 0.75vw, 2.25rem);
+  --space-mobile: 12px;
 
   /* Legacy compat aliases */
   --app-bg:             var(--sam-bg);
@@ -133,16 +136,25 @@ html, body, div, header, footer, section, nav, button, span, a {
     min-height: 40px; 
   }
 
-  /* Safe Area Utilities */
-  .safe-top { padding-top: env(safe-area-inset-top, 0px); }
-  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
-  
-  /* Touch Optimized Splitter Hit Area */
+  /* Touch Optimized Navigation & Tap Targets */
+  .mobile-nav-bar {
+    height: 56px !important;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: rgba(5,5,5,0.95);
+  }
+
+  /* Safe Area Alignment Utilities */
+  .safe-top { padding-top: env(safe-area-inset-top, 6px); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 12px); }
+  .safe-left { padding-left: env(safe-area-inset-left, 0px); }
+  .safe-right { padding-right: env(safe-area-inset-right, 0px); }
+
   .resizer-handle-touch {
-    width: 20px !important;
-    margin-left: -7px;
-    margin-right: -7px;
+    width: 24px !important;
+    margin-left: -11px;
+    margin-right: -11px;
     z-index: 50;
+    opacity: 0; /* Ghost resizer for elite feel */
   }
 
   /* Compact Terminal for Mobile */
