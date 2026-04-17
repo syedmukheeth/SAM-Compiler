@@ -248,21 +248,22 @@ body {
 }
 
 .sam-run-btn {
-  background: #000000 !important;
+  background: linear-gradient(180deg, #1A1A1A 0%, #000000 100%) !important;
   color: #FFFFFF !important;
-  border: 1px solid var(--sam-glass-border) !important;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.6), inset 0 1px 1px rgba(255,255,255,0.05);
 }
 
 .sam-run-btn:hover {
-  background: #111111 !important;
-  border-color: var(--sam-text-dim) !important;
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+  background: #222222 !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.8), 0 0 15px rgba(255,255,255,0.05);
 }
 
 .sam-run-btn:active {
-  transform: translateY(0);
+  transform: translateY(0.5px);
+  filter: brightness(0.8);
 }
 
 /* Secondary — Ghost glass */
