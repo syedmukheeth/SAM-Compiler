@@ -204,7 +204,7 @@ export default function AiPanel({
   activeMobileTab
 }) {
   const [messages, setMessages] = useState([
-    { role: "model", content: "I am **Sam AI**, your world-class code assistant.\n\nI can **explain**, **fix**, **optimize**, and **refactor** your code. What would you like to do today?" }
+    { role: "model", content: "SAM AI ready. Ask me anything about your code." }
   ]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);

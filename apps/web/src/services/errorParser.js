@@ -23,21 +23,22 @@ export const parseErrors = (output, language) => {
   let primaryLine = null;
 
   // 🛡️ C/C++ Parser (GCC/Clang)
-  // Format: "main.cpp:5:10: error: message"
+  // Format: "main.cpp:5:10: error: message" or "main.cpp:5: error: message"
   if (language === 'cpp' || language === 'c') {
-    const regex = /:(\d+):(\d+):\s+(error|warning):\s+(.*)/i;
+    const regex = /:(\d+):(?:(\d+):)?\s+(error|warning|fatal error):\s+(.*)/i;
     lines.forEach(line => {
       const match = line.match(regex);
       if (match) {
         const lineNum = parseInt(match[1]);
+        const colNum = match[2] ? parseInt(match[2]) : 1;
         if (!primaryLine) primaryLine = lineNum;
         markers.push({
           startLineNumber: lineNum,
-          startColumn: parseInt(match[2]),
+          startColumn: colNum,
           endLineNumber: lineNum,
-          endColumn: parseInt(match[2]) + 5, // Expand slightly for visual
-          message: match[4],
-          severity: match[3].toLowerCase() === 'error' ? MONACO_SEVERITY.ERROR : MONACO_SEVERITY.WARNING
+          endColumn: colNum + 5,
+          message: match[4] ? match[4].trim() : "Unknown compiler error",
+          severity: (match[3].toLowerCase().includes('error')) ? MONACO_SEVERITY.ERROR : MONACO_SEVERITY.WARNING
         });
       }
     });

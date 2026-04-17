@@ -174,6 +174,42 @@ export default function EditorPage() {
     });
   }, []);
 
+  // 🛰️ DIAGNOSTIC ENGINE: Render line with high-fidelity colorization
+  const renderDiagnosticLine = useCallback((line, hasError) => {
+    if (!line) return "";
+    const reset = "\x1b[0m";
+    const dim = "\x1b[2m";
+    const bold = "\x1b[1m";
+    const red = "\x1b[31m";
+    const white = "\x1b[37m";
+    const boldRed = "\x1b[1;31m";
+    
+    // GCC/Clang Error Format: file:line:col: error: message
+    const gccRegex = /^([^:\n]+):(\d+):(?:(\d+):)?\s+(error|warning|fatal error):\s+(.*)/i;
+    const gccMatch = line.match(gccRegex);
+    
+    if (gccMatch) {
+      const [_, file, lineNum, colNum, type, msg] = gccMatch;
+      const isError = type.toLowerCase().includes('error');
+      const typeColor = isError ? boldRed : "\x1b[1;33m";
+      return `${dim}${file}:${lineNum}${colNum ? `:${colNum}` : ""}:${reset} ${typeColor}${type}:${reset} ${white}${msg}${reset}\r\n`;
+    }
+
+    // Caret/Arrow highlighting (GCC style)
+    if (line.trim().startsWith('|') || line.includes('^')) {
+      return `${dim}${line}${reset}\r\n`;
+    }
+
+    // Python Traceback styling
+    if (line.includes('File "') && line.includes('line')) {
+      return `${dim}${line}${reset}\r\n`;
+    }
+
+    // Default error/standard output
+    if (hasError) return `${white}${line}${reset}\r\n`;
+    return `${line}\r\n`;
+  }, []);
+
   const runPythonInBrowser = useCallback(async (code) => {
     if (!pyodide) throw new Error("Python engine is still booting...");
     pyodide.setStdout({ batched: (str) => { xtermRef.current.write(str); } });
@@ -201,11 +237,12 @@ builtins.input = input_shim
     if (busy) return;
     
     // 🔥 PREMIUM TERMINAL UX: Boot Sequence
+    // 🔥 GCC-STYLE TERMINAL BOOT
     if (xtermRef.current) {
       xtermRef.current.clear();
-      await writeTypewriter(xtermRef.current, `📡 \x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`, 2);
-      await writeTypewriter(xtermRef.current, `📦 \x1b[1;36m[SAM] CONFIGURING SANDBOX [DOCKER]...\x1b[0m\r\n`, 2);
-      await writeTypewriter(xtermRef.current, `🚀 \x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`, 2);
+      xtermRef.current.write(`📡 \x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`);
+      xtermRef.current.write(`📦 \x1b[1;36m[SAM] CONFIGURING SANDBOX [DOCKER]...\x1b[0m\r\n`);
+      xtermRef.current.write(`🚀 \x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`);
     }
 
     if (isMobile) {
@@ -286,9 +323,16 @@ builtins.input = input_shim
              hasReceivedOutputRef.current = true;
            }
            if (xtermRef.current) {
-             if (evt.type === "stdout") xtermRef.current.write(content);
+             if (evt.type === "stdout") xtermRef.current.write(content.replace(/\n/g, "\r\n"));
              else {
-               xtermRef.current.write(`\x1b[31m${content}\x1b[0m`);
+               // Apply high-fidelity diagnostic rendering line by line
+               const lines = content.split('\n');
+               lines.forEach((l, idx) => {
+                  if (idx === 0 && !stdErrRef.current) {
+                    xtermRef.current.write(`\x1b[1;31mERROR!\x1b[0m\r\n\r\n`);
+                  }
+                  xtermRef.current.write(renderDiagnosticLine(l, true));
+               });
                stdErrRef.current += content;
              }
            }
@@ -304,25 +348,24 @@ builtins.input = input_shim
 
           if (xtermRef.current) {
             const reset = '\x1b[0m';
-            const dim = '\x1b[2m';
-            const summaryColor = success ? '\x1b[1;32m' : '\x1b[1;31m';
+            const boldRed = '\x1b[1;31m';
+            const boldGreen = '\x1b[1;32m';
             
-            xtermRef.current.write(`\r\n${dim}────────────────────────────────────────${reset}\r\n`);
-            xtermRef.current.write(`${summaryColor}SAM EXECUTION SUMMARY${reset}\r\n`);
-            xtermRef.current.write(`${dim}STATUS  :${reset} ${jobStatus?.toUpperCase() || (success ? 'SUCCESS' : 'FAILED')}\r\n`);
-            xtermRef.current.write(`${dim}TIME    :${reset} ${metrics?.durationMs || 'N/A'}ms\r\n`);
-            xtermRef.current.write(`${dim}ENGINE  :${reset} ${metrics?.sandbox || 'hardened-docker'}\r\n`);
-            xtermRef.current.write(`${dim}────────────────────────────────────────${reset}\r\n\r\n`);
+            if (success) {
+              xtermRef.current.write(`\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n`);
+            } else {
+              xtermRef.current.write(`\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n`);
+            }
           }
 
           setRunStatus(jobStatus ? (jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1)) : (success ? "Succeeded" : "Failed"));
           
           if (!success) {
-            const diags = parseErrors(activeLangId, stdErrRef.current || "");
+            const { markers: diags, primaryLine } = parseErrors(stdErrRef.current || "", activeLangId);
             if (diags.length > 0) {
-              setErrorMarkers(diags.map(d => d.marker));
-              if (window.samEditor && diags[0].primaryLine) {
-                window.samEditor.revealLineInCenter(diags[0].primaryLine);
+              setErrorMarkers(diags);
+              if (window.samEditor && primaryLine) {
+                window.samEditor.revealLineInCenter(primaryLine);
               }
             }
           }
@@ -358,7 +401,11 @@ builtins.input = input_shim
         }
         if (stderr.trim()) {
           hasReceivedOutputRef.current = true;
-          xtermRef.current.write(`\x1b[31m${stderr.replace(/\n/g, "\r\n")}\x1b[0m`);
+          xtermRef.current.write(`\x1b[1;31mERROR!\x1b[0m\r\n\r\n`);
+          const lines = stderr.split('\n');
+          lines.forEach(l => {
+            xtermRef.current.write(renderDiagnosticLine(l, true));
+          });
           stdErrRef.current += stderr;
         }
         // If truly empty
@@ -368,12 +415,12 @@ builtins.input = input_shim
         // Write summary
         const success = finalState.status === 'succeeded';
         const reset = '\x1b[0m';
-        const dim = '\x1b[2m';
-        const summaryColor = success ? '\x1b[1;32m' : '\x1b[1;31m';
-        xtermRef.current.write(`\r\n${dim}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500${reset}\r\n`);
-        xtermRef.current.write(`${summaryColor}SAM EXECUTION SUMMARY${reset}\r\n`);
-        xtermRef.current.write(`${dim}STATUS  :${reset} ${finalState.status?.toUpperCase()}\r\n`);
-        xtermRef.current.write(`${dim}\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500${reset}\r\n\r\n`);
+        
+        if (success) {
+          xtermRef.current.write(`\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n`);
+        } else {
+          xtermRef.current.write(`\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n`);
+        }
         setRunStatus(finalState.status === 'succeeded' ? 'Succeeded' : 'Failed');
         setBusy(false);
       }
@@ -1047,7 +1094,8 @@ builtins.input = input_shim
 
       <div 
         ref={containerRef}
-        className="flex flex-1 overflow-hidden transition-all duration-200 ease-out h-[100dvh]"
+        className="flex flex-1 overflow-hidden transition-all duration-200 ease-out"
+        style={{ height: isMobile ? 'calc(100dvh - 48px - 100px)' : 'calc(100vh - 56px)' }}
       >
         <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-0 md:p-6 md:pb-6 gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
@@ -1149,7 +1197,7 @@ builtins.input = input_shim
               MOBILE RUN FAB — Only visible on <768px
               Premium pill floating above the tab bar
           ══════════════════════════════════════════════ */}
-          {isMobile && (
+          {isMobile && !showAiPanel && (
             <motion.button
               id="mobile-run-fab"
               onClick={onRun}
@@ -1175,9 +1223,9 @@ builtins.input = input_shim
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'fixed',
-                bottom: 'calc(64px + env(safe-area-inset-bottom, 0px) + 12px)',
+                bottom: 'calc(110px + env(safe-area-inset-bottom, 0px) + 20px)',
                 right: 20,
-                zIndex: 90,
+                zIndex: 150,
                 display: 'flex',
                 alignItems: 'center',
                 gap: 8,
@@ -1354,6 +1402,7 @@ builtins.input = input_shim
                 theme={theme}
                 width={aiWidth}
                 isMobile={isMobile}
+                activeMobileTab={activeMobileTab}
               />
             </React.Suspense>
           )}
