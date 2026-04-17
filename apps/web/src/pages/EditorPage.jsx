@@ -131,6 +131,14 @@ export default function EditorPage() {
 
   // --- 4. Logic & Memoization ---
 
+  const writeTypewriter = useCallback(async (term, text, speed = 5) => {
+    if (!term) return;
+    for (const char of text) {
+      term.write(char);
+      if (speed > 0) await new Promise(resolve => setTimeout(resolve, speed));
+    }
+  }, []);
+
   // --- Helpers & Logic ---
 
   const sessionId = useMemo(() => {
@@ -181,6 +189,15 @@ builtins.input = input_shim
     const language = activeConfig.lang;
     if (busy) return;
     console.log(`📡 [SAM-AUDIT] [FRONTEND] Click RUN detected for language: ${activeLangId}`);
+    
+    // 🔥 PREMIUM TERMINAL UX: Boot Sequence
+    if (xtermRef.current) {
+      xtermRef.current.clear();
+      await writeTypewriter(xtermRef.current, `📡 \x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`, 2);
+      await writeTypewriter(xtermRef.current, `📦 \x1b[1;36m[SAM] CONFIGURING SANDBOX [DOCKER]...\x1b[0m\r\n`, 2);
+      await writeTypewriter(xtermRef.current, `🚀 \x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`, 2);
+    }
+
     setBusy(true);
     analytics.trackCodeRun(activeLangId, null); // Track execution attempt
     const socket = getSocket(token);
@@ -247,7 +264,22 @@ builtins.input = input_shim
            else if (evt.type === "stderr") xtermRef.current.write(`\x1b[31m${evt.chunk}\x1b[0m`);
         }
         if (evt.type === "end") {
-          const success = evt.status === "succeeded";
+          const { status: jobStatus, metrics } = evt.chunk || {};
+          const success = jobStatus === "succeeded";
+          
+          if (xtermRef.current) {
+            const summaryColor = success ? '\x1b[1;32m' : '\x1b[1;31m';
+            const reset = '\x1b[0m';
+            const dim = '\x1b[2m';
+            
+            xtermRef.current.write(`\r\n${dim}────────────────────────────────────────${reset}\r\n`);
+            xtermRef.current.write(`${summaryColor}SAM EXECUTION SUMMARY${reset}\r\n`);
+            xtermRef.current.write(`${dim}STATUS  :${reset} ${success ? 'SUCCESS' : 'FAILED'}\r\n`);
+            xtermRef.current.write(`${dim}TIME    :${reset} ${metrics?.durationMs || 'N/A'}ms\r\n`);
+            xtermRef.current.write(`${dim}ENGINE  :${reset} ${metrics?.sandbox || 'hardened-docker'}\r\n`);
+            xtermRef.current.write(`${dim}────────────────────────────────────────${reset}\r\n\r\n`);
+          }
+
           setRunStatus(success ? "Succeeded" : "Failed");
           analytics.trackCodeRun(activeLangId, success); // Track completion status
           setBusy(false);
@@ -567,8 +599,10 @@ builtins.input = input_shim
         white: isDark ? '#FFFFFF' : '#0F172A',
       },
       fontFamily: 'var(--font-mono)',
-      fontSize: 14,
-      lineHeight: 1.5,
+      fontSize: 13,
+      lineHeight: 1.4,
+      letterSpacing: 0.8,
+      fontWeight: 500,
       cursorBlink: true,
       convertEol: true,
     });
@@ -966,7 +1000,7 @@ builtins.input = input_shim
 
           {/* TERMINAL SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden ${(!isMobile || (activeMobileTab === 'terminal' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
+            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} ${(!isMobile || (activeMobileTab === 'terminal' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
             style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${showAiPanel ? 100 - editorWidth - aiWidth : 100 - editorWidth}%`, flex: `1 1 auto` }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--sam-surface)' }}>

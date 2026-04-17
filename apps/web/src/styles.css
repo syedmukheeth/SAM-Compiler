@@ -482,7 +482,33 @@ body {
 }
 
 .is-live .indicator-text { color: var(--sam-green); opacity: 0.9; }
-.is-preparing .indicator-text { color: var(--sam-amber); opacity: 0.9; }
+.sam-engine-indicator.is-preparing .indicator-text { color: var(--sam-amber); opacity: 0.9; }
+
+/* === Terminal Active Glow & Obsidian Polish === */
+.sam-terminal-container {
+  overflow: hidden;
+  position: relative;
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sam-terminal-container.is-active {
+  box-shadow: inset 0 0 40px rgba(255, 255, 255, 0.03);
+  border-color: rgba(255, 255, 255, 0.15) !important;
+}
+
+.sam-terminal-container.is-active::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+  animation: sam-terminal-scan 3s linear infinite;
+}
+
+@keyframes sam-terminal-scan {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
 
 /* Cold Start Overlay */
 .sam-cold-start-overlay {
