@@ -830,18 +830,14 @@ builtins.input = input_shim
                   id="editor-run-btn"
                   onClick={onRun}
                   disabled={busy}
-                  className="sam-button-primary"
+                  className={`sam-run-btn ${busy ? 'opacity-80 cursor-not-allowed' : ''}`}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 8,
                     padding: '8px 24px', borderRadius: 8,
-                    background: busy ? 'var(--sam-accent-dim)' : 'var(--sam-accent)',
-                    color: '#FFFFFF',
                     fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
-                    boxShadow: '0 4px 14px rgba(0,0,0,0.1)',
-                    cursor: busy ? 'not-allowed' : 'pointer',
-                    opacity: busy ? 0.8 : 1,
                     transition: 'all 0.2s',
                     fontFamily: 'var(--font-body)',
+                    background: busy ? 'var(--sam-surface-high)' : undefined,
                   }}
                 >
                   {busy ? (

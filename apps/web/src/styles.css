@@ -247,6 +247,24 @@ body {
   filter: brightness(0.95);
 }
 
+.sam-run-btn {
+  background: #000000 !important;
+  color: #FFFFFF !important;
+  border: 1px solid var(--sam-glass-border) !important;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+.sam-run-btn:hover {
+  background: #111111 !important;
+  border-color: var(--sam-text-dim) !important;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(0,0,0,0.6);
+}
+
+.sam-run-btn:active {
+  transform: translateY(0);
+}
+
 /* Secondary — Ghost glass */
 .sam-button-secondary {
   background: transparent;
