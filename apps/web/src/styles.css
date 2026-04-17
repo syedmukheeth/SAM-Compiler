@@ -427,8 +427,75 @@ body {
   transform: scale(0.96);
   background: var(--sam-surface-top);
 }
-
 .sam-button-run:disabled {
   cursor: not-allowed;
   filter: grayscale(1);
 }
+
+/* === Engine Status Indicator (Interview Mode) === */
+.sam-engine-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 12px;
+  border-radius: 99px;
+  background: var(--sam-surface-low);
+  border: 1px solid var(--sam-glass-border);
+  transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.sam-engine-indicator.is-live {
+  border-color: rgba(16, 185, 129, 0.2);
+  background: rgba(16, 185, 129, 0.05);
+}
+
+.sam-engine-indicator.is-preparing {
+  border-color: rgba(245, 158, 11, 0.2);
+  background: rgba(245, 158, 11, 0.05);
+}
+
+.indicator-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.is-live .indicator-dot {
+  background: var(--sam-green);
+  box-shadow: 0 0 10px var(--sam-green);
+}
+
+.is-preparing .indicator-dot {
+  background: var(--sam-amber);
+  animation: sam-pulse 1.5s infinite;
+  box-shadow: 0 0 8px var(--sam-amber);
+}
+
+.indicator-text {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--sam-text-dim);
+  font-family: var(--font-body);
+}
+
+.is-live .indicator-text { color: var(--sam-green); opacity: 0.9; }
+.is-preparing .indicator-text { color: var(--sam-amber); opacity: 0.9; }
+
+/* Cold Start Overlay */
+.sam-cold-start-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(8px);
+  border-radius: 16px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

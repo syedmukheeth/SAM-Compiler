@@ -397,22 +397,35 @@ builtins.input = input_shim
     }
   }, [searchParams, setSearchParams]);
 
-  // Health check for worker availability (Backend sanity)
+  // Health check for worker availability (Backend sanity) & PROACTIVE PREWARMING
   useEffect(() => {
     const checkStatus = async () => {
       if (!navigator.onLine) { setIsWorkerOnline(false); return; }
       try {
+        // Prewarm Backend & Check Worker
         const res = await fetch(`${ENDPOINTS.API_BASE_URL}/runs/health/queue`);
         const data = await res.json();
         setIsWorkerOnline(data.workerOnline);
+        
+        // Suppress cold starts by pinging API
+        fetch(`${ENDPOINTS.API_BASE_URL}/ping`).catch(() => {});
+        console.log("📡 [SAM-AUDIT] [FRONTEND] Prewarming pulse successful");
       } catch (err) {
         setIsWorkerOnline(false);
       }
     };
+
+    // Proactive Socket Initialization (Zero-Lag Handshake)
+    const socket = getSocket(token);
+    if (socket) {
+      setSocketStatus("connecting");
+      socket.on("connect", () => setSocketStatus("connected"));
+    }
+
     checkStatus();
-    const timer = setInterval(checkStatus, 15000);
+    const timer = setInterval(checkStatus, 3 * 60 * 1000); // Pulse every 3 mins to stay hot
     return () => clearInterval(timer);
-  }, []);
+  }, [token]);
 
   // Persist buffers to localStorage
   useEffect(() => {
@@ -712,6 +725,14 @@ builtins.input = input_shim
                 className="sam-button-primary h-8 px-4 text-[9px] font-black uppercase tracking-wider rounded-md"
               >Sign In</button>
             )}
+            
+            {/* 🔥 INTERVIEW MODE: Engine Status Pill */}
+            <div className={`sam-engine-indicator ${isWorkerOnline ? 'is-live' : 'is-preparing'}`}>
+              <div className="indicator-dot"></div>
+              <span className="indicator-text">
+                {isWorkerOnline ? 'ENGINE LIVE' : 'PREPARING ENGINE'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-1.5 md:gap-3">
@@ -975,6 +996,18 @@ builtins.input = input_shim
               </div>
               
               <div className={`flex-1 overflow-hidden relative ${theme === 'light' ? 'bg-[#F1F5F9]' : 'bg-[#000000]'}`}>
+                {/* 🔥 INTERVIEW MODE: Cold Start Overlay */}
+                {!isWorkerOnline && (
+                  <div className="sam-cold-start-overlay">
+                    <div className="flex flex-col items-center gap-4">
+                      <div className="sam-spinner w-8 h-8" />
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white">Preparing Engine</span>
+                        <span className="text-[8px] font-bold uppercase tracking-widest text-white/40">Zero-latency environment booting...</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <div ref={terminalRef} className="h-full w-full overflow-hidden" 
                    style={{ padding: '10px' }} 
                 />

@@ -115,8 +115,24 @@ async function main() {
     },
     { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "3") }
   );
-
   await startHeartbeat(redisClient, () => ({ activeJobs }));
+
+  // 🔥 INTERVIEW DEMO MODE: Keep-alive self-ping to prevent platform sleep
+  setInterval(async () => {
+    try {
+      await new Promise((resolve, reject) => {
+        const req = http.get("http://localhost:3001/health", (res) => {
+          if (res.statusCode === 200) resolve();
+          else reject(new Error(`Status: ${res.statusCode}`));
+        });
+        req.on("error", reject);
+        req.setTimeout(5000, () => { req.destroy(); reject(new Error("Timeout")); });
+      });
+      logger.info("📡 [SAM-AUDIT] [WORKER] Warmup pulse successful (Instance active)");
+    } catch (err) {
+      logger.warn({ err: err.message }, "Worker warmup pulse failed");
+    }
+  }, 5 * 60 * 1000); // 5 minutes
 
   worker.on("failed", (job, err) => {
     logger.error({ job: job?.id, err }, "Job failed permanently");
