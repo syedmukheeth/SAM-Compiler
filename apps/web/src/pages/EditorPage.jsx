@@ -67,11 +67,19 @@ export default function EditorPage() {
   const { user, token, loginUser, logoutUser } = useAuth();
 
   // --- 2. State Hooks ---
-  const [activeLangId, setActiveLangId] = useState("cpp");
+  const [activeLangId, setActiveLangId] = useState(() => {
+    if (typeof localStorage !== 'undefined') {
+      return localStorage.getItem("sam_active_lang") || "cpp";
+    }
+    return "cpp";
+  });
+
   const [buffers, setBuffers] = useState(() => {
     try {
-      const saved = localStorage.getItem("sam_code_buffers");
-      if (saved) return JSON.parse(saved);
+      if (typeof localStorage !== 'undefined') {
+        const saved = localStorage.getItem("sam_code_buffers");
+        if (saved) return JSON.parse(saved);
+      }
     } catch (e) {}
     return Object.fromEntries(Object.entries(languageConfigs).map(([id, cfg]) => [id, cfg.template]));
   });
@@ -349,6 +357,11 @@ builtins.input = input_shim
   }, [isResizingEditor, isResizingAi, onResizeEditor, onResizeAi, stopResizingEditor, stopResizingAi]);
 
   // --- Effects & Lifecycle ---
+  
+  // Persistence for Active Language
+  useEffect(() => {
+    localStorage.setItem("sam_active_lang", activeLangId);
+  }, [activeLangId]);
 
   // Initial session & token probe
   useEffect(() => {

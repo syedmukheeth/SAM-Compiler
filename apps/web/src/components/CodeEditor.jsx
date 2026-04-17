@@ -23,6 +23,7 @@ const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"
 
 export default function CodeEditor({ 
   language, 
+  value,
   onChange, 
   onCursorChange, 
   sessionId = "default",
@@ -110,9 +111,9 @@ export default function CodeEditor({
     if (!editorRef.current) return;
     const editor = editorRef.current;
     
-    // 1. Instant Local Write: Fill the editor from buffer immediately
-    // Only if the current editor is empty OR we are switching languages
-    if (value && (editor.getValue().trim() === "" || !hasInitializedRef.current)) {
+    // 1. Sync Protection: Only fill editor if empty
+    // On language switch, the parent passes a new 'value' which we should apply
+    if (value && editor.getValue() !== value) {
       editor.setValue(value);
     }
 
@@ -189,6 +190,7 @@ export default function CodeEditor({
       <Editor
         theme={monacoTheme}
         language={monacoLanguage}
+        value={value}
         onMount={handleMount}
         onChange={handleChange}
         options={{
