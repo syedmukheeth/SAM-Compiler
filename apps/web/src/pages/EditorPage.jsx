@@ -1066,20 +1066,26 @@ builtins.input = input_shim
 
           {/* SAM AI PANEL - Now Integrated */}
           {showAiPanel && (
-            <AiPanel 
-              isOpen={showAiPanel}
-              onClose={() => setShowAiPanel(false)}
-              currentCode={buffers[activeLangId]}
-              language={activeLangId}
-              onApplyRefactor={(refactoredCode) => {
-                setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
-                window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
-              }}
-              theme={theme}
-              width={aiWidth}
-              isMobile={isMobile}
-              activeMobileTab={activeMobileTab}
-            />
+            <React.Suspense fallback={
+              <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md">
+                <div className="sam-spinner w-8 h-8" />
+              </div>
+            }>
+              <AiPanel 
+                isOpen={showAiPanel}
+                onClose={() => setShowAiPanel(false)}
+                currentCode={buffers[activeLangId]}
+                language={activeLangId}
+                onApplyRefactor={(refactoredCode) => {
+                  setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
+                  window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
+                }}
+                theme={theme}
+                width={aiWidth}
+                isMobile={isMobile}
+                activeMobileTab={activeMobileTab}
+              />
+            </React.Suspense>
           )}
         </main>
       </div>
