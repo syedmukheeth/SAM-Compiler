@@ -871,7 +871,7 @@ builtins.input = input_shim
               
               <div className="flex-1 overflow-hidden relative">
                 <CodeEditor
-                   key={`${sessionId}-${activeLangId}`}
+                   key={sessionId}
                    language={activeLangId}
                    value={buffers[activeLangId]}
                    onChange={onCodeChange}

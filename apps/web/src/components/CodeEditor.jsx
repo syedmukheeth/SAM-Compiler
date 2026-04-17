@@ -45,7 +45,7 @@ export default function CodeEditor({
   const handleMount = useCallback((editor, monaco) => {
     editorRef.current = editor;
 
-    // Define Monolith Dark Theme (Strict Monochromatic Matrix)
+    // Define themes (kept same as before)
     monaco.editor.defineTheme('monolith-dark', {
       base: 'vs-dark',
       inherit: true,
@@ -72,7 +72,6 @@ export default function CodeEditor({
       }
     });
 
-    // Define Monolith Light Theme (Premium Monochrome Aesthetic)
     monaco.editor.defineTheme('monolith-light', {
       base: 'vs',
       inherit: true,
@@ -97,28 +96,45 @@ export default function CodeEditor({
       }
     });
 
-    if (providerRef.current) return;
+    editor.onDidChangeCursorPosition(() => {
+      const pos = editor.getPosition();
+      if (!pos) return;
+      onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
+    });
+  }, [onCursorChange]);
+  // THEME PERSISTENCE
+  const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);
+
+  // ⚡ INSTANT BOOT & COLLABORATIVE LIFECYCLE
+  useEffect(() => {
+    if (!editorRef.current) return;
+    const editor = editorRef.current;
     
-    // Initialize Yjs
+    // 1. Instant Local Write: Fill the editor from buffer immediately
+    if (value !== undefined && value !== editor.getValue() && !hasInitializedRef.current) {
+      editor.setValue(value);
+    }
+
+    // 2. Clear previous session if exists
+    if (bindingRef.current) bindingRef.current.destroy();
+    if (providerRef.current) providerRef.current.destroy();
+
+    // 3. Initialize fresh collaborative room for this language
     const ydoc = new Y.Doc();
     const endpoint = ENDPOINTS.WS_ENDPOINT;
-
-    // HARD ISOLATION: Room name includes language to prevent multi-sync corruption
     const roomName = `${sessionId}-${language}`;
+    
     const provider = new SocketIOProvider(endpoint, roomName, ydoc, {
       ...ENDPOINTS.SOCKET_OPTIONS,
       autoConnect: true
     });
 
-    // UNIQUE TEXT NODE: Double-shielding by using language-specific keys
     const ytext = ydoc.getText(language);
-
-    // Assign to refs IMMEDIATELY for event visibility
+    
     ydocRef.current = ydoc;
     ytextRef.current = ytext;
     providerRef.current = provider;
 
-    // Bind Monaco to Yjs
     const binding = new MonacoBinding(
       ytext,
       editor.getModel(),
@@ -127,65 +143,38 @@ export default function CodeEditor({
     );
     bindingRef.current = binding;
 
-    // Set local awareness (Cursors/Presence)
     provider.awareness.setLocalStateField("user", {
       name: localName,
       color: localColor
     });
 
-    editor.onDidChangeCursorPosition(() => {
-      const pos = editor.getPosition();
-      if (!pos) return;
-      onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
-    });
-
-    // ROBUST SYNC: Client simply listens. Backend handles initialization.
     provider.on('sync', (isSynced) => {
-      if (isSynced !== false && !hasInitializedRef.current) {
+      if (isSynced !== false) {
         hasInitializedRef.current = true;
       }
     });
-    
-  }, [localName, localColor, onCursorChange, sessionId, language]); 
-
-  // THEME PERSISTENCE
-  const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);
-
-  // Provider & Binding Lifecycle Management
-  useEffect(() => {
-    // 1. Setup Reset Listener (Absolute Wipe Transaction)
-    const handleResetEvent = (e) => {
-      const { template } = e.detail;
-        if (editorRef.current) {
-          // PRO DELETION: Use Monaco's native state-engine to guarantee zero visual artifacts.
-          // y-monaco will automatically intercept this and broadcast the delta to Yjs correctly.
-          editorRef.current.setValue(template);
-          toast.success("Applied to editor ✨", {
-            style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '11px', fontWeight: 900 },
-            icon: '✨'
-          });
-        }
-    };
-    window.addEventListener('sam-editor-reset', handleResetEvent);
-
-    // 2. Initialize Editor/Provider
-    if (editorRef.current && !providerRef.current) {
-      handleMount(editorRef.current, window.monaco);
-    }
 
     return () => {
-      window.removeEventListener('sam-editor-reset', handleResetEvent);
-      if (bindingRef.current) {
-        bindingRef.current.destroy();
-        bindingRef.current = null;
-      }
-      if (providerRef.current) {
-        providerRef.current.destroy();
-        providerRef.current = null;
+      binding.destroy();
+      provider.destroy();
+      hasInitializedRef.current = false;
+    };
+  }, [sessionId, language, localName, localColor]); // Re-initialize on session/language change
+
+  useEffect(() => {
+    const handleResetEvent = (e) => {
+      const { template } = e.detail;
+      if (editorRef.current) {
+        editorRef.current.setValue(template);
+        toast.success("Applied to editor ✨", {
+          style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '11px', fontWeight: 900 },
+          icon: '✨'
+        });
       }
     };
-  }, [sessionId, handleMount]); // Re-run when session ID changes
-
+    window.addEventListener('sam-editor-reset', handleResetEvent);
+    return () => window.removeEventListener('sam-editor-reset', handleResetEvent);
+  }, []);
   const handleChange = useCallback((v) => {
     onChange?.(v ?? "");
   }, [onChange]);
