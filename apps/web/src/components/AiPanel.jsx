@@ -107,7 +107,7 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
               }`}>
                 <button
                   onClick={() => navigator.clipboard.writeText(codeStr)}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all active:scale-95 ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95 ${
                     isDark ? 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-900'
                   }`}
                 >
@@ -119,11 +119,11 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
                       onApplyRefactor(codeStr);
                     }
                   }}
-                  className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-all active:scale-95 ${
-                    isDark ? 'bg-white/10 text-white hover:bg-white hover:text-black' : 'bg-black text-white hover:opacity-90'
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all active:scale-95 ${
+                    isDark ? 'bg-white text-black hover:opacity-90' : 'bg-black text-white hover:opacity-90'
                   }`}
                 >
-                  <Zap size={11} fill="currentColor" /> Apply to Editor
+                  <Zap size={11} fill="currentColor" /> Apply
                 </button>
               </div>
             </div>
@@ -160,7 +160,7 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
         </div>
       )}
       <div className="relative w-full min-w-0">
-        <div className={`w-full rounded-2xl px-4 py-3 text-[12px] leading-[1.65] border select-text overflow-hidden break-words ${
+        <div className={`w-full rounded-2xl px-5 py-4 text-[13px] leading-[1.7] border select-text overflow-hidden break-words transition-all ${
           isUser
             ? (isDark ? 'bg-white/10 text-white border-white/10 rounded-tr-none' : 'bg-slate-100 text-slate-900 border-slate-200 rounded-tr-none')
             : (isDark ? 'bg-white/5 text-white/90 border-white/5 rounded-tl-none' : 'bg-white text-slate-800 border-slate-100 rounded-tl-none shadow-sm')

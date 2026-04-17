@@ -6,13 +6,16 @@ import { FitAddon } from 'xterm-addon-fit';
 import 'xterm/css/xterm.css';
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
-import SettingsModal from "../components/SettingsModal";
-import AuthModal from "../components/AuthModal";
-import UpgradeModal from "../components/UpgradeModal";
-import HistoryPanel from "../components/HistoryPanel";
-import AiPanel from "../components/AiPanel";
+
+// ⚡ LAZY LOAD PERFORMANCE HYDRATION (Code-Splitting)
+const SettingsModal = React.lazy(() => import("../components/SettingsModal"));
+const AuthModal     = React.lazy(() => import("../components/AuthModal"));
+const UpgradeModal  = React.lazy(() => import("../components/UpgradeModal"));
+const HistoryPanel  = React.lazy(() => import("../components/HistoryPanel"));
+const AiPanel       = React.lazy(() => import("../components/AiPanel"));
+const FeedbackModal = React.lazy(() => import("../components/FeedbackModal"));
+
 import StatusBar from "../components/StatusBar";
-import FeedbackModal from "../components/FeedbackModal";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -85,7 +88,6 @@ export default function EditorPage() {
   });
   const [isColdStarting, setIsColdStarting] = useState(false);
   const [runStatus, setRunStatus] = useState("Ready");
-  const [metrics, setMetrics] = useState(null);
   const [theme, setTheme] = useState(() => localStorage.getItem('sam-theme') || 'dark');
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
@@ -303,15 +305,18 @@ builtins.input = input_shim
 
   const onResizeEditor = useCallback((e) => {
     if (!isResizingEditor || !containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - containerRect.left;
-    const pct = (x / containerRect.width) * 100;
     
-    // Safety boundaries
-    if (pct > 15 && pct < (showAiPanel ? 100 - aiWidth - 15 : 85)) {
-      setEditorWidth(pct);
-      localStorage.setItem('sam-editor-width', pct.toString());
-    }
+    // Performance: Use requestAnimationFrame for layout updates
+    requestAnimationFrame(() => {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - containerRect.left;
+      const pct = (x / containerRect.width) * 100;
+      
+      if (pct > 15 && pct < (showAiPanel ? 100 - aiWidth - 15 : 85)) {
+        setEditorWidth(pct);
+        localStorage.setItem('sam-editor-width', pct.toString());
+      }
+    });
   }, [isResizingEditor, showAiPanel, aiWidth]);
 
   const startResizingAi = useCallback((e) => {
@@ -329,14 +334,17 @@ builtins.input = input_shim
 
   const onResizeAi = useCallback((e) => {
     if (!isResizingAi || !containerRef.current) return;
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const x = e.clientX - containerRect.left;
-    const pct = 100 - ((x / containerRect.width) * 100);
     
-    if (pct > 15 && pct < 100 - editorWidth - 15) {
-      setAiWidth(pct);
-      localStorage.setItem('sam-ai-width-pct', pct.toString());
-    }
+    requestAnimationFrame(() => {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const x = e.clientX - containerRect.left;
+      const pct = 100 - ((x / containerRect.width) * 100);
+      
+      if (pct > 15 && pct < 100 - editorWidth - 15) {
+        setAiWidth(pct);
+        localStorage.setItem('sam-ai-width-pct', pct.toString());
+      }
+    });
   }, [isResizingAi, editorWidth]);
 
   useEffect(() => {
@@ -406,11 +414,20 @@ builtins.input = input_shim
     localStorage.setItem("sam-theme", theme);
   }, [theme]);
 
-  // Responsive logic
+  // Debounced Responsive logic
   useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    let timeoutId = null;
+    const handleResize = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsMobile(window.innerWidth < 768);
+      }, 150);
+    };
     window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('resize', handleResize);
+      clearTimeout(timeoutId);
+    };
   }, []);
 
   // Lifecycle safety
@@ -593,7 +610,7 @@ builtins.input = input_shim
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
-      <header className="relative z-[80] flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 border-b-0 sam-glass" style={{ borderBottom: '1px solid var(--sam-glass-border)', background: 'var(--sam-glass-bg)', backdropFilter: 'blur(30px)' }}>
+      <header className="relative z-[80] flex h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 sam-glass !rounded-none !border-x-0 !border-t-0">
         {/* Connection Resilience Banner */}
         {/* Connection banner removed as per user request - StatusBar handles status now */}
 
@@ -631,14 +648,10 @@ builtins.input = input_shim
                 <button
                   key={tab}
                   onClick={() => setActiveModal(tab === 'Editor' ? null : tab.toLowerCase())}
-                  style={{
-                    fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.15em',
-                    color: isActive ? 'var(--sam-accent)' : 'var(--sam-text-dim)',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    transition: 'color 0.2s', position: 'relative',
-                    padding: '8px 0',
-                    fontFamily: 'var(--font-body)',
-                  }}
+                  className={`relative px-0 py-2 text-[10px] font-bold uppercase tracking-[0.15em] transition-all hover:text-[var(--sam-accent)] ${
+                    isActive ? 'text-[var(--sam-accent)]' : 'text-[var(--sam-text-dim)]'
+                  }`}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer' }}
                 >
                   {tab}
                   {isActive && (
@@ -824,7 +837,7 @@ builtins.input = input_shim
             className={`flex flex-col overflow-hidden ${(!isMobile || (activeMobileTab === 'editor' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
             style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${editorWidth}%`, flex: `0 0 ${editorWidth}%` }}
           >
-            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)' }}>
+            <div className="sam-glass flex flex-1 flex-col overflow-hidden">
               <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
                   <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
@@ -856,16 +869,7 @@ builtins.input = input_shim
                   id="editor-run-btn"
                   onClick={onRun}
                   disabled={busy}
-                  className={`sam-button-primary ${busy ? 'opacity-80 cursor-not-allowed' : ''} shrink-0`}
-                  style={{
-                    display: 'flex', alignItems: 'center', gap: 6,
-                    padding: isMobile ? '8px 16px' : '8px 24px', borderRadius: 8,
-                    fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.15em',
-                    transition: 'all 0.2s',
-                    fontFamily: 'var(--font-body)',
-                    background: busy ? 'var(--sam-accent-dim)' : undefined,
-                    minHeight: isMobile ? 36 : 40
-                  }}
+                  className={`sam-button-primary ${busy ? 'opacity-80' : ''} shrink-0 !py-1.5 !px-5 !rounded-xl active:scale-[0.97] transition-all`}
                 >
                   {busy ? (
                     <div style={{ width: 12, height: 12, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--sam-accent)', animation: 'spin 0.8s linear infinite' }} />
@@ -907,7 +911,7 @@ builtins.input = input_shim
             className={`flex flex-col overflow-hidden ${(!isMobile || (activeMobileTab === 'terminal' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
             style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${showAiPanel ? 100 - editorWidth - aiWidth : 100 - editorWidth}%`, flex: `1 1 auto` }}
           >
-            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, background: 'var(--sam-surface)', border: '1px solid var(--sam-glass-border)' }}>
+            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--sam-surface)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
                   <button
@@ -963,7 +967,6 @@ builtins.input = input_shim
               onClose={() => setShowAiPanel(false)}
               currentCode={buffers[activeLangId]}
               language={activeLangId}
-              metrics={metrics}
               onApplyRefactor={(refactoredCode) => {
                 setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
                 window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
@@ -1014,7 +1017,6 @@ builtins.input = input_shim
 
         <StatusBar 
           language={activeLangId.toUpperCase()}
-          position={`Ln ${metrics?.lastLine || 1}, Col ${metrics?.lastCol || 1}`}
           socketStatus={socketStatus}
           showBanner={showStatusBanner}
           onReportBug={() => setIsFeedbackModalOpen(true)}
@@ -1066,28 +1068,37 @@ builtins.input = input_shim
         )}
       </AnimatePresence>
 
-      <AuthModal isOpen={activeModal === 'auth'} onClose={() => setActiveModal(null)} onLogin={loginUser} theme={theme} />
-      <SettingsModal 
-        isOpen={activeModal === 'settings'} 
-        onClose={() => setActiveModal(null)} 
-        settings={settings} 
-        onSettingsChange={onSettingsUpdate}
-        user={user}
-        onLogout={() => {
-          if (window.confirm("Sign out of SAM Compiler?")) {
-            logoutUser();
-            setActiveModal(null);
-          }
-        }}
-      />
-      <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
-      <HistoryPanel
-        isOpen={showHistory}
-        onClose={() => setShowHistory(false)}
-        theme={theme}
-        token={token}
-        onLoadCode={handleLoadFromHistory}
-      />
+      {/* PERSISTENT MODALS (LAZY LOADED) */}
+      <React.Suspense fallback={null}>
+        <AuthModal 
+          isOpen={activeModal === 'auth'} 
+          onClose={() => setActiveModal(null)} 
+          onLogin={loginUser} 
+          theme={theme} 
+        />
+        <SettingsModal 
+          isOpen={activeModal === 'settings'} 
+          onClose={() => setActiveModal(null)} 
+          settings={settings} 
+          onSettingsChange={onSettingsUpdate}
+          user={user}
+          onLogout={() => {
+            if (window.confirm("Sign out of SAM Compiler?")) {
+              logoutUser();
+              setActiveModal(null);
+            }
+          }}
+        />
+        <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
+        <HistoryPanel
+          isOpen={showHistory}
+          onClose={() => setShowHistory(false)}
+          theme={theme}
+          token={token}
+          onLoadCode={handleLoadFromHistory}
+        />
+        <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
+      </React.Suspense>
       
       <Toaster position="bottom-right" reverseOrder={false} />
     </div>

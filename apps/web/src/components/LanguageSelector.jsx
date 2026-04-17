@@ -9,7 +9,7 @@ const languages = [
   { id: "java",       label: "Java",       icon: "https://cdn.jsdelivr.net/gh/devicons/devicon/icons/java/java-original.svg" },
 ];
 
-export default function LanguageSelector({ activeLanguage, onLanguageChange }) {
+const LanguageSelector = ({ activeLanguage, onLanguageChange }) => {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const selectedLang = languages.find((l) => l.id === activeLanguage) || languages[0];
@@ -150,4 +150,6 @@ export default function LanguageSelector({ activeLanguage, onLanguageChange }) {
       `}</style>
     </div>
   );
-}
+};
+
+export default React.memo(LanguageSelector);

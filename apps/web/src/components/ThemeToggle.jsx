@@ -1,7 +1,7 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function ThemeToggle({ theme, toggle }) {
+const ThemeToggle = ({ theme, toggle }) => {
   const isDark = theme === 'dark';
   
   return (
@@ -56,4 +56,6 @@ export default function ThemeToggle({ theme, toggle }) {
       </motion.div>
     </motion.button>
   );
-}
+};
+
+export default React.memo(ThemeToggle);

@@ -23,10 +23,10 @@
   --sam-accent-dim:    #E0E0E0;
   --sam-accent-muted:  rgba(255,255,255,0.1);
   
-  /* Status Indicators (Absolute Monochrome) */
-  --sam-green:         var(--sam-accent);
-  --sam-red:           var(--sam-text-muted);
-  --sam-amber:         var(--sam-text-dim);
+  /* Status Indicators (Monolith Premium) */
+  --sam-green:         #10b981; /* Emerald */
+  --sam-red:           #ef4444; /* Rose */
+  --sam-amber:         #f59e0b; /* Amber */
 
   --sam-glass-bg:      rgba(10,10,10,0.7);
   --sam-glass-border:  rgba(255,255,255,0.06);
@@ -36,7 +36,10 @@
   --sam-text-muted:    #A3A3A3;
   --sam-text-dim:      rgba(255,255,255,0.4);
 
-  --sam-glow-bloom:    0px 20px 40px rgba(0,0,0,0.5);
+  /* === Elevation & Bloom === */
+  --sam-glow-bloom:    0 2px 10px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.4);
+  --sam-shadow-sharp:  0 1px 2px rgba(0,0,0,0.1), 0 4px 12px rgba(0,0,0,0.2);
+  --sam-status-glow:   0 0 12px currentColor;
 
   /* === Typography === */
   --font-display: 'Inter', -apple-system, sans-serif;
@@ -69,36 +72,39 @@
 
 /* === Light Mode Overrides (Manual Toggle) === */
 :root.light {
-  --sam-bg:            #FFFFFF; /* Pure Clean White */
+  --sam-bg:            #FFFFFF; 
   --sam-surface:       #FAFAFA;
   --sam-surface-low:   #F5F5F5;
   --sam-surface-high:  #EEEEEE;
   --sam-surface-top:   #E0E0E0;
   --sam-bright:        #000000;
 
-  --sam-accent:        #000000; /* Absolute Monochromatic Black */
-  --sam-accent-dim:    #262626;
-  --sam-accent-muted:  rgba(0,0,0,0.05);
+  --sam-accent:        #000000; 
+  --sam-accent-dim:    #171717;
+  --sam-accent-muted:  rgba(0,0,0,0.04);
 
   --sam-glass-bg:      rgba(255,255,255,0.85);
-  --sam-glass-border:  rgba(0,0,0,0.08); /* Sharp but subtle borders */
+  --sam-glass-border:  rgba(0,0,0,0.08); 
   --sam-glass-bright:  rgba(255,255,255,1);
 
-  --sam-text:          #000000; /* High Contrast Black */
-  --sam-text-muted:    #525252;
+  --sam-text:          #000000; 
+  --sam-text-muted:    #404040;
   --sam-text-dim:      #737373;
   --sam-text-muted-alt: rgba(0,0,0,0.4);
 
-  --sam-glow-bloom:    0 1px 3px rgba(0,0,0,0.05); 
-  --sam-card-shadow:   0 10px 40px rgba(0,0,0,0.04);
+  --sam-glow-bloom:    0 1px 4px rgba(0,0,0,0.02), 0 8px 32px rgba(0,0,0,0.06); 
+  --sam-shadow-sharp:  0 1px 2px rgba(0,0,0,0.05), 0 4px 8px rgba(0,0,0,0.04);
 }
 
-/* === Global Transitions === */
+/* === Global Transitions (Elite Physics) === */
 html, body, div, header, footer, section, nav, button, span, a {
-  transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-              color 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
-              border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background-color 220ms cubic-bezier(0.16, 1, 0.3, 1), 
+              color 220ms cubic-bezier(0.16, 1, 0.3, 1), 
+              border-color 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+              filter 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 /* === Media Queries for Mobile Resilience === */
@@ -167,7 +173,7 @@ html, body, div, header, footer, section, nav, button, span, a {
     padding: 10px 0 !important;
   }
   
-  .sam-nav-header-logo { transform: scale(0.85); origin-left; }
+  .sam-nav-header-logo { transform: scale(0.85); transform-origin: left; }
 }
 
 /* === Selection === */
@@ -194,7 +200,6 @@ body {
   height: 100dvh;
   width: 100%;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.4s ease, color 0.4s ease;
 }
 
 /* === Background Texture === */
@@ -225,23 +230,23 @@ body {
   background: var(--sam-glass-bg);
   border: 1px solid var(--sam-glass-border);
   box-shadow: var(--sam-glow-bloom);
-  backdrop-filter: blur(24px) saturate(160%);
-  -webkit-backdrop-filter: blur(24px) saturate(160%);
-  border-radius: 12px;
+  backdrop-filter: blur(28px) saturate(160%);
+  -webkit-backdrop-filter: blur(28px) saturate(160%);
+  border-radius: 16px;
+  transition: all 220ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .glass-card {
   background: var(--sam-surface);
-  border: none;
+  border: 1px solid var(--sam-glass-border);
   border-radius: 16px;
-  transition: all 0.4s cubic-bezier(0.16,1,0.3,1);
-  box-shadow: var(--sam-glow-bloom);
+  box-shadow: var(--sam-shadow-sharp);
 }
 
 .glass-card:hover {
   border-color: var(--sam-accent-muted);
   background: var(--sam-surface-high);
-  transform: translateY(-1px);
+  box-shadow: var(--sam-glow-bloom);
 }
 
 /* === Buttons === */
@@ -267,7 +272,13 @@ body {
 
 .sam-button-primary:hover {
   transform: translateY(-1px);
-  filter: brightness(0.95);
+  box-shadow: var(--sam-shadow-sharp), 0 0 15px var(--sam-accent-muted);
+  filter: brightness(1.05);
+}
+
+.sam-button-primary:active {
+  transform: translateY(0) scale(0.975);
+  filter: brightness(0.9);
 }
 
 
@@ -294,7 +305,13 @@ body {
 
 .sam-button-secondary:hover {
   background: var(--sam-accent-muted);
-  border-color: var(--sam-text-dim);
+  border-color: var(--sam-accent-muted);
+  transform: translateY(-1px);
+}
+
+.sam-button-secondary:active {
+  transform: translateY(0) scale(0.975);
+  background: var(--sam-surface-high);
 }
 
 /* === Neon Glow Utilities (Kept for compatibility, updated for monolith) === */

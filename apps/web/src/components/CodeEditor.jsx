@@ -21,7 +21,7 @@ const RANDOM_NAMES = [
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-export default function CodeEditor({ 
+const CodeEditor = ({ 
   language, 
   value,
   onChange, 
@@ -30,7 +30,7 @@ export default function CodeEditor({
   userName = null,
   theme = "vs-dark", 
   options = {} 
-}) {
+}) => {
   const editorRef = useRef(null);
   const bindingRef = useRef(null);
   const providerRef = useRef(null);
@@ -100,6 +100,12 @@ export default function CodeEditor({
     editor.onDidChangeCursorPosition(() => {
       const pos = editor.getPosition();
       if (!pos) return;
+      
+      // ⚡ ELITE EVENT BUS: Dispatch metrics without parent rerender
+      window.dispatchEvent(new CustomEvent("sam:editor:metrics", {
+        detail: { lineNumber: pos.lineNumber, column: pos.column }
+      }));
+      
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
   }, [onCursorChange]);
@@ -220,4 +226,6 @@ export default function CodeEditor({
       />
     </div>
   );
-}
+};
+
+export default React.memo(CodeEditor);

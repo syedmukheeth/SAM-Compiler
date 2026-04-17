@@ -1,3 +1,4 @@
+import React from "react";
 import { Bug, RefreshCw } from "lucide-react";
 import { reconnect } from "../services/socketClient";
 
@@ -12,15 +13,24 @@ const LinkedinIcon = ({ className }) => (
   </svg>
 );
 
-export default function StatusBar({ 
+const StatusBar = ({ 
   language = "JavaScript", 
-  position = "Ln 1, Col 1", 
   onReportBug,
   theme = 'dark',
   busy = false,
   socketStatus = "connected",
   showBanner = true
-}) {
+}) => {
+  const [localPos, setLocalPos] = React.useState({ lineNumber: 1, column: 1 });
+
+  React.useEffect(() => {
+    const handleMetricsUpdate = (e) => {
+      setLocalPos({ lineNumber: e.detail.lineNumber, column: e.detail.column });
+    };
+    window.addEventListener("sam:editor:metrics", handleMetricsUpdate);
+    return () => window.removeEventListener("sam:editor:metrics", handleMetricsUpdate);
+  }, []);
+
   const isOnline = socketStatus === "connected";
   const isRecovering = socketStatus === "reconnecting" || socketStatus === "connecting";
   const isWaking = socketStatus === "waking";
@@ -35,20 +45,20 @@ export default function StatusBar({
         : "OFFLINE";
 
   const statusColorClass = isWaking || isRecovering
-    ? "text-amber-400 font-black drop-shadow-[0_0_8px_rgba(251,191,36,0.4)]"
+    ? "text-[var(--sam-amber)] font-black drop-shadow-[0_0_8px_rgba(245,158,11,0.4)]"
     : isOnline 
-      ? "text-cyan-400 font-black drop-shadow-[0_0_8px_rgba(34,211,238,0.4)]" 
-      : "text-red-500 font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]";
+      ? "text-[var(--sam-green)] font-black drop-shadow-[0_0_8px_rgba(16,185,129,0.4)]" 
+      : "text-[var(--sam-red)] font-black drop-shadow-[0_0_8px_rgba(239,68,68,0.4)]";
 
   const glowClass = isWaking || isRecovering
-    ? "bg-amber-500/30 animate-pulse"
-    : isOnline ? "bg-cyan-500/30 animate-pulse" : "bg-red-500/30 animate-pulse";
+    ? "bg-[var(--sam-amber)]/30 animate-pulse"
+    : isOnline ? "bg-[var(--sam-green)]/30 animate-pulse" : "bg-[var(--sam-red)]/30 animate-pulse";
     
   const dotClass = isWaking || isRecovering
-    ? "bg-amber-400 shadow-[0_0_15px_rgba(251,191,36,0.8)] animate-bounce"
+    ? "bg-[var(--sam-amber)] shadow-[0_0_15px_rgba(245,158,11,0.8)] animate-bounce"
     : isOnline 
-      ? "bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]" 
-      : "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-pulse";
+      ? "bg-[var(--sam-green)] shadow-[0_0_15px_rgba(16,185,129,0.8)]" 
+      : "bg-[var(--sam-red)] shadow-[0_0_15px_rgba(239,68,68,0.8)] animate-pulse";
 
   return (
     <div className={`relative flex w-full items-center justify-between px-3 sm:px-6 py-2.5 sm:py-3 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-700 backdrop-blur-xl ${
@@ -56,9 +66,9 @@ export default function StatusBar({
         ? 'bg-black/95 text-white/70 border-t border-white/5' 
         : 'bg-white/95 text-slate-600 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)] border-t border-slate-100'
     }`}>
-      {/* Top Accent Bar */}
-      <div className={`absolute top-0 left-0 right-0 h-[3px] z-10 overflow-visible transition-opacity duration-1000 ${showBanner || !isOnline ? 'opacity-100' : 'opacity-0'}`}>
-        <div className={`w-full h-full ${theme === 'dark' ? 'bg-[#ff0000] animate-pulse shadow-[0_0_50px_rgba(255,0,0,1)]' : 'bg-[#0077b5] shadow-[0_0_50px_rgba(0,119,181,1)]'}`} />
+      {/* Top Accent Bar (Elite Precision) */}
+      <div className={`absolute top-0 left-0 right-0 h-[1.5px] z-10 transition-opacity duration-1000 ${showBanner || !isOnline ? 'opacity-100' : 'opacity-0'}`}>
+        <div className={`w-full h-full ${theme === 'dark' ? 'bg-[#ff0000] shadow-[0_0_12px_rgba(255,0,0,0.8)]' : 'bg-[#0077b5] shadow-[0_0_8px_rgba(0,119,181,0.4)]'}`} />
       </div>
 
       <div className="flex items-center gap-5">
@@ -80,7 +90,6 @@ export default function StatusBar({
           </button>
         )}
 
-        
         <span className={`opacity-20 ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'} ${!isOnline ? 'hidden' : ''}`}>|</span>
 
         {/* Editor Position & Language */}
@@ -89,7 +98,7 @@ export default function StatusBar({
             {language}
           </span>
           <span className={`text-[8px] opacity-40 font-black tracking-widest hidden sm:inline ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
-            {position}
+            Ln {localPos.lineNumber}, Col {localPos.column}
           </span>
         </div>
 
@@ -98,14 +107,14 @@ export default function StatusBar({
         {/* DYNAMIC METRICS: CPU / RAM */}
         <div className="hidden lg:flex items-center gap-6">
            <div className="flex items-center gap-2 group cursor-default">
-              <span className={`text-[8px] font-black uppercase tracking-widest opacity-40 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>CPU</span>
-              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-white/90' : 'text-slate-700'}`}>
+              <span className={`text-[8.5px] font-black uppercase tracking-widest opacity-30 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`}>CPU</span>
+              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>
                 {busy ? (8 + Math.random() * 5).toFixed(1) : (0.1 + Math.random() * 0.3).toFixed(1)}%
               </span>
            </div>
            <div className="flex items-center gap-2 group cursor-default">
-              <span className={`text-[8px] font-black uppercase tracking-widest opacity-40 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>RAM</span>
-              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-white/90' : 'text-slate-700'}`}>
+              <span className={`text-[8.5px] font-black uppercase tracking-widest opacity-30 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`}>RAM</span>
+              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>
                 {busy ? (110 + Math.random() * 20).toFixed(0) : (42 + Math.random() * 5).toFixed(0)}MB
               </span>
            </div>
@@ -153,5 +162,6 @@ export default function StatusBar({
       </div>
     </div>
   );
-}
+};
 
+export default React.memo(StatusBar);
