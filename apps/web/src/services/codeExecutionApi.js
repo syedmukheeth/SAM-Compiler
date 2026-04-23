@@ -35,25 +35,32 @@ export async function submitRun({ language, code }) {
     }
     return await res.json(); // { jobId }
   } catch (err) {
-    if (err.name === "TypeError" && err.message === "Failed to fetch") {
-      throw new Error("Unable to reach the execution engine. Check network connectivity.");
+    if (err.message && err.message.toLowerCase().includes("failed to fetch")) {
+      throw new Error("Cloud Engine is waking up from sleep (Cold Start). Please wait 30 seconds and try again.");
     }
     throw err;
   }
 }
 
 export async function fetchStatus(jobId) {
-  const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`);
-  
-  await checkResponseType(res);
+  try {
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`);
+    
+    await checkResponseType(res);
 
-  if (!res.ok) {
-     const errorText = await res.text().catch(() => "Unknown error");
-     throw new Error(`Status check failed: ${res.status}. ${errorText.substring(0, 100)}`);
+    if (!res.ok) {
+       const errorText = await res.text().catch(() => "Unknown error");
+       throw new Error(`Status check failed: ${res.status}. ${errorText.substring(0, 100)}`);
+    }
+    const data = await res.json();
+    // Map runId back to jobId for consistency
+    return { ...data, jobId: data.runId };
+  } catch (err) {
+    if (err.message && err.message.toLowerCase().includes("failed to fetch")) {
+      throw new Error("Cloud Engine is waking up from sleep (Cold Start). Please wait 30 seconds and try again.");
+    }
+    throw err;
   }
-  const data = await res.json();
-  // Map runId back to jobId for consistency
-  return { ...data, jobId: data.runId };
 }
 
 export async function runAndPoll({ language, code, onUpdate, pollMs = 500 }) {
