@@ -1,6 +1,6 @@
 const { logger } = require("../../config/logger");
 
-const JUDGE0_API_URL = "https://ce.judge0.com/submissions?base64_encoded=false&wait=true";
+const JUDGE0_API_URL = "https://ce.judge0.com/submissions?base64_encoded=true&wait=true";
 
 // Mapping SAM Compiler language IDs to Judge0 language IDs
 const LANGUAGE_MAP = {
@@ -56,9 +56,9 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
   }
 
   const payload = JSON.stringify({
-    source_code: finalCode,
+    source_code: Buffer.from(finalCode).toString("base64"),
     language_id: languageId,
-    stdin: "",
+    stdin: Buffer.from("").toString("base64"),
   });
 
   return new Promise((resolve, reject) => {
@@ -78,12 +78,17 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
         try {
           const result = JSON.parse(data);
           
-          let stdout = result.stdout || "";
-          let stderr = result.stderr || result.compile_output || "";
+          let stdout = result.stdout ? Buffer.from(result.stdout, "base64").toString("utf8") : "";
+          let stderr = result.stderr ? Buffer.from(result.stderr, "base64").toString("utf8") : "";
+          let compile_output = result.compile_output ? Buffer.from(result.compile_output, "base64").toString("utf8") : "";
           
+          if (!stderr && compile_output) {
+             stderr = compile_output;
+          }
+
           // 🛡️ High-Fidelity Capture: If it's a compile error, usually stderr is in compile_output
-          if (result.status?.id === 6 && result.compile_output) {
-             stderr = result.compile_output;
+          if (result.status?.id === 6 && compile_output) {
+             stderr = compile_output;
           }
 
           const statusId = result.status?.id || 13;
