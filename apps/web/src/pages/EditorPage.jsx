@@ -750,13 +750,17 @@ builtins.input = input_shim
     const term = new XTerm({
       allowTransparency: true,
       theme: {
-        background: 'transparent',
+        background: isDark ? '#0A0A0A' : '#FAFAFA',
         foreground: isDark ? '#FFFFFF' : '#0F172A',
         cursor: isDark ? '#FFFFFF' : '#0F172A',
         selectionBackground: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(15, 23, 42, 0.15)',
         black: isDark ? '#1A1A1A' : '#000000',
         red: isDark ? '#FF3B3B' : '#DC2626',
         green: isDark ? '#10B981' : '#059669',
+        yellow: isDark ? '#FBBF24' : '#D97706',
+        blue: isDark ? '#60A5FA' : '#2563EB',
+        magenta: isDark ? '#F472B6' : '#DB2777',
+        cyan: isDark ? '#22D3EE' : '#0891B2',
         white: isDark ? '#FFFFFF' : '#0F172A',
       },
       fontFamily: 'var(--font-mono)',
@@ -1163,10 +1167,10 @@ builtins.input = input_shim
                           <span className="font-black uppercase tracking-widest text-[10px]">Success</span>
                         </motion.div>
                       )}
-                      {(runStatus === 'RETRY' || runStatus === 'Failed') && (
+                      {(!busy && runStatus !== 'Ready' && runStatus !== 'Running' && runStatus !== 'QUEUED' && runStatus !== 'COMPILING' && runStatus !== 'EXECUTING' && runStatus !== 'Succeeded' && runStatus !== 'SUCCESS') && (
                         <motion.div key="retry" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} className="flex items-center gap-2">
                           <RotateCcw width={12} height={12} strokeWidth={3} />
-                          <span className="font-black uppercase tracking-widest text-[10px]">{runStatus === 'Failed' ? 'RETRY' : 'RETRY'}</span>
+                          <span className="font-black uppercase tracking-widest text-[10px]">RETRY</span>
                         </motion.div>
                       )}
                     </AnimatePresence>
