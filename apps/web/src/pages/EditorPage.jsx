@@ -1139,9 +1139,9 @@ builtins.input = input_shim
                     whileTap={{ scale: 0.95 }}
                     className="sam-button-run transition-all duration-300 flex items-center justify-center min-w-[100px] h-8 rounded-lg border shadow-sm px-4"
                     style={{
-                      background: theme === 'dark' ? 'var(--sam-accent)' : 'var(--sam-bg)',
+                      background: 'var(--sam-accent)',
                       borderColor: theme === 'dark' ? 'transparent' : 'var(--sam-glass-border)',
-                      color: theme === 'dark' ? 'var(--sam-bg)' : 'var(--sam-text)',
+                      color: 'var(--sam-bg)',
                     }}
                   >
                     <AnimatePresence mode="wait">
@@ -1328,7 +1328,7 @@ builtins.input = input_shim
                 <div style={{ fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? '#FF3B3B' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
-              <div className={`flex-1 overflow-hidden relative ${theme === 'light' ? 'bg-[#F1F5F9]' : 'bg-[#000000]'}`}>
+              <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--sam-surface)' }}>
                 {/* 🔥 INTERVIEW MODE: Cold Start Overlay */}
                 {!isEngineReady && (
                   <div className="sam-cold-start-overlay">
