@@ -480,9 +480,14 @@ body {
   background: rgba(16, 185, 129, 0.05);
 }
 
+.sam-engine-indicator.is-fallback {
+  border-color: rgba(245, 158, 11, 0.3);
+  background: rgba(245, 158, 11, 0.08);
+}
+
 .sam-engine-indicator.is-preparing {
-  border-color: rgba(245, 158, 11, 0.2);
-  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .indicator-dot {
@@ -497,10 +502,14 @@ body {
   box-shadow: 0 0 10px var(--sam-green);
 }
 
-.is-preparing .indicator-dot {
+.is-fallback .indicator-dot {
   background: var(--sam-amber);
-  animation: sam-pulse 1.5s infinite;
-  box-shadow: 0 0 8px var(--sam-amber);
+  box-shadow: 0 0 10px var(--sam-amber);
+}
+
+.is-preparing .indicator-dot {
+  background: rgba(255, 255, 255, 0.3);
+  animation: sam-pulse 2s infinite;
 }
 
 .indicator-text {
@@ -513,7 +522,8 @@ body {
 }
 
 .is-live .indicator-text { color: var(--sam-green); opacity: 0.9; }
-.sam-engine-indicator.is-preparing .indicator-text { color: var(--sam-amber); opacity: 0.9; }
+.is-fallback .indicator-text { color: var(--sam-amber); opacity: 0.9; }
+.is-preparing .indicator-text { color: rgba(255, 255, 255, 0.4); }
 
 /* === Terminal Active Glow & Obsidian Polish === */
 .sam-terminal-container {

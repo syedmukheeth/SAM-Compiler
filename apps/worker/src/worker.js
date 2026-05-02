@@ -49,8 +49,18 @@ function startHealthServer() {
 
 async function main() {
   const Redis = require("ioredis");
+  const { execSync } = require("child_process");
   const redisClient = new Redis(redisConnectionFromUrl(env.REDIS_URL));
   
+  let hasDocker = false;
+  try {
+    execSync("docker --version", { stdio: "ignore" });
+    hasDocker = true;
+    logger.info("🐳 Docker detected on host. Hardened sandbox enabled.");
+  } catch (e) {
+    logger.warn("⚠️ Docker NOT detected on host. Worker will report capability to API for intelligent fallback.");
+  }
+
   startHealthServer();
   await connectMongo();
 
@@ -116,7 +126,7 @@ async function main() {
     },
     { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "3") }
   );
-  await startHeartbeat(redisClient, () => ({ activeJobs }));
+  await startHeartbeat(redisClient, () => ({ activeJobs, hasDocker }));
 
   // 🔥 INTERVIEW DEMO MODE: Keep-alive self-ping to prevent platform sleep
   setInterval(async () => {

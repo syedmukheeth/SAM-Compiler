@@ -112,7 +112,19 @@ async function createRun(input) {
       const redis = getRedisClient();
       let workerOnline = false;
       try {
-        workerOnline = redis ? !!(await redis.get(WORKER_HEARTBEAT_KEY)) : false;
+        const heartbeatRaw = redis ? await redis.get(WORKER_HEARTBEAT_KEY) : null;
+        if (heartbeatRaw) {
+          try {
+            const stats = JSON.parse(heartbeatRaw);
+            // Worker must explicitly report Docker availability to take local jobs
+            workerOnline = !!stats.hasDocker;
+            if (!workerOnline) {
+              logger.warn({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker is online but lacks Docker. Forcing Cloud Fallback.");
+            }
+          } catch (parseErr) {
+            workerOnline = true; // Backward compatibility for old workers
+          }
+        }
       } catch (e) {
         logger.warn({ e }, "Worker heartbeat check failed");
       }
@@ -223,10 +235,12 @@ async function getQueueStatus() {
     try {
       const heartbeat = await redis.get(WORKER_HEARTBEAT_KEY);
       if (heartbeat) {
-        workerOnline = true;
         try {
           workerStats = JSON.parse(heartbeat);
+          // Worker must explicitly report Docker availability to be considered "Live" for primary execution
+          workerOnline = !!workerStats.hasDocker;
         } catch (e) {
+          workerOnline = true;
           workerStats = { timestamp: heartbeat };
         }
       }

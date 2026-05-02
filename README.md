@@ -53,7 +53,7 @@ SAM's "Good" isn't just a UI—it's **Operational Integrity**:
 - **Resource Gating**: We enforce a 5MB output boundary to protect multi-tenant infrastructure.
 - **Latency Masking**: Optimistic UI updates combined with Yjs ensuring zero "perceived" lag.
 - **Cold-Start Resilience**: Graceful edge-handling for serverless sleep states, providing explicit queue feedback instead of silent timeouts.
-- **Fail-Secure Routing**: If a local Docker worker is saturated, SAM instantly reroutes to high-availability Judge0/Piston clusters using hardened **Base64-encoded payloads** to guarantee 100% accurate compilation diagnostics, even on malformed code.
+- **Fail-Secure Routing**: Intelligent environment detection automatically reroutes execution to high-availability Piston Cloud Sandbox clusters if local Docker environments are missing or saturated, ensuring 100% execution availability without user intervention. We utilize hardened **Base64-encoded payloads** to guarantee 100% accurate compilation diagnostics, even on malformed code.
 
 ---
 

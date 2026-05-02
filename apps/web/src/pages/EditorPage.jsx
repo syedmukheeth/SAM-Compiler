@@ -1047,11 +1047,11 @@ builtins.input = input_shim
               >Sign In</button>
             )}
             
-            <div className={`sam-engine-indicator ${isEngineReady ? 'is-live' : 'is-preparing'}`}>
+            <div className={`sam-engine-indicator ${engineMode === 'primary' ? 'is-live' : engineMode === 'sandbox' ? 'is-fallback' : 'is-preparing'}`}>
                 <div className="indicator-dot"></div>
                 <span className="indicator-text">
                   {engineMode === 'primary' ? 'ENGINE LIVE' : 
-                   engineMode === 'sandbox' ? 'ENGINE LIVE (SANDBOX)' : 
+                   engineMode === 'sandbox' ? 'CLOUD SANDBOX' : 
                    'PREPARING ENGINE'}
                 </span>
               </div>
