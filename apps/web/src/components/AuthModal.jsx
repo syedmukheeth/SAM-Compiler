@@ -133,6 +133,21 @@ export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin, theme 
               <img src="https://cdn.jsdelivr.net/gh/devicons/devicon/icons/google/google-original.svg" alt="Google" style={{ width: 18, height: 18 }} />
               Continue with Google
             </button>
+            <button
+              onClick={onClose}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                padding: "13px 0", borderRadius: 10, border: "1px solid var(--sam-glass-border)",
+                background: "rgba(255, 255, 255, 0.03)", color: "var(--sam-text-dim)", fontSize: 11, fontWeight: 700,
+                textTransform: "uppercase", letterSpacing: "0.05em",
+                cursor: "pointer", transition: "all 0.25s", fontFamily: "var(--font-body)",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.color = "var(--sam-text)"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.08)"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.color = "var(--sam-text-dim)"; e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)"; }}
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              Continue as Guest
+            </button>
           </div>
         )}
 

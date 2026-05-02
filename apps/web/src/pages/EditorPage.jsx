@@ -964,13 +964,20 @@ builtins.input = input_shim
             )}
             
             {/* 🔥 INTERVIEW MODE: Engine Status Pill */}
-            <div className={`sam-engine-indicator ${isEngineReady ? 'is-live' : 'is-preparing'}`}>
-              <div className="indicator-dot"></div>
-              <span className="indicator-text">
-                {engineMode === 'primary' ? 'ENGINE LIVE' : 
-                 engineMode === 'sandbox' ? 'ENGINE LIVE (SANDBOX)' : 
-                 'PREPARING ENGINE'}
-              </span>
+            <div className="flex items-center gap-2">
+              {!user && (
+                <div className="flex items-center px-3 py-1 rounded-full border border-white/5 bg-white/5">
+                  <span className="text-[8px] font-black tracking-[0.2em] text-white/30 uppercase">Guest</span>
+                </div>
+              )}
+              <div className={`sam-engine-indicator ${isEngineReady ? 'is-live' : 'is-preparing'}`}>
+                <div className="indicator-dot"></div>
+                <span className="indicator-text">
+                  {engineMode === 'primary' ? 'ENGINE LIVE' : 
+                   engineMode === 'sandbox' ? 'ENGINE LIVE (SANDBOX)' : 
+                   'PREPARING ENGINE'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -1074,12 +1081,20 @@ builtins.input = input_shim
                 </div>
 
                 {!user && (
-                   <button 
-                    onClick={() => { setActiveModal('auth'); setMobileMenuOpen(false); }}
-                    className="w-full sam-button-primary p-4 rounded-xl text-xs font-black uppercase tracking-widest"
-                  >
-                    Sign In to SAM
-                  </button>
+                   <div className="flex flex-col gap-2">
+                     <button 
+                      onClick={() => { setActiveModal('auth'); setMobileMenuOpen(false); }}
+                      className="w-full sam-button-primary p-4 rounded-xl text-xs font-black uppercase tracking-widest"
+                    >
+                      Sign In to SAM
+                    </button>
+                    <button 
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="w-full p-4 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 border border-white/5 bg-white/5"
+                    >
+                      Continue as Guest
+                    </button>
+                   </div>
                 )}
 
                 {user && (
@@ -1373,7 +1388,12 @@ builtins.input = input_shim
               </div>
   
               <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
-                <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', opacity: 0.8, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
+                <div className="flex items-center gap-3">
+                  <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', opacity: 0.8, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
+                  {!user && (
+                    <span className="px-1.5 py-0.5 rounded-sm bg-white/5 border border-white/5 text-[7px] font-black uppercase tracking-widest text-white/30">Guest</span>
+                  )}
+                </div>
                 <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
               </div>
 
