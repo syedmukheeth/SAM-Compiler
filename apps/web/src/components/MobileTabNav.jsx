@@ -60,7 +60,7 @@ const MobileTabNav = ({ activeTab, onTabChange, theme }) => {
                   layoutId="activeTabIndicator"
                   className="absolute -bottom-1 h-1 w-1 rounded-full"
                   style={{ background: isDark ? 'white' : 'black' }}
-                  transition={{ type: 'spring', stiffness: 300, damping: 30px }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 30 }}
                 />
               )}
             </button>

@@ -1332,6 +1332,7 @@ builtins.input = input_shim
               </div>
             </div>
           </section>
+          )}
 
           {/* ═══════════════════════════════════════════
               MOBILE RUN FAB — Only visible on <768px
@@ -1623,6 +1624,7 @@ builtins.input = input_shim
 
           </div>
           </section>
+          )}
 
           {/* SPLITTER 2 (Terminal | SAM AI) */}
           {showAiPanel && !isMobile && (
