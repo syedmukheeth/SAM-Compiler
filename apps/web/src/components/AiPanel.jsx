@@ -201,7 +201,8 @@ export default function AiPanel({
   theme,
   width = 33.33,
   isMobile,
-  activeMobileTab
+  activeMobileTab,
+  initialPrompt = null
 }) {
   const [messages, setMessages] = useState([
     { role: "model", content: "SAM AI ready. Ask me anything about your code." }
@@ -211,6 +212,21 @@ export default function AiPanel({
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const isDark = theme === 'dark';
+  const hasTriggeredInitial = useRef(false);
+
+  useEffect(() => {
+    if (initialPrompt && isOpen && !hasTriggeredInitial.current) {
+      sendMessage(initialPrompt);
+      hasTriggeredInitial.current = true;
+    }
+  }, [initialPrompt, isOpen, sendMessage]);
+
+  // Reset trigger when prompt changes
+  useEffect(() => {
+    if (initialPrompt) {
+       hasTriggeredInitial.current = false;
+    }
+  }, [initialPrompt]);
 
   useEffect(() => {
     if (scrollRef.current) {

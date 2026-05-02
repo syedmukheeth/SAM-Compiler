@@ -25,20 +25,24 @@ export const parseErrors = (output, language) => {
   // 🛡️ C/C++ Parser (GCC/Clang)
   // Format: "main.cpp:5:10: error: message" or "main.cpp:5: error: message"
   if (language === 'cpp' || language === 'c') {
-    const regex = /:(\d+):(?:(\d+):)?\s+(error|warning|fatal error):\s+(.*)/i;
+    const regex = /:(\d+):(?:(\d+):)?\s*(error|warning|fatal error):\s*(.*)/i;
     lines.forEach(line => {
       const match = line.match(regex);
       if (match) {
         const lineNum = parseInt(match[1]);
         const colNum = match[2] ? parseInt(match[2]) : 1;
-        if (!primaryLine) primaryLine = lineNum;
+        const type = match[3].toLowerCase();
+        const msg = match[4] ? match[4].trim() : "Unknown compiler error";
+        
+        if (!primaryLine && type.includes('error')) primaryLine = lineNum;
+        
         markers.push({
           startLineNumber: lineNum,
           startColumn: colNum,
           endLineNumber: lineNum,
           endColumn: colNum + 5,
-          message: match[4] ? match[4].trim() : "Unknown compiler error",
-          severity: (match[3].toLowerCase().includes('error')) ? MONACO_SEVERITY.ERROR : MONACO_SEVERITY.WARNING
+          message: msg,
+          severity: type.includes('error') ? MONACO_SEVERITY.ERROR : MONACO_SEVERITY.WARNING
         });
       }
     });
@@ -177,7 +181,10 @@ export const parseErrors = (output, language) => {
     });
   }
 
-  return { markers, primaryLine };
+  const firstError = markers.find(m => m.severity === MONACO_SEVERITY.ERROR);
+  const summary = firstError ? firstError.message : (markers.length > 0 ? markers[0].message : "");
+
+  return { markers, primaryLine, summary };
 };
 
 export default { parseErrors };

@@ -116,8 +116,10 @@ export default function EditorPage() {
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [pyodide, setPyodide] = useState(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
+  const [pendingAiPrompt, setPendingAiPrompt] = useState(null);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeMobileTab, setActiveMobileTab] = useState('editor');
   const [stdin, setStdin] = useState("");
   const [showInputPanel, setShowInputPanel] = useState(true);
   
@@ -233,10 +235,17 @@ builtins.input = input_shim
   }, [pyodide]);
 
   const onRun = useCallback(async () => {
-    const activeConfig = languageConfigs[activeLangId];
-    const code = buffers[activeLangId] ?? "";
-    const language = activeConfig.lang;
     if (busy) return;
+    const code = buffers[activeLangId];
+    const language = languageConfigs[activeLangId].lang;
+    
+    // 🛡️ REBOOT DIAGNOSTICS: Clear previous state
+    setErrorMarkers([]);
+    setPendingAiPrompt(null);
+    setRunStatus("Starting...");
+    setBusy(true);
+    hasReceivedOutputRef.current = false;
+    stdErrRef.current = "";
     
     // 🔥 PREMIUM TERMINAL UX: Boot Sequence
     // 🔥 GCC-STYLE TERMINAL BOOT
@@ -362,13 +371,15 @@ builtins.input = input_shim
 
           setRunStatus(jobStatus ? (jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1)) : (success ? "Succeeded" : "Failed"));
           
-          if (!success) {
-            const { markers: diags, primaryLine } = parseErrors(stdErrRef.current || "", activeLangId);
-            if (diags.length > 0) {
-              setErrorMarkers(diags);
-              if (window.samEditor && primaryLine) {
-                window.samEditor.revealLineInCenter(primaryLine);
-              }
+          // 🛰️ DIAGNOSTIC ENGINE: Surface errors and warnings
+          const { markers: diags, primaryLine, summary } = parseErrors(stdErrRef.current || "", activeLangId);
+          if (diags.length > 0) {
+            setErrorMarkers(diags);
+            if (window.samEditor && primaryLine) {
+              window.samEditor.revealLineInCenter(primaryLine);
+            }
+            if (!success && summary) {
+              setPendingAiPrompt(`Explain and fix this error in my ${activeLangId} code:\n\n\`\`\`\n${summary}\n\`\`\``);
             }
           }
 
@@ -424,6 +435,18 @@ builtins.input = input_shim
           xtermRef.current.write(`\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n`);
         }
         setRunStatus(finalState.status === 'succeeded' ? 'Succeeded' : 'Failed');
+
+        // 🛰️ FALLBACK DIAGNOSTIC ENGINE
+        const { markers: diags, primaryLine, summary } = parseErrors(stdErrRef.current || "", activeLangId);
+        if (diags.length > 0) {
+          setErrorMarkers(diags);
+          if (window.samEditor && primaryLine) {
+            window.samEditor.revealLineInCenter(primaryLine);
+          }
+          if (finalState.status !== 'succeeded' && summary) {
+            setPendingAiPrompt(`Explain and fix this error in my ${activeLangId} code:\n\n\`\`\`\n${summary}\n\`\`\``);
+          }
+        }
         setBusy(false);
       }
 
@@ -1374,24 +1397,46 @@ builtins.input = input_shim
               </div>
               
               <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--sam-surface)' }}>
-                {/* 🔥 INTERVIEW MODE: Cold Start Overlay */}
-                {!isEngineReady && (
-                  <div className="sam-cold-start-overlay">
-                    <div className="flex flex-col items-center gap-4">
-                      <div className="sam-spinner w-8 h-8" />
-                      <div className="flex flex-col items-center gap-1">
-                        <span className="text-[10px] font-black uppercase tracking-[0.25em] text-white">Preparing Engine</span>
-                        <span className="text-[8px] font-bold uppercase tracking-widest text-white/40">Zero-latency environment booting...</span>
+                <AnimatePresence>
+                  {isColdStarting && (
+                    <motion.div 
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md"
+                    >
+                      <div className="relative mb-6">
+                        <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20" />
+                        <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-500/10 border border-blue-500/20">
+                          <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
+                        </div>
                       </div>
-                      <button 
-                         onClick={() => { setIsEngineReady(true); setEngineMode("sandbox"); }}
-                         className="mt-2 text-[8px] font-black uppercase tracking-tighter text-white/20 hover:text-white transition-colors duration-200 py-1 px-3 border border-white/10 rounded-full"
+                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-white">Engine Warming Up</h3>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-white/40">Spinning up isolated sandbox...</p>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div id="terminal-container" className="h-full w-full" />
+
+                {/* Contextual AI Error Trigger */}
+                <AnimatePresence>
+                  {pendingAiPrompt && !showAiPanel && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 20, scale: 0.9 }}
+                      className="absolute bottom-6 right-6 z-30"
+                    >
+                      <button
+                        onClick={() => setShowAiPanel(true)}
+                        className="flex items-center gap-2.5 rounded-2xl bg-white px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[0_8px_32px_rgba(255,255,255,0.3)] transition-all hover:scale-105 active:scale-95"
                       >
-                        Skip to Sandbox (BETA)
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Explain with SAM AI
                       </button>
-                    </div>
-                  </div>
-                )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
 
                 {/* 🚀 MOBILE EXECUTING OVERLAY */}
                 {isMobile && busy && (
@@ -1534,6 +1579,7 @@ hello world
                 width={aiWidth}
                 isMobile={isMobile}
                 activeMobileTab={activeMobileTab}
+                initialPrompt={pendingAiPrompt}
               />
             </React.Suspense>
           )}
