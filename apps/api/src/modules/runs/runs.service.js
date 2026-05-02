@@ -117,12 +117,13 @@ async function createRun(input) {
           try {
             const stats = JSON.parse(heartbeatRaw);
             // Worker must explicitly report Docker availability to take local jobs
-            workerOnline = !!stats.hasDocker;
+            workerOnline = stats.hasDocker === true;
             if (!workerOnline) {
-              logger.warn({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker is online but lacks Docker. Forcing Cloud Fallback.");
+              logger.warn({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker online but lacks Docker. Forcing Cloud Fallback.");
             }
           } catch (parseErr) {
-            workerOnline = true; // Backward compatibility for old workers
+            // If we can't parse or it's old format, assume NOT capable for safety
+            workerOnline = false;
           }
         }
       } catch (e) {
@@ -238,9 +239,9 @@ async function getQueueStatus() {
         try {
           workerStats = JSON.parse(heartbeat);
           // Worker must explicitly report Docker availability to be considered "Live" for primary execution
-          workerOnline = !!workerStats.hasDocker;
+          workerOnline = workerStats.hasDocker === true;
         } catch (e) {
-          workerOnline = true;
+          workerOnline = false;
           workerStats = { timestamp: heartbeat };
         }
       }

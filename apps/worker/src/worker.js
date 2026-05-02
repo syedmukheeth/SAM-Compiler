@@ -68,65 +68,108 @@ async function main() {
 
   let activeJobs = 0;
 
-  const worker = new Worker(
-    RUNS_QUEUE_NAME,
-    async (job) => {
-      activeJobs++;
-      try {
-        const run = await RunModel.findById(job.data.runId);
-        if (!run) {
-          logger.warn({ runId: job.data.runId }, "Run not found");
-          return;
-        }
-
-        logger.info({ runId: job.data.runId }, "📡 [SAM-AUDIT] [WORKER] Job picked up from queue");
-        run.status = "running";
-        run.startedAt = new Date();
-        await run.save();
-
-        const logChannel = `run:logs:${run._id}`;
-        const publishLog = (type, chunk) => {
-          redisClient.publish(logChannel, JSON.stringify({ type, chunk })).catch(err => {
-            logger.error({ err, runId: run._id }, "Failed to publish log to Redis");
-          });
-        };
-
+  if (hasDocker) {
+    const worker = new Worker(
+      RUNS_QUEUE_NAME,
+      async (job) => {
+        activeJobs++;
         try {
-          const { stdout, stderr, exitCode, status, metrics } = await executeRun({
-            language: run.runtime,
-            files: run.files,
-            entrypoint: run.entrypoint,
-            stdin: run.stdin || ""
-          }, publishLog);
+          const run = await RunModel.findById(job.data.runId);
+          if (!run) {
+            logger.warn({ runId: job.data.runId }, "Run not found");
+            return;
+          }
 
-          run.stdout = stdout;
-          run.stderr = stderr;
-          run.exitCode = exitCode;
-          run.metrics = metrics || {};
-          run.status = status || (exitCode === 0 ? "succeeded" : "failed");
-        } catch (err) {
-          run.status = "failed";
-          logger.error({ err, runId: run._id }, "Job execution failed");
-          const msg = err instanceof Error ? err.stack || err.message : String(err);
-          run.stderr = (run.stderr ?? "") + "\n" + msg;
-          run.exitCode = run.exitCode ?? 1;
-          publishLog("stderr", msg);
-        } finally {
-          run.finishedAt = new Date();
+          logger.info({ runId: job.data.runId }, "📡 [SAM-AUDIT] [WORKER] Job picked up from queue");
+          run.status = "running";
+          run.startedAt = new Date();
           await run.save();
-          logger.info({ runId: run._id }, "📡 [SAM-AUDIT] [WORKER] Job execution completed. Publishing 'end' log to Redis");
-          publishLog("end", { status: run.status, metrics: run.metrics });
-          logger.info({ runId: run._id, status: run.status }, "Job finished");
+
+          const logChannel = `run:logs:${run._id}`;
+          const publishLog = (type, chunk) => {
+            redisClient.publish(logChannel, JSON.stringify({ type, chunk })).catch(err => {
+              logger.error({ err, runId: run._id }, "Failed to publish log to Redis");
+            });
+          };
+
+          try {
+            const { stdout, stderr, exitCode, status, metrics } = await executeRun({
+              language: run.runtime,
+              files: run.files,
+              entrypoint: run.entrypoint,
+              stdin: run.stdin || ""
+            }, publishLog);
+
+            run.stdout = stdout;
+            run.stderr = stderr;
+            run.exitCode = exitCode;
+            run.metrics = metrics || {};
+            run.status = status || (exitCode === 0 ? "succeeded" : "failed");
+          } catch (err) {
+            run.status = "failed";
+            logger.error({ err, runId: run._id }, "Job execution failed");
+            const msg = err instanceof Error ? err.stack || err.message : String(err);
+            run.stderr = (run.stderr ?? "") + "\n" + msg;
+            run.exitCode = run.exitCode ?? 1;
+            publishLog("stderr", msg);
+          } finally {
+            run.finishedAt = new Date();
+            await run.save();
+            logger.info({ runId: run._id }, "📡 [SAM-AUDIT] [WORKER] Job execution completed. Publishing 'end' log to Redis");
+            publishLog("end", { status: run.status, metrics: run.metrics });
+            logger.info({ runId: run._id, status: run.status }, "Job finished");
+          }
+        } catch (err) {
+           logger.error({ err, jobId: job.id }, "Fatal job processing error");
+        } finally {
+          activeJobs = Math.max(0, activeJobs - 1);
+        }
+      },
+      { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "3") }
+    );
+
+    worker.on("failed", (job, err) => {
+      logger.error({ job: job?.id, err }, "Job failed permanently");
+    });
+  } else {
+    logger.warn("⚠️ Execution Worker NOT started. This instance will only report health status.");
+  }
+
+  // Use a unique heartbeat key per worker instance to support distributed scaling
+  const workerId = `${os.hostname()}-${crypto.randomBytes(4).toString("hex")}`;
+  const HEARTBEAT_KEY = `sam:worker:heartbeat:${workerId}`;
+  
+  const startHeartbeatLocal = async () => {
+    const interval = 5000;
+    const update = async () => {
+      try {
+        const stats = {
+          workerId,
+          timestamp: Date.now(),
+          cpuLoad: os.loadavg()[0],
+          memFree: os.freemem(),
+          memTotal: os.totalmem(),
+          platform: os.platform(),
+          cpus: os.cpus().length,
+          activeJobs,
+          hasDocker
+        };
+        // Keep individual heartbeat alive for 15s
+        await redisClient.setex(HEARTBEAT_KEY, 15, JSON.stringify(stats));
+        
+        // Also update a global "last capable heartbeat" key for simpler API polling (legacy support)
+        if (hasDocker) {
+          await redisClient.setex("sam:worker:heartbeat", 15, JSON.stringify(stats));
         }
       } catch (err) {
-         logger.error({ err, jobId: job.id }, "Fatal job processing error");
-      } finally {
-        activeJobs = Math.max(0, activeJobs - 1);
+        logger.warn({ err }, "Failed to send worker heartbeat");
       }
-    },
-    { connection: redisConnectionFromUrl(env.REDIS_URL), concurrency: parseInt(process.env.WORKER_CONCURRENCY || "3") }
-  );
-  await startHeartbeat(redisClient, () => ({ activeJobs, hasDocker }));
+    };
+    await update();
+    setInterval(update, interval);
+  };
+
+  await startHeartbeatLocal();
 
   // 🔥 INTERVIEW DEMO MODE: Keep-alive self-ping to prevent platform sleep
   setInterval(async () => {

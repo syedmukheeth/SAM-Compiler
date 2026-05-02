@@ -26,8 +26,7 @@ export function getSocket(tokenArg) {
   const token = tokenArg || localStorage.getItem("token");
 
   if (!token) {
-    console.warn("⚠️ [SAM Compiler] No auth token. Connection suspended.");
-    return null;
+    console.info("ℹ️ [SAM Compiler] No auth token found. Initializing in Guest mode.");
   }
 
   // Idempotent singleton check
