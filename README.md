@@ -57,9 +57,9 @@ SAM's "Good" isn't just a UI—it's **Operational Integrity**:
 
 ---
 
-## 🌊 SYSTEM ARCHITECTURE (V4.0)
+## 🌊 SYSTEM ARCHITECTURE (V5.0 - REFLEX)
 
-The SAM architecture is split between a **Vercel Edge-Optimized Frontend**, a **Node.js Control Plane**, and a **Dockerized Data Plane**.
+The SAM architecture is split between a **Vercel Edge-Optimized Frontend (Responsive v5)**, a **Node.js Control Plane**, and a **Dockerized Data Plane**.
 
 ```mermaid
 graph TD
@@ -119,15 +119,15 @@ graph TD
 
 ---
 
-## 🎨 THE "DIGITAL OBSIDIAN" DESIGN
+## 🎨 THE "DIGITAL OBSIDIAN" DESIGN & MOBILE STACK
 
-Built for high-focus environments, SAM features an ultra-dark, borderless interface with subtle glassmorphism—designed to get out of your way and let the code breathe.
+SAM features an ultra-dark, borderless interface with subtle glassmorphism—designed to get out of your way and let the code breathe.
 
+- **Responsive Reflex Architecture**: A completely redesigned layout that dynamically stacks from a 3-column diagnostic IDE (Desktop) to a vertical fluid stream (Mobile: Editor → Input → Output).
+- **Zero-Overlap Flexbox**: Removed legacy fixed-width constraints in favor of a `flex-basis` driven resizing engine for pixel-perfect panel fluidity.
+- **Persistent Interaction**: "Run Code" is now a globally sticky Floating Action Button (FAB) on mobile, ensuring sub-millisecond execution triggers regardless of scroll depth.
 - **Transparent Console**: `XTerm.js` integrated seamlessly with a transparent background, matching the parent glass surface perfectly.
-- **Neon Accent Indicators**: Dynamic CSS linear-gradient footers that respond to the application's theme (Dark/Light mode).
-- **Non-Blocking Execution**: Run heavy computations in the background while continuing to type.
-- **Micro-Animations**: 60FPS Framer-Motion transitions across panels.
-- **Global Sync**: Real-time cursor presence and typing with sub-10ms conflict resolution.
+- **60FPS Micro-Animations**: Framer-Motion transitions optimized for high-refresh mobile displays.
 
 ---
 
@@ -149,5 +149,5 @@ SAM is hardened against the standard vulnerabilities of online compilers:
     <img src="https://img.shields.io/badge/-SYED_MUKHEETH-black?style=for-the-badge&logo=linkedin&logoColor=white" alt="LinkedIn">
   </a>
   <br><br>
-  <sub>v4.0.0-ULTRA | Obsidian Principal Edition</sub>
+  <sub>v5.0.0-REFLEX | Obsidian Principal Edition</sub>
 </div>
