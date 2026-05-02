@@ -58,7 +58,7 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
   const payload = JSON.stringify({
     source_code: Buffer.from(finalCode).toString("base64"),
     language_id: languageId,
-    stdin: Buffer.from("").toString("base64"),
+    stdin: Buffer.from(run.stdin || "").toString("base64"),
   });
 
   return new Promise((resolve, reject) => {

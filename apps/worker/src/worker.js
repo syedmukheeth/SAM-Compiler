@@ -85,7 +85,8 @@ async function main() {
           const { stdout, stderr, exitCode, status, metrics } = await executeRun({
             language: run.runtime,
             files: run.files,
-            entrypoint: run.entrypoint
+            entrypoint: run.entrypoint,
+            stdin: run.stdin || ""
           }, publishLog);
 
           run.stdout = stdout;

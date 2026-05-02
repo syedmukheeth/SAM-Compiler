@@ -28,6 +28,7 @@ const RunSchema = new Schema(
     files: { type: [FileSchema], required: true },
     stdout: { type: String, default: "", set: truncateOutput },
     stderr: { type: String, default: "", set: truncateOutput },
+    stdin: { type: String, default: "" },
     exitCode: { type: Number, required: false, default: null },
     metrics: { type: Schema.Types.Mixed, default: {} },
     startedAt: { type: Date, required: false, default: null },

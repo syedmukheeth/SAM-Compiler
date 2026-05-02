@@ -72,6 +72,7 @@ async function createRun(input) {
         status: "running",
         entrypoint: input.entrypoint,
         files: input.files,
+        stdin: input.stdin || "",
         stdout: "",
         stderr: "",
         exitCode: null,

@@ -42,7 +42,7 @@ const LANGUAGE_CONFIGS = {
 };
 
 async function executeRun(opts, onLog) {
-  const { language, files, entrypoint } = opts;
+  const { language, files, entrypoint, stdin = "" } = opts;
   const config = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS.javascript;
   
   const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "sam-run-"));
@@ -87,7 +87,7 @@ async function executeRun(opts, onLog) {
       ];
 
       const start = Date.now();
-      const result = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 5000, { onLog });
+      const result = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 5000, { onLog, stdin });
       const duration = Date.now() - start;
 
       // 🛡️ High-Fidelity Status Mapping
@@ -136,7 +136,7 @@ function sanitizeRelPath(p) {
 
 
 function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
-  const { onLog, ...spawnOpts } = opts;
+  const { onLog, stdin = "", ...spawnOpts } = opts;
   return new Promise((resolve, reject) => {
     let stdout = "";
     let stderr = "";
@@ -177,6 +177,17 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
       const timeout = setTimeout(() => {
         try { child.kill("SIGKILL"); } catch (e) { /* ignore kill error */ void e; }
       }, timeoutMs);
+
+      // 🔑 STDIN PIPE: Write user input then close stdin so the process can proceed
+      if (child.stdin) {
+        try {
+          if (stdin) child.stdin.write(stdin);
+          child.stdin.end();
+        } catch (e) {
+          // Ignore errors writing to stdin (process may have already exited)
+          void e;
+        }
+      }
 
       child.on("error", (err) => {
         clearTimeout(timeout);

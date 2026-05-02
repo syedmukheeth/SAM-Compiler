@@ -9,7 +9,7 @@ async function checkResponseType(res) {
   }
 }
 
-export async function submitRun({ language, code }) {
+export async function submitRun({ language, code, stdin = "" }) {
   const token = localStorage.getItem("token");
   const headers = { "content-type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
@@ -23,7 +23,7 @@ export async function submitRun({ language, code }) {
     const res = await fetch(API_URL, {
       method: "POST",
       headers,
-      body: JSON.stringify({ language, code })
+      body: JSON.stringify({ language, code, stdin })
     });
     
     console.log(`📡 [SAM-AUDIT] [API] submitRun response received. Status: ${res.status}`);

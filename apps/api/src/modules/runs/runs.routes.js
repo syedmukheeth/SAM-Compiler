@@ -8,12 +8,13 @@ const runsRouter = Router();
 
 const CreateRunSchema = z.object({
   language: z.enum(["nodejs", "javascript", "python", "cpp", "c", "java"]),
-  code: z.string().min(1)
+  code: z.string().min(1),
+  stdin: z.string().optional().default("")
 });
 
 runsRouter.post("/", optionalAuth, async (req, res, next) => {
   try {
-    const { language, code } = CreateRunSchema.parse(req.body);
+    const { language, code, stdin } = CreateRunSchema.parse(req.body);
     const userId = req.user ? req.user.id : null;
     console.log(`📡 [SAM-AUDIT] [BACKEND] POST / created for user: ${userId || 'guest'} | lang: ${language}`);
     const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
@@ -23,6 +24,7 @@ runsRouter.post("/", optionalAuth, async (req, res, next) => {
       projectId: "playground",
       userId,
       runtime: runtime,
+      stdin: stdin || "",
       entrypoint: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js",
       files: [{
         path: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js",

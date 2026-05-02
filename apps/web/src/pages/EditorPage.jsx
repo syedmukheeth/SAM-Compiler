@@ -118,6 +118,8 @@ export default function EditorPage() {
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [stdin, setStdin] = useState("");
+  const [showInputPanel, setShowInputPanel] = useState(true);
   
   const [settings, setSettings] = useState(() => {
     try {
@@ -301,7 +303,7 @@ builtins.input = input_shim
     }
 
     try {
-      const { jobId } = await submitRun({ language, code });
+      const { jobId } = await submitRun({ language, code, stdin });
       runRef.current.jobId = jobId;
       
       const sendSubscription = () => socket && socket.emit("subscribe", { jobId });
@@ -441,7 +443,7 @@ builtins.input = input_shim
     } finally {
       setBusy(false);
     }
-  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser]);
+  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin]);
 
   const onClear = () => {
     if (xtermRef.current) xtermRef.current.clear();
@@ -1374,7 +1376,88 @@ builtins.input = input_shim
                 <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', opacity: 0.8, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
                 <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
               </div>
+
+            {/* ─── STDIN INPUT PANEL ─── */}
+            <div
+              style={{
+                borderTop: '1px solid var(--sam-glass-border)',
+                background: 'var(--sam-surface-low)',
+                flexShrink: 0,
+              }}
+            >
+              {/* Input panel header/toggle */}
+              <button
+                onClick={() => setShowInputPanel(prev => !prev)}
+                title={showInputPanel ? 'Collapse Input' : 'Expand Input'}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '5px 16px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: showInputPanel ? '1px solid var(--sam-glass-border)' : 'none',
+                  cursor: 'pointer',
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--sam-text-dim)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="4 7 4 4 20 4 20 7" />
+                    <line x1="9" y1="20" x2="15" y2="20" />
+                    <line x1="12" y1="4" x2="12" y2="20" />
+                  </svg>
+                  <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>STDIN / Input</span>
+                </div>
+                <svg
+                  width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--sam-text-dim)" strokeWidth="3"
+                  style={{ transform: showInputPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {/* Input textarea */}
+              {showInputPanel && (
+                <textarea
+                  id="stdin-input"
+                  value={stdin}
+                  onChange={e => setStdin(e.target.value)}
+                  placeholder={`Enter program input here...
+Each value on a new line
+Example:
+5
+hello world
+10 20`}
+                  spellCheck={false}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    minHeight: 76,
+                    maxHeight: 180,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--sam-text)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    padding: '8px 16px',
+                    boxSizing: 'border-box',
+                    opacity: busy ? 0.45 : 1,
+                    cursor: busy ? 'not-allowed' : 'text',
+                    transition: 'opacity 0.2s',
+                  }}
+                  disabled={busy}
+                />
+              )}
             </div>
+            {/* ─── / STDIN INPUT PANEL ─── */}
+
+          </div>
           </section>
 
           {/* SPLITTER 2 (Terminal | SAM AI) */}
