@@ -21,8 +21,17 @@ function createApp() {
   app.set("trust proxy", 1);
 
   // 🛡️ SECURITY Audit Fix: Hardened CORS Policy
+  const allowedOrigins = (process.env.WEB_ORIGIN || "").split(",").filter(Boolean);
   app.use(cors({
-    origin: "https://sam-compiler-web.vercel.app",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.length === 0 || allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]

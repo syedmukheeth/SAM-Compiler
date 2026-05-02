@@ -124,6 +124,8 @@ graph TD
 SAM features an ultra-dark, borderless interface with subtle glassmorphism—designed to get out of your way and let the code breathe.
 
 - **Responsive Reflex Architecture**: A completely redesigned layout that dynamically stacks from a 3-column diagnostic IDE (Desktop) to a vertical fluid stream (Mobile: Editor → Input → Output).
+- **Digital Obsidian Interface**: Ultra-premium, glassmorphism-inspired design featuring unified pill-style status indicators and tactile interactions.
+- **Improved SAM AI Context**: High-fidelity diagnostic engine with refined "Quick Actions" for sub-millisecond code explanation and bug fixing.
 - **Zero-Overlap Flexbox**: Removed legacy fixed-width constraints in favor of a `flex-basis` driven resizing engine for pixel-perfect panel fluidity.
 - **Persistent Interaction**: "Run Code" is now a globally sticky Floating Action Button (FAB) on mobile, ensuring sub-millisecond execution triggers regardless of scroll depth.
 - **Transparent Console**: `XTerm.js` integrated seamlessly with a transparent background, matching the parent glass surface perfectly.

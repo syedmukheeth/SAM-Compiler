@@ -29,7 +29,7 @@ import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
 import OfficialLogo, { OFFICIAL_LOGO_WHITE, OFFICIAL_LOGO_BLACK } from "../components/OfficialLogo";
-import analytics from "../services/analytics";
+import analytics from "../services/metrics";
 
 // Standalone components imported for clean scoping
 import ThemeToggle from "../components/ThemeToggle";
@@ -650,7 +650,7 @@ builtins.input = input_shim
     // 🛡️ FAIL-SAFE: If engine isn't ready in 12s, allow sandbox anyway
     failSafeTimer = setTimeout(() => {
       if (!isEngineReady) {
-        console.warn("⚠️ [SAM-AUDIT] Fail-safe triggered: Engine took >12s. Defaulting to Sandbox.");
+        console.warn("⚠️ [SAM-SYSTEM] Fail-safe triggered: Engine took >12s. Defaulting to Sandbox.");
         setIsEngineReady(true);
         setEngineMode("sandbox");
         setFailSafeActive(true);
@@ -829,7 +829,18 @@ builtins.input = input_shim
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
     term.open(terminalRef.current);
-    fitAddon.fit();
+    
+    // 🛠️ DEFENSE: Delayed fit to allow browser layout calculation
+    setTimeout(() => {
+      try {
+        if (terminalRef.current && terminalRef.current.offsetParent !== null) {
+          fitAddon.fit();
+        }
+      } catch (e) {
+        console.warn("Terminal initial fit failed, will retry on resize.");
+      }
+    }, 100);
+
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
@@ -1016,35 +1027,38 @@ builtins.input = input_shim
                 />
               </div>
             ) : isGuest ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  padding: '4px 12px',
-                  borderRadius: 20,
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  background: 'rgba(255,255,255,0.04)',
-                }}>
-                  <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.35)' }}>Guest</span>
+              <div 
+                className="flex items-center p-1 pl-4 rounded-full border transition-all shadow-sm"
+                style={{ 
+                  borderColor: 'var(--sam-glass-border)',
+                  background: 'var(--sam-surface-low)'
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="h-1.5 w-1.5 rounded-full shadow-sm" style={{ background: 'var(--sam-text-dim)' }}></div>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--sam-text-dim)' }}>Guest</span>
                 </div>
+                <div className="h-3 w-[1px] mx-3" style={{ background: 'var(--sam-glass-border)' }}></div>
                 <button
                   id="signin-btn"
                   onClick={() => setActiveModal('auth')}
-                  style={{
-                    fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.12em',
-                    background: 'none', border: 'none', cursor: 'pointer',
-                    color: 'var(--sam-text-dim)', padding: '4px 8px', borderRadius: 8,
-                    transition: 'color 0.2s',
+                  className="flex items-center justify-center rounded-full px-4 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] transition-all hover:scale-[1.03] active:scale-[0.97] shadow-sm"
+                  style={{ 
+                    background: 'var(--sam-accent)',
+                    color: 'var(--sam-bg)'
                   }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--sam-text)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--sam-text-dim)'}
-                >Sign In</button>
+                >
+                  Sign In
+                </button>
               </div>
             ) : (
               <button
                 id="signin-btn"
                 onClick={() => setActiveModal('auth')}
                 className="sam-button-primary h-8 px-4 text-[9px] font-black uppercase tracking-wider rounded-md"
-              >Sign In</button>
+              >
+                Sign In
+              </button>
             )}
             
             <div className={`sam-engine-indicator ${engineMode === 'primary' ? 'is-live' : engineMode === 'sandbox' ? 'is-fallback' : 'is-preparing'}`}>

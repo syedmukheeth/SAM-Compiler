@@ -13,12 +13,24 @@ axios.defaults.withCredentials = true;
 
 // 🛠️ EMERGENCY Fix: Force-unregister any legacy Service Workers and CLEAR ALL CACHES
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then((registrations) => {
-    for (let registration of registrations) {
-      registration.unregister();
-      console.log("🧹 [SAM Compiler] Legacy Service Worker purged.");
+    navigator.serviceWorker.getRegistrations().then((registrations) => {
+      for (const registration of registrations) {
+        registration.unregister();
+      }
+    });
+    window.caches.keys().then((names) => {
+      for (const name of names) {
+        window.caches.delete(name);
+      }
+    });
+    sessionStorage.clear();
+    // Only reload once if we found stuff to clear
+    if (localStorage.getItem("sam_reset_v6")) {
+      // already reset
+    } else {
+      localStorage.setItem("sam_reset_v6", "true");
+      window.location.reload();
     }
-  });
 }
 
 // 🛡️ SECURITY: Wipe all old caches to prevent Workbox/PWA fetch interception

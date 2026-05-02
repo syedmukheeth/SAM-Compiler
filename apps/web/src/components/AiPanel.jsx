@@ -7,7 +7,7 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ENDPOINTS from "../services/endpoints";
-import analytics from "../services/analytics";
+import analytics from "../services/metrics";
 
 // ── Typing Indicator (ChatGPT-style bouncing dots) ──────────────────────────
 function TypingIndicator({ theme }) {
@@ -379,7 +379,7 @@ function AiPanel({
     {
       icon: <Wrench />,
       label: "Fix",
-      prompt: `Identify and fix all bugs, errors, and potential issues in this ${language} code. Show me the corrected version with explanations.`
+      prompt: `Identify and fix all bugs, errors, and potential issues in this ${language} code. Provide the full corrected code block with brief explanations of the changes.`
     },
     {
       icon: <Zap />,

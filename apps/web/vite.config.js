@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+// Restarted to sync module renames: 2026-05-02
 export default defineConfig({
   plugins: [
     react(),
@@ -10,7 +11,7 @@ export default defineConfig({
 
   ],
   server: {
-    port: 5173,
+    port: 5174,
     strictPort: true,
     proxy: {
       '/api': {

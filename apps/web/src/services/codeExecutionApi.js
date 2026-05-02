@@ -16,9 +16,9 @@ export async function submitRun({ language, code, stdin = "" }) {
 
     try {
     const API_URL = `${API_BASE}`;
-    console.log(`📡 [SAM-AUDIT] [FRONTEND] Click RUN detected for language: ${language}`);
-    console.log(`📡 [SAM-AUDIT] [FRONTEND] Auth Token preserved: ${!!token}`);
-    console.log(`📡 [SAM-AUDIT] [API] submitRun starting. URL: ${API_URL}`);
+    console.log(`📡 [SAM-INFO] [FRONTEND] Click RUN detected for language: ${language}`);
+    console.log(`📡 [SAM-INFO] [FRONTEND] Auth Token preserved: ${!!token}`);
+    console.log(`📡 [SAM-INFO] [API] submitRun starting. URL: ${API_URL}`);
 
     const res = await fetch(API_URL, {
       method: "POST",
@@ -26,7 +26,7 @@ export async function submitRun({ language, code, stdin = "" }) {
       body: JSON.stringify({ language, code, stdin })
     });
     
-    console.log(`📡 [SAM-AUDIT] [API] submitRun response received. Status: ${res.status}`);
+    console.log(`📡 [SAM-INFO] [API] submitRun response received. Status: ${res.status}`);
     await checkResponseType(res);
 
     if (!res.ok) {

@@ -2,6 +2,7 @@ const http = require("node:http");
 const os = require("node:os");
 const { Worker } = require("bullmq");
 const { logger } = require("./config/logger");
+const crypto = require("node:crypto");
 const { env } = require("./config/env");
 const { connectMongo } = require("./config/mongo");
 const { RunModel } = require("./db/run.model");
@@ -188,9 +189,6 @@ async function main() {
     }
   }, 5 * 60 * 1000); // 5 minutes
 
-  worker.on("failed", (job, err) => {
-    logger.error({ job: job?.id, err }, "Job failed permanently");
-  });
 }
 
 function redisConnectionFromUrl(redisUrl) {

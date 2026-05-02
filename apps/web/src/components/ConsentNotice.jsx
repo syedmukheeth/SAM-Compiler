@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Cookie, X, ShieldCheck, ShieldAlert } from "lucide-react";
 
-export default function CookieBanner() {
+export default function ConsentNotice() {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {

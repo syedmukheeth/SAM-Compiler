@@ -4,12 +4,12 @@ import EditorPage from "./pages/EditorPage";
 import DashboardPage from "./pages/DashboardPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import TermsPage from "./pages/TermsPage";
-import CookieBanner from "./components/CookieBanner";
+import ConsentNotice from "./components/ConsentNotice";
 
 export default function App() {
   return (
     <BrowserRouter>
-      <CookieBanner />
+      <ConsentNotice />
       <Routes>
         <Route path="/" element={<EditorPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />

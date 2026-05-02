@@ -37,7 +37,14 @@ function initSocket(server) {
   io = new Server(server, {
     transports: ["websocket"],
     cors: {
-      origin: "https://sam-compiler-web.vercel.app",
+      origin: (origin, callback) => {
+        const allowedOrigins = (process.env.WEB_ORIGIN || "").split(",").filter(Boolean);
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost") || origin.includes("127.0.0.1")) {
+          callback(null, true);
+        } else {
+          callback(new Error("Not allowed by CORS"));
+        }
+      },
       credentials: true
     },
     pingTimeout: 120000,
