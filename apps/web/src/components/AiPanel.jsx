@@ -390,10 +390,10 @@ function AiPanel({
 
   return (
     <section
-      className="flex flex-col overflow-hidden transition-all duration-300 w-full md:w-auto"
-      style={isMobile ? { flex: '1 1 50%', minHeight: '40vh' } : { flexBasis: `${width}%`, flexGrow: 0, flexShrink: 0 }}
+      className="flex flex-col overflow-hidden transition-all duration-300 w-full lg:w-auto"
+      style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${width}%`, flexGrow: 0, flexShrink: 0 }}
     >
-      <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
+      <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ border: isMobile ? 'none' : '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
 
         {/* Header */}
         <div className={`flex h-11 shrink-0 items-center justify-between px-4 border-b ${

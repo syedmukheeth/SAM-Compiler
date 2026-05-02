@@ -35,6 +35,7 @@ import analytics from "../services/metrics";
 import ThemeToggle from "../components/ThemeToggle";
 import SamNavLogo from "../components/SamNavLogo";
 import ShortcutItem from "../components/ShortcutItem";
+import MobileTabNav from "../components/MobileTabNav";
 
 const languageConfigs = {
   cpp: {
@@ -121,7 +122,7 @@ export default function EditorPage() {
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
   const [pyodide, setPyodide] = useState(null);
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [pendingAiPrompt, setPendingAiPrompt] = useState(null);
@@ -684,7 +685,7 @@ builtins.input = input_shim
     const handleResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth < 768);
+        setIsMobile(window.innerWidth < 1024);
       }, 150);
     };
     window.addEventListener('resize', handleResize);
@@ -909,7 +910,7 @@ builtins.input = input_shim
 
       {/* MOBILE COMPACT HEADER */}
       <header
-        className="flex xl:hidden h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl z-[80] safe-top"
+        className="flex lg:hidden h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl z-[80] safe-top"
         style={{
           background: theme === 'light' ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.88)',
           borderBottomColor: 'var(--sam-glass-border)',
@@ -922,7 +923,6 @@ builtins.input = input_shim
             <span className="text-[8px] font-black uppercase tracking-[0.35em] opacity-40 -mt-0.5" style={{ color: 'var(--sam-text)' }}>Compiler</span>
           </div>
         </div>
-        
         <div className="flex items-center gap-2">
           <ThemeToggle theme={theme} toggle={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
            <button 
@@ -942,8 +942,105 @@ builtins.input = input_shim
         </div>
       </header>
 
+      {/* MOBILE SLIDE-DOWN MENU (Universal) */}
+      <AnimatePresence>
+        {mobileMenuOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass dark:bg-black/95 bg-white/95 border-white/5 shadow-2xl z-[150] lg:hidden overflow-hidden"
+            style={{ borderRadius: 20 }}
+          >
+            <div className="flex flex-col gap-4">
+              <div className="grid grid-cols-2 gap-3">
+                <button 
+                  onClick={() => { setShowShortcutsHelp(true); setMobileMenuOpen(false); }}
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
+                >
+                  <Keyboard className="h-5 w-5 text-white/60" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Shortcuts</span>
+                </button>
+                <button 
+                  onClick={() => { setShowHistory(true); setMobileMenuOpen(false); }}
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
+                >
+                  <Clock className="h-5 w-5 text-white/60" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">History</span>
+                </button>
+              </div>
+              
+              <div className="h-[1px] bg-white/5 w-full" />
+
+              <div className="flex flex-col gap-1">
+                 {['Editor', 'Dashboard', 'Settings'].map((tab) => {
+                    if (tab === 'Dashboard' && user?.role !== 'admin') return null;
+                    const isActive = (!activeModal && tab === 'Editor') || activeModal === tab.toLowerCase();
+                    return (
+                      <button
+                        key={tab}
+                        onClick={() => { setActiveModal(tab === 'Editor' ? null : tab.toLowerCase()); setMobileMenuOpen(false); }}
+                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${isActive ? 'bg-white/10 text-white' : 'text-white/40'}`}
+                      >
+                        <span className="text-xs font-bold uppercase tracking-[0.2em]">{tab}</span>
+                        {isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                      </button>
+                    );
+                 })}
+              </div>
+
+              {!user && !isGuest && (
+                 <div className="flex flex-col gap-2">
+                   <button 
+                    onClick={() => { setActiveModal('auth'); setMobileMenuOpen(false); }}
+                    className="w-full sam-button-primary p-4 rounded-xl text-xs font-black uppercase tracking-widest"
+                  >
+                    Sign In to SAM
+                  </button>
+                  <button 
+                    onClick={() => {
+                      localStorage.setItem('sam_is_guest', '1');
+                      setIsGuest(true);
+                      setMobileMenuOpen(false);
+                    }}
+                    className="w-full p-4 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 border border-white/5 bg-white/5"
+                  >
+                    Continue as Guest
+                  </button>
+                 </div>
+              )}
+              {!user && isGuest && (
+                <button 
+                  onClick={() => { setActiveModal('auth'); setMobileMenuOpen(false); }}
+                  className="w-full sam-button-primary p-4 rounded-xl text-xs font-black uppercase tracking-widest"
+                >
+                  Sign In to SAM
+                </button>
+              )}
+
+              {user && (
+                <div className="mt-2 flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
+                  <div className="flex items-center gap-3">
+                    <img src={user.avatar} className="h-8 w-8 rounded-full border border-white/10" />
+                    <span className="text-xs font-bold" style={{ color: 'var(--sam-text)' }}>{user.name}</span>
+                  </div>
+                  <button onClick={logoutUser} className="text-[9px] font-black uppercase tracking-widest text-rose-500 px-3 py-1.5 rounded-lg bg-rose-500/10">Sign Out</button>
+                </div>
+              )}
+            </div>
+            {/* Close Button for mobile menu */}
+            <button 
+              onClick={() => setMobileMenuOpen(false)}
+              className="absolute top-4 right-4 p-2 text-white/40 hover:text-white"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* DESKTOP HEADER */}
-      <header className="hidden xl:flex relative z-[80] h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 sam-glass !rounded-none !border-x-0 !border-t-0">
+      <header className="hidden lg:flex relative z-[80] h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 sam-glass !rounded-none !border-x-0 !border-t-0">
         {/* Connection Resilience Banner */}
         {/* Connection banner removed as per user request - StatusBar handles status now */}
 
@@ -1114,106 +1211,24 @@ builtins.input = input_shim
               </button>
             </div>
 
-            {/* Mobile Menu Toggle */}
-            <button 
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)]"
-            >
-              {mobileMenuOpen ? <X className="h-4 w-4" /> : <Menu className="h-4 w-4" />}
-            </button>
+            {/* No mobile menu toggle here, use mobile header */}
           </div>
         </div>
 
-        {/* Mobile Slide-down Menu */}
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="absolute left-0 right-0 top-full mt-2 mx-4 p-4 sam-glass dark:bg-black/95 bg-white/95 border-white/5 shadow-2xl z-[90] lg:hidden overflow-hidden"
-              style={{ borderRadius: 20 }}
-            >
-              <div className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-3">
-                  <button 
-                    onClick={() => { setShowShortcutsHelp(true); setMobileMenuOpen(false); }}
-                    className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
-                  >
-                    <Keyboard className="h-5 w-5 text-white/60" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Shortcuts</span>
-                  </button>
-                  <button 
-                    onClick={() => { setShowHistory(true); setMobileMenuOpen(false); }}
-                    className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
-                  >
-                    <Clock className="h-5 w-5 text-white/60" />
-                    <span className="text-[9px] font-black uppercase tracking-widest text-white/40">History</span>
-                  </button>
-                </div>
-                
-                <div className="h-[1px] bg-white/5 w-full" />
-
-                <div className="flex flex-col gap-1">
-                   {['Editor', 'Dashboard', 'Settings'].map((tab) => {
-                      if (tab === 'Dashboard' && user?.role !== 'admin') return null;
-                      const isActive = (!activeModal && tab === 'Editor') || activeModal === tab.toLowerCase();
-                      return (
-                        <button
-                          key={tab}
-                          onClick={() => { setActiveModal(tab === 'Editor' ? null : tab.toLowerCase()); setMobileMenuOpen(false); }}
-                          className={`flex items-center justify-between p-3 rounded-xl transition-all ${isActive ? 'bg-white/10 text-white' : 'text-white/40'}`}
-                        >
-                          <span className="text-xs font-bold uppercase tracking-[0.2em]">{tab}</span>
-                          {isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
-                        </button>
-                      );
-                   })}
-                </div>
-
-                {!user && !isGuest && (
-                   <div className="flex flex-col gap-2">
-                     <button 
-                      onClick={() => { setActiveModal('auth'); setMobileMenuOpen(false); }}
-                      className="w-full sam-button-primary p-4 rounded-xl text-xs font-black uppercase tracking-widest"
-                    >
-                      Sign In to SAM
-                    </button>
-                    <button 
-                      onClick={() => {
-                        localStorage.setItem('sam_is_guest', '1');
-                        setIsGuest(true);
-                        setMobileMenuOpen(false);
-                      }}
-                      className="w-full p-4 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 border border-white/5 bg-white/5"
-                    >
-                      Continue as Guest
-                    </button>
-                   </div>
-                )}
-                {!user && isGuest && (
-                  <button 
-                    onClick={() => { setActiveModal('auth'); setMobileMenuOpen(false); }}
-                    className="w-full sam-button-primary p-4 rounded-xl text-xs font-black uppercase tracking-widest"
-                  >
-                    Sign In to SAM
-                  </button>
-                )}
-
-                {user && (
-                  <div className="mt-2 flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
-                    <div className="flex items-center gap-3">
-                      <img src={user.avatar} className="h-8 w-8 rounded-full border border-white/10" />
-                      <span className="text-xs font-bold" style={{ color: 'var(--sam-text)' }}>{user.name}</span>
-                    </div>
-                    <button onClick={logoutUser} className="text-[9px] font-black uppercase tracking-widest text-rose-500 px-3 py-1.5 rounded-lg bg-rose-500/10">Sign Out</button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </header>
+
+      {/* MOBILE TAB NAVIGATOR */}
+      {isMobile && (
+        <MobileTabNav 
+          activeTab={activeMobileTab} 
+          onTabChange={(tab) => {
+            setActiveMobileTab(tab);
+            if (tab === 'ai') setShowAiPanel(true);
+            else if (!isMobile) setShowAiPanel(false); // Should not happen but for safety
+          }} 
+          theme={theme} 
+        />
+      )}
 
 
 
@@ -1221,14 +1236,15 @@ builtins.input = input_shim
         ref={containerRef}
         className="flex flex-1 overflow-hidden transition-all duration-200 ease-out"
       >
-        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden p-0 md:p-6 md:pb-6 gap-2 md:gap-0 transition-all duration-200 ease-out">
+        <main className="relative z-10 flex flex-1 flex-col lg:flex-row overflow-y-auto overflow-x-hidden lg:overflow-hidden p-0 lg:p-6 lg:pb-6 gap-2 lg:gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
-          <section 
-            className="flex flex-col overflow-hidden w-full md:w-auto"
-            style={isMobile ? { flex: '1 1 50%', minHeight: '35vh' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
-          >
-            <div className="sam-glass flex flex-1 flex-col overflow-hidden">
-              <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
+          {( !isMobile || activeMobileTab === 'editor' ) && (
+            <section 
+              className="flex flex-col overflow-hidden w-full lg:w-auto"
+              style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
+            >
+              <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`}>
+                <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
                   <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
                   
@@ -1347,7 +1363,7 @@ builtins.input = input_shim
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'fixed',
-                bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
+                bottom: 100, // Elevated to avoid overlap with MobileTabNav
                 right: 20,
                 zIndex: 150,
                 display: 'flex',
@@ -1396,20 +1412,23 @@ builtins.input = input_shim
           )}
 
           {/* SPLITTER 1 (Editor | Terminal) */}
-          <div 
-             onMouseDown={startResizingEditor}
-             className="hidden md:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
-          >
-            <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'} group-hover:bg-white/30 transition-all`} />
-          </div>
+          {!isMobile && (
+            <div 
+               onMouseDown={startResizingEditor}
+               className="hidden lg:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
+            >
+              <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'} group-hover:bg-white/30 transition-all`} />
+            </div>
+          )}
 
           {/* TERMINAL SECTION */}
-          <section 
-            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full md:w-auto`}
-            style={isMobile ? { flex: '1 1 50%', minHeight: '30vh' } : { flex: 1, minWidth: 0 }}
-          >
-            <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--sam-surface)' }}>
-              <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
+          {( !isMobile || activeMobileTab === 'terminal' ) && (
+            <section 
+              className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full lg:w-auto`}
+              style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flex: 1, minWidth: 0 }}
+            >
+              <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ background: 'var(--sam-surface)' }}>
+                <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
                   <button
                     onClick={() => {
@@ -1616,7 +1635,7 @@ builtins.input = input_shim
           )}
 
           {/* SAM AI PANEL - Now Integrated */}
-          {showAiPanel && (
+          {(showAiPanel && (!isMobile || activeMobileTab === 'ai')) && (
             <React.Suspense fallback={
               <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md">
                 <div className="sam-spinner w-8 h-8" />
@@ -1626,7 +1645,8 @@ builtins.input = input_shim
                 isOpen={showAiPanel}
                 onClose={() => {
                   setShowAiPanel(false);
-                  setEditorWidth(50); // Reset to 50/50 when closed
+                  if (isMobile) setActiveMobileTab('editor');
+                  else setEditorWidth(50); // Reset to 50/50 when closed
                 }}
                 currentCode={buffers[activeLangId]}
                 language={activeLangId}
