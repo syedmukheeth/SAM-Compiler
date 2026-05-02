@@ -390,10 +390,8 @@ function AiPanel({
 
   return (
     <section
-      className={`flex flex-col h-full overflow-hidden transition-all duration-300 ${
-        activeMobileTab === 'ai' ? 'flex-1' : 'hidden md:flex'
-      }`}
-      style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${width}%`, flex: `0 0 ${width}%` }}
+      className="flex flex-col overflow-hidden transition-all duration-300 w-full md:w-auto"
+      style={isMobile ? { flex: '1 1 50%', minHeight: '40vh' } : { flexBasis: `${width}%`, flexGrow: 0, flexShrink: 0 }}
     >
       <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ borderRadius: 16, border: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
 

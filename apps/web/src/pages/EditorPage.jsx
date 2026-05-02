@@ -1207,11 +1207,11 @@ builtins.input = input_shim
         ref={containerRef}
         className="flex flex-1 overflow-hidden transition-all duration-200 ease-out"
       >
-        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-hidden p-0 md:p-6 md:pb-6 gap-0 transition-all duration-200 ease-out">
+        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden p-0 md:p-6 md:pb-6 gap-2 md:gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden ${(!isMobile || (activeMobileTab === 'editor' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
-            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${editorWidth}%`, flex: `0 0 ${editorWidth}%` }}
+            className="flex flex-col overflow-hidden w-full md:w-auto"
+            style={isMobile ? { flex: '1 1 50%', minHeight: '35vh' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden">
               <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
@@ -1307,7 +1307,7 @@ builtins.input = input_shim
               MOBILE RUN FAB — Only visible on <768px
               Premium pill floating above the tab bar
           ══════════════════════════════════════════════ */}
-          {isMobile && !showAiPanel && (
+          {isMobile && (
             <motion.button
               id="mobile-run-fab"
               onClick={onRun}
@@ -1333,7 +1333,7 @@ builtins.input = input_shim
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
               style={{
                 position: 'fixed',
-                bottom: 'calc(110px + env(safe-area-inset-bottom, 0px) + 20px)',
+                bottom: 'max(20px, env(safe-area-inset-bottom, 20px))',
                 right: 20,
                 zIndex: 150,
                 display: 'flex',
@@ -1391,8 +1391,8 @@ builtins.input = input_shim
 
           {/* TERMINAL SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} ${(!isMobile || (activeMobileTab === 'terminal' && !showAiPanel)) ? 'flex-1' : 'hidden'} md:flex`}
-            style={isMobile ? { width: '100%', flex: '1 1 100%' } : { width: `${showAiPanel ? 100 - editorWidth - aiWidth : 100 - editorWidth}%`, flex: `1 1 auto` }}
+            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full md:w-auto`}
+            style={isMobile ? { flex: '1 1 50%', minHeight: '30vh' } : { flex: 1, minWidth: 0 }}
           >
             <div className="sam-glass flex flex-1 flex-col overflow-hidden" style={{ background: 'var(--sam-surface)' }}>
               <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
@@ -1438,6 +1438,81 @@ builtins.input = input_shim
                 <div style={{ fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? '#FF3B3B' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
               
+              {/* ─── STDIN INPUT PANEL ─── */}
+            <div
+              style={{
+                borderBottom: '1px solid var(--sam-glass-border)',
+                background: 'var(--sam-surface-low)',
+                flexShrink: 0,
+              }}
+            >
+              {/* Input panel header/toggle */}
+              <button
+                onClick={() => setShowInputPanel(prev => !prev)}
+                title={showInputPanel ? 'Collapse Input' : 'Expand Input'}
+                style={{
+                  width: '100%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '5px 16px',
+                  background: 'none',
+                  border: 'none',
+                  borderBottom: showInputPanel ? '1px solid var(--sam-glass-border)' : 'none',
+                  cursor: 'pointer',
+                  gap: 8,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--sam-text-dim)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="4 7 4 4 20 4 20 7" />
+                    <line x1="9" y1="20" x2="15" y2="20" />
+                    <line x1="12" y1="4" x2="12" y2="20" />
+                  </svg>
+                  <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>STDIN / Input</span>
+                </div>
+                <svg
+                  width="10" height="10" viewBox="0 0 24 24" fill="none"
+                  stroke="var(--sam-text-dim)" strokeWidth="3"
+                  style={{ transform: showInputPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
+                >
+                  <polyline points="6 9 12 15 18 9" />
+                </svg>
+              </button>
+
+              {/* Input textarea */}
+              {showInputPanel && (
+                <textarea
+                  id="stdin-input"
+                  value={stdin}
+                  onChange={e => setStdin(e.target.value)}
+                  placeholder={`Enter program input here...\nEach value on a new line`}
+                  spellCheck={false}
+                  rows={4}
+                  style={{
+                    width: '100%',
+                    resize: 'vertical',
+                    minHeight: 76,
+                    maxHeight: 180,
+                    background: 'transparent',
+                    border: 'none',
+                    outline: 'none',
+                    color: 'var(--sam-text)',
+                    fontFamily: 'var(--font-mono)',
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    padding: '8px 16px',
+                    boxSizing: 'border-box',
+                    opacity: busy ? 0.45 : 1,
+                    cursor: busy ? 'not-allowed' : 'text',
+                    transition: 'opacity 0.2s',
+                  }}
+                  disabled={busy}
+                />
+              )}
+            </div>
+            {/* ─── / STDIN INPUT PANEL ─── */}
+
               {/* Terminal Body */}
               <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--sam-surface)' }}>
                 {/* 1. Engine Cold Start Overlay */}
@@ -1511,85 +1586,7 @@ builtins.input = input_shim
                 <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
               </div>
 
-            {/* ─── STDIN INPUT PANEL ─── */}
-            <div
-              style={{
-                borderTop: '1px solid var(--sam-glass-border)',
-                background: 'var(--sam-surface-low)',
-                flexShrink: 0,
-              }}
-            >
-              {/* Input panel header/toggle */}
-              <button
-                onClick={() => setShowInputPanel(prev => !prev)}
-                title={showInputPanel ? 'Collapse Input' : 'Expand Input'}
-                style={{
-                  width: '100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '5px 16px',
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: showInputPanel ? '1px solid var(--sam-glass-border)' : 'none',
-                  cursor: 'pointer',
-                  gap: 8,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--sam-text-dim)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <polyline points="4 7 4 4 20 4 20 7" />
-                    <line x1="9" y1="20" x2="15" y2="20" />
-                    <line x1="12" y1="4" x2="12" y2="20" />
-                  </svg>
-                  <span style={{ fontSize: 9, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-mono)' }}>STDIN / Input</span>
-                </div>
-                <svg
-                  width="10" height="10" viewBox="0 0 24 24" fill="none"
-                  stroke="var(--sam-text-dim)" strokeWidth="3"
-                  style={{ transform: showInputPanel ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}
-                >
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </button>
 
-              {/* Input textarea */}
-              {showInputPanel && (
-                <textarea
-                  id="stdin-input"
-                  value={stdin}
-                  onChange={e => setStdin(e.target.value)}
-                  placeholder={`Enter program input here...
-Each value on a new line
-Example:
-5
-hello world
-10 20`}
-                  spellCheck={false}
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    resize: 'vertical',
-                    minHeight: 76,
-                    maxHeight: 180,
-                    background: 'transparent',
-                    border: 'none',
-                    outline: 'none',
-                    color: 'var(--sam-text)',
-                    fontFamily: 'var(--font-mono)',
-                    fontSize: 12,
-                    lineHeight: 1.6,
-                    padding: '8px 16px',
-                    boxSizing: 'border-box',
-                    opacity: busy ? 0.45 : 1,
-                    cursor: busy ? 'not-allowed' : 'text',
-                    transition: 'opacity 0.2s',
-                  }}
-                  disabled={busy}
-                />
-              )}
-            </div>
-            {/* ─── / STDIN INPUT PANEL ─── */}
 
           </div>
           </section>
@@ -1653,49 +1650,6 @@ hello world
           }} 
         />
         {/* Mobile Tab Navigator (Bottom Integrated) */}
-        <div className="flex xl:hidden mobile-nav-bar shrink-0 border-t border-white/5 shadow-[0_-10px_50px_rgba(0,0,0,1)]">
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { setActiveMobileTab('editor'); setShowAiPanel(false); }}
-            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1.5 transition-all ${activeMobileTab === 'editor' && !showAiPanel ? 'text-white' : 'text-white/40'}`}
-            style={{ flexBasis: 0 }}
-          >
-            <Code2 className="h-5 w-5" strokeWidth={activeMobileTab === 'editor' && !showAiPanel ? 2.5 : 2} />
-            <span className="text-[8px] font-black uppercase tracking-[0.2em]">{isMobile ? 'Editor' : 'Code'}</span>
-            {activeMobileTab === 'editor' && !showAiPanel && (
-              <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[3px] bg-white shadow-[0_-4px_12px_rgba(255,255,255,0.4)]" />
-            )}
-          </motion.button>
-          
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { setActiveMobileTab('terminal'); setShowAiPanel(false); }}
-            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1.5 transition-all ${activeMobileTab === 'terminal' && !showAiPanel ? 'text-white' : 'text-white/40'}`}
-            style={{ flexBasis: 0 }}
-          >
-            <div className="relative">
-              <TerminalIcon className="h-5 w-5" strokeWidth={activeMobileTab === 'terminal' && !showAiPanel ? 2.5 : 2} />
-              {busy && <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-white animate-pulse shadow-[0_0_8px_white]" />}
-            </div>
-            <span className="text-[8px] font-black uppercase tracking-[0.2em]">Output</span>
-            {activeMobileTab === 'terminal' && !showAiPanel && (
-              <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[3px] bg-white shadow-[0_-4px_12px_rgba(255,255,255,0.4)]" />
-            )}
-          </motion.button>
- 
-          <motion.button
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { setActiveMobileTab('ai'); setShowAiPanel(true); }}
-            className={`mobile-tab-btn relative flex-1 flex flex-col items-center justify-center gap-1.5 transition-all ${activeMobileTab === 'ai' || showAiPanel ? 'text-white' : 'text-white/40'}`}
-            style={{ flexBasis: 0 }}
-          >
-            <Sparkles className="h-5 w-5" fill={activeMobileTab === 'ai' || showAiPanel ? "currentColor" : "none"} strokeWidth={activeMobileTab === 'ai' || showAiPanel ? 2.5 : 2} />
-            <span className="text-[8px] font-black uppercase tracking-widest">Sam AI</span>
-            {(activeMobileTab === 'ai' || (isMobile && showAiPanel)) && (
-              <motion.div layoutId="mobileTabIdx" className="absolute bottom-0 left-0 right-0 h-[3px] bg-white shadow-[0_-4px_12px_rgba(255,255,255,0.4)]" />
-            )}
-          </motion.button>
-        </div>
 
         <StatusBar 
           language={activeLangId.toUpperCase()}
