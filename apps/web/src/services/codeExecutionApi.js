@@ -70,7 +70,7 @@ export async function runAndPoll({ language, code, onUpdate, pollMs = 500 }) {
   while (!done) {
     const status = await fetchStatus(jobId);
     onUpdate?.(status);
-    if (["succeeded", "failed", "cancelled"].includes(status.status)) {
+    if (["succeeded", "failed", "cancelled", "compilation_error", "runtime_error", "timeout", "memory_limit"].includes(status.status)) {
       done = true;
       return status;
     }
@@ -83,7 +83,7 @@ export async function pollUntilDone(jobId, { onUpdate, pollMs = 500 } = {}) {
   while (!done) {
     const status = await fetchStatus(jobId);
     onUpdate?.(status);
-    if (["succeeded", "failed", "cancelled"].includes(status.status)) {
+    if (["succeeded", "failed", "cancelled", "compilation_error", "runtime_error", "timeout", "memory_limit"].includes(status.status)) {
       done = true;
       return status;
     }

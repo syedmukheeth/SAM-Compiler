@@ -376,7 +376,7 @@ builtins.input = input_shim
             }
           }
 
-          setRunStatus(jobStatus ? (jobStatus.charAt(0).toUpperCase() + jobStatus.slice(1)) : (success ? "Succeeded" : "Failed"));
+          setRunStatus(jobStatus === 'succeeded' ? 'Succeeded' : (jobStatus ? jobStatus.toUpperCase() : 'Failed'));
           
           // 🛰️ DIAGNOSTIC ENGINE: Surface errors and warnings
           const { markers: diags, primaryLine, summary } = parseErrors(stdErrRef.current || "", activeLangId);
@@ -441,7 +441,7 @@ builtins.input = input_shim
         } else {
           xtermRef.current.write(`\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n`);
         }
-        setRunStatus(finalState.status === 'succeeded' ? 'Succeeded' : 'Failed');
+        setRunStatus(finalState.status === 'succeeded' ? 'Succeeded' : (finalState.status.toUpperCase()));
 
         // 🛰️ FALLBACK DIAGNOSTIC ENGINE
         const { markers: diags, primaryLine, summary } = parseErrors(stdErrRef.current || "", activeLangId);
