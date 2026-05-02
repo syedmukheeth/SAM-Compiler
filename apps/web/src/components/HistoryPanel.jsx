@@ -47,7 +47,23 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
   const isDark = theme === "dark";
 
   const load = useCallback(async () => {
-    if (!token) return;
+    if (!token) {
+      // GUEST MODE: LOAD FROM LOCAL STORAGE
+      try {
+        const guestHistoryRaw = localStorage.getItem("sam_guest_history");
+        if (guestHistoryRaw) {
+          setRuns(JSON.parse(guestHistoryRaw));
+        } else {
+          setRuns([]);
+        }
+      } catch (e) {
+        console.warn("Failed to load guest history", e);
+        setRuns([]);
+      }
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -161,7 +177,7 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
             {/* Content */}
             <div style={{ flex: 1, overflowY: "auto", padding: "12px 16px 80px" }}>
 
-              {!token && (
+              {!token && runs.length === 0 && (
                 <div style={{
                   display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
                   height: 280, gap: 14, textAlign: "center", padding: "0 32px",
@@ -174,10 +190,10 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
                     <AlertCircle size={20} style={{ color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.2)" }} />
                   </div>
                   <div style={{ fontSize: 13, fontWeight: 700, color: isDark ? "rgba(255,255,255,0.5)" : "rgba(0,0,0,0.4)", fontFamily: "var(--font-body)" }}>
-                    Sign in to see history
+                    Sign in to see persistent history
                   </div>
                   <div style={{ fontSize: 11, color: isDark ? "rgba(255,255,255,0.2)" : "rgba(0,0,0,0.25)", fontFamily: "var(--font-body)", lineHeight: 1.6 }}>
-                    Your compiled code runs are saved when you&apos;re logged in.
+                    Your guest sessions are temporary. Log in to sync your code across all devices.
                   </div>
                 </div>
               )}

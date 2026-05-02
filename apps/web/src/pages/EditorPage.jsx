@@ -431,6 +431,29 @@ builtins.input = input_shim
         socket.off("exec:log", onLog);
         socket.emit("unsubscribe", { jobId });
       }
+
+      // 🕒 PERSISTENT GUEST HISTORY ENGINE
+      if (!user && finalState) {
+        try {
+          const guestHistoryRaw = localStorage.getItem("sam_guest_history");
+          const guestHistory = guestHistoryRaw ? JSON.parse(guestHistoryRaw) : [];
+          const newRun = {
+            _id: jobId,
+            runtime: language,
+            status: finalState.status,
+            createdAt: new Date().toISOString(),
+            files: [{ content: code }],
+            stdout: finalState.stdout,
+            stderr: finalState.stderr,
+            metrics: { duration: finalState.duration || 0 }
+          };
+          // Preserve last 20 sessions for guests
+          const updatedHistory = [newRun, ...guestHistory].slice(0, 20);
+          localStorage.setItem("sam_guest_history", JSON.stringify(updatedHistory));
+        } catch (e) {
+          console.warn("Failed to save guest history", e);
+        }
+      }
     } catch (e) {
       setRunStatus("Failed");
       const rawMsg = e?.message || String(e);
@@ -1016,7 +1039,8 @@ builtins.input = input_shim
                 <Keyboard className="h-5 w-5" />
               </button>
               <button 
-                onClick={() => { if (!token) { setActiveModal('auth'); return; } setShowHistory(!showHistory); }}
+                id="history-btn"
+                onClick={() => setShowHistory(!showHistory)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)] transition-all hover:text-white"
               >
                 <Clock className="h-5 w-5" />
@@ -1053,7 +1077,7 @@ builtins.input = input_shim
                     <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Shortcuts</span>
                   </button>
                   <button 
-                    onClick={() => { if (!token) { setActiveModal('auth'); } else { setShowHistory(true); } setMobileMenuOpen(false); }}
+                    onClick={() => { setShowHistory(true); setMobileMenuOpen(false); }}
                     className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
                   >
                     <Clock className="h-5 w-5 text-white/60" />
