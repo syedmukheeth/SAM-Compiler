@@ -8,9 +8,9 @@
   
   <p><b><code>SYNTAX ANALYSIS MACHINE : DISTRIBUTED KERNEL EDITION</code></b></p>
 
-  <p>
+  <blockquote>
     <i>"Architected for absolute resilience. Engineered for sub-millisecond precision."</i>
-  </p>
+  </blockquote>
 
   <p align="center">
     <img src="https://img.shields.io/github/stars/syedmukheeth/syedmukheeth/Liquid-IDE?style=for-the-badge&color=white&labelColor=black" alt="Stars">
@@ -21,9 +21,9 @@
 
   <br>
 
-  <h3>
-    <a href="https://sam-compiler-web.vercel.app/">► ENTER WORKSPACE</a>
-  </h3>
+  <a href="https://sam-compiler-web.vercel.app/">
+    <img src="https://img.shields.io/badge/►_LAUNCH_WORKSPACE-000000?style=for-the-badge&logoColor=white&labelColor=111111" alt="Launch Workspace">
+  </a>
   <br>
 </div>
 
@@ -37,13 +37,13 @@
 
 SAM is engineered to exceed the limitations of standard web-based compilers through deep-system hardening and distributed orchestration.
 
-| Dimension | The SAM Standard (Elite) | Industry Average (Generic) |
+| Dimension | ⚡ The SAM Standard (Elite) | 🐌 Industry Average (Generic) |
 |---|---|---|
-| **Architecture** | **Decoupled Control Plane**: Segregated API and Hardened Worker nodes for zero-leak execution. | **Monolithic Spawning**: Code runs on the same process as the API, leading to critical ACE risks. |
-| **Data Consistency** | **Mathematical CRDT (Yjs)**: Conflict-free binary state sync with sub-10ms resolution. | **Naive JSON Overwrites**: Prone to race conditions and "Code Soup" during collaboration. |
-| **Isolation** | **OOM-Guarded Sandboxing**: Immediate `SIGKILL` for malicious loops or log-bombs. | **Unbounded Buffering**: Vulnerable to memory exhaustion and system-wide OOM crashes. |
-| **Connectivity** | **Fail-Secure Topology**: Multi-layered WebSocket heartbeats with 20s auto-polling fallbacks. | **Brittle Channels**: Disconnects result in total state loss and session expiration. |
-| **Intelligence** | **Principal-Grade Prompting**: Gemini 1.5 Flash tuned for SRE/Senior coding standards. | **Basic LLM Wrappers**: Generic completions without architectural context. |
+| 🏗️ **Architecture** | **Decoupled Control Plane**: Segregated API & Hardened Worker nodes. | **Monolithic**: Code runs on the API process (ACE risks). |
+| 🔄 **State Sync** | **CRDT (Yjs)**: Conflict-free binary state sync with sub-10ms resolution. | **Naive JSON**: Prone to race conditions and "Code Soup". |
+| 🛡️ **Isolation** | **OOM-Guarded Sandboxing**: Immediate `SIGKILL` for malicious loops. | **Unbounded Buffering**: Vulnerable to memory exhaustion. |
+| 📡 **Connectivity** | **Fail-Secure Topology**: Multi-layered WebSocket heartbeats. | **Brittle Channels**: Disconnects result in total state loss. |
+| 🧠 **Intelligence** | **Principal-Grade Prompting**: Gemini 1.5 Flash tuned for Seniors. | **Basic Wrappers**: Generic completions without context. |
 
 ---
 
