@@ -1225,6 +1225,7 @@ builtins.input = input_shim
             setActiveMobileTab(tab);
             if (tab === 'ai') setShowAiPanel(true);
             else if (!isMobile) setShowAiPanel(false); // Should not happen but for safety
+            setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
           }} 
           theme={theme} 
         />
@@ -1238,11 +1239,10 @@ builtins.input = input_shim
       >
         <main className="relative z-10 flex flex-1 flex-col lg:flex-row overflow-y-auto overflow-x-hidden lg:overflow-hidden p-0 lg:p-6 lg:pb-6 gap-2 lg:gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
-          {( !isMobile || activeMobileTab === 'editor' ) && (
-            <section 
-              className="flex flex-col overflow-hidden w-full lg:w-auto"
-              style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
-            >
+          <section 
+            className={`flex flex-col overflow-hidden w-full lg:w-auto ${isMobile && activeMobileTab !== 'editor' ? 'hidden' : ''}`}
+            style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
+          >
               <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`}>
                 <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
@@ -1332,7 +1332,6 @@ builtins.input = input_shim
               </div>
             </div>
           </section>
-          )}
 
           {/* ═══════════════════════════════════════════
               MOBILE RUN FAB — Only visible on <768px
@@ -1423,11 +1422,10 @@ builtins.input = input_shim
           )}
 
           {/* TERMINAL SECTION */}
-          {( !isMobile || activeMobileTab === 'terminal' ) && (
-            <section 
-              className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full lg:w-auto`}
-              style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flex: 1, minWidth: 0 }}
-            >
+          <section 
+            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full lg:w-auto ${isMobile && activeMobileTab !== 'terminal' ? 'hidden' : ''}`}
+            style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flex: 1, minWidth: 0 }}
+          >
               <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ background: 'var(--sam-surface)' }}>
                 <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
@@ -1624,7 +1622,6 @@ builtins.input = input_shim
 
           </div>
           </section>
-          )}
 
           {/* SPLITTER 2 (Terminal | SAM AI) */}
           {showAiPanel && !isMobile && (
@@ -1637,12 +1634,13 @@ builtins.input = input_shim
           )}
 
           {/* SAM AI PANEL - Now Integrated */}
-          {(showAiPanel && (!isMobile || activeMobileTab === 'ai')) && (
-            <React.Suspense fallback={
-              <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md">
-                <div className="sam-spinner w-8 h-8" />
-              </div>
-            }>
+          {showAiPanel && (
+            <div className={`h-full flex-col ${isMobile && activeMobileTab !== 'ai' ? 'hidden' : 'flex'} w-full lg:w-auto`}>
+              <React.Suspense fallback={
+                <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md">
+                  <div className="sam-spinner w-8 h-8" />
+                </div>
+              }>
               <AiPanel 
                 isOpen={showAiPanel}
                 onClose={() => {
@@ -1662,7 +1660,8 @@ builtins.input = input_shim
                 activeMobileTab={activeMobileTab}
                 initialPrompt={pendingAiPrompt}
               />
-            </React.Suspense>
+              </React.Suspense>
+            </div>
           )}
         </main>
       </div>
