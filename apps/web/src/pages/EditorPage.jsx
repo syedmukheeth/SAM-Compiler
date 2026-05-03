@@ -904,7 +904,7 @@ builtins.input = input_shim
 
 
   return (
-    <div className="relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10" style={{ background: 'var(--sam-bg)' }}>
+    <div className={`relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10 ${isMobile ? 'pb-[88px]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
