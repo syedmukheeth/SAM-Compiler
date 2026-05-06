@@ -6,14 +6,10 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
 
 // SAM AI Configuration - Priority list for fallback resilience
 const MODELS = [
-  process.env.GEMINI_MODEL || "gemini-2.5-flash",
-  "gemini-2.5-pro",
-  "gemini-3-flash-preview",
-  "gemini-3.1-pro-preview",
-  "gemini-2.0-flash"
+  process.env.GEMINI_MODEL || "gemini-1.5-flash",
+  "gemini-1.5-pro",
+  "gemini-pro"
 ];
-
-const DEFAULT_MODEL = MODELS[0];
 
 const SAM_AI_PERSONA = `
 You are Sam AI, a World-Class Code Helper and Compiler Assistant.
@@ -108,6 +104,10 @@ async function streamChat(context, onChunk) {
   for (const modelName of MODELS) {
     try {
       const model = genAI.getGenerativeModel({ model: modelName });
+      
+      // Filter out the initial greeting if it's the first message to avoid role conflicts
+      const chatMessages = messages[0]?.role === "model" ? messages.slice(1) : messages;
+
       const formattedHistory = [
         {
           role: "user",
@@ -117,9 +117,9 @@ async function streamChat(context, onChunk) {
           role: "model",
           parts: [{ text: "Acknowledged. I am Sam AI, your elite coding partner. I am ready." }],
         },
-        ...messages.slice(0, -1).map(m => ({
+        ...chatMessages.slice(0, -1).map(m => ({
           role: m.role,
-          parts: [{ text: m.content ? m.content : " " }] // Prevent empty text part crashing the SDK
+          parts: [{ text: m.content || " " }]
         }))
       ];
 
@@ -129,31 +129,29 @@ async function streamChat(context, onChunk) {
 
       // INITIAL CONNECTION RETRY
       const result = await withRetry(async () => {
-        const prompt = messages[messages.length - 1].content || " ";
+        const prompt = chatMessages[chatMessages.length - 1]?.content || "Hello!";
         return await chat.sendMessageStream(prompt);
       });
 
-      // STREAM CONSUMPTION (No retry here to avoid corrupting active stream)
+      // STREAM CONSUMPTION
       try {
         for await (const chunk of result.stream) {
           try {
             const chunkText = chunk.text();
             if (chunkText) onChunk(chunkText);
           } catch (e) {
-            logger.warn("Empty chunk received or failed to parse chunk text");
+            // Ignore empty chunks
           }
         }
-        return; // Success! Return from function
+        return; // Success! 
       } catch (streamErr) {
-        // If the stream fails halfway, we can't easily switch models without restarting the whole history
-        // So we just log and throw.
         logger.error({ err: streamErr.message }, "Gemini AI streaming interrupted");
         throw new Error("AI Stream interrupted due to connection issues. Please try again.");
       }
     } catch (err) {
       logger.warn({ model: modelName, error: err.message }, "AI model fallback triggered in streamChat");
       if (modelName === MODELS[MODELS.length - 1]) {
-        throw new Error(`AI Assistant is currently facing high demand. Please try again in a moment.`);
+        throw new Error(`AI Assistant is currently facing high demand. Please try again in a moment. (${err.message})`);
       }
     }
   }

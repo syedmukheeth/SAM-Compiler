@@ -87,7 +87,6 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
         : String(children ?? '')
       ).replace(/\n$/, "");
 
-
       if (!inline && match) {
         return (
           <div className="group relative my-4">
@@ -97,7 +96,7 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
               {match[1]}
             </div>
             <div className={`rounded-2xl border overflow-hidden shadow-xl min-w-0 ${
-              isDark ? 'bg-black/60 border-white/5' : 'bg-slate-50 border-slate-200'
+              isDark ? 'bg-black/60 border-white/10' : 'bg-slate-50 border-slate-200'
             }`}>
               <pre className={`p-4 font-mono text-[12px] leading-relaxed whitespace-pre-wrap break-words ${
                 isDark ? 'text-white/80' : 'text-slate-700'
@@ -155,17 +154,17 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
     >
       {!isUser && (
         <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
-          <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
+          <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black text-white'}`}>
             <Sparkles size={9} />
           </div>
-          <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Sam AI</span>
+          <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Sam AI</span>
         </div>
       )}
       <div className="relative w-full min-w-0">
         <div className={`w-full rounded-2xl px-5 py-4 text-[13px] leading-[1.7] border select-text overflow-hidden break-words transition-all ${
           isUser
             ? (isDark ? 'bg-white/10 text-white border-white/10 rounded-tr-none' : 'bg-slate-100 text-slate-900 border-slate-200 rounded-tr-none')
-            : (isDark ? 'bg-white/5 text-white/90 border-white/5 rounded-tl-none' : 'bg-white text-slate-800 border-slate-100 rounded-tl-none shadow-sm')
+            : (isDark ? 'bg-white/[0.07] text-white/95 border-white/10 rounded-tl-none backdrop-blur-sm' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none shadow-sm')
         }`}>
           {msg.isError ? (
             <div className="flex items-start gap-2 text-rose-400">
@@ -173,16 +172,18 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
               <span>{msg.content}</span>
             </div>
           ) : (
-            <ReactMarkdown remarkPlugins={remarkPlugins} components={MarkdownComponents}>
-              {msg.content}
-            </ReactMarkdown>
+            <div className="markdown-container">
+               <ReactMarkdown remarkPlugins={remarkPlugins} components={MarkdownComponents}>
+                {msg.content}
+              </ReactMarkdown>
+            </div>
           )}
         </div>
         {/* Copy button on hover */}
         <button
           onClick={handleCopy}
           className={`absolute -bottom-2 ${isUser ? 'left-2' : 'right-2'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold shadow-md ${
-            isDark ? 'bg-white/10 text-white/60 hover:text-white' : 'bg-white text-slate-500 hover:text-slate-900 border border-slate-200'
+            isDark ? 'bg-white/10 text-white/60 hover:text-white border border-white/10' : 'bg-white text-slate-500 hover:text-slate-900 border border-slate-200'
           }`}
         >
           {copied ? <Check size={9} /> : <Copy size={9} />}
@@ -210,10 +211,10 @@ class AiPanelErrorBoundary extends React.Component {
   render() {
     if (this.state.hasError) {
       return (
-        <div style={{ color: 'red', padding: '20px', background: '#333', zIndex: 9999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}>
-          <h2>AiPanel Crashed!</h2>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error?.toString()}</pre>
-          <pre style={{ whiteSpace: 'pre-wrap' }}>{this.state.error?.stack}</pre>
+        <div style={{ color: 'red', padding: '20px', background: '#000', zIndex: 9999, position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <h2 style={{ fontSize: 14, fontWeight: 900 }}>AiPanel Crashed!</h2>
+          <pre style={{ whiteSpace: 'pre-wrap', fontSize: 10, opacity: 0.7 }}>{this.state.error?.toString()}</pre>
+          <button onClick={() => window.location.reload()} style={{ padding: '8px 16px', background: 'white', color: 'black', borderRadius: 8, fontSize: 10, fontWeight: 800 }}>RELOAD PAGE</button>
         </div>
       );
     }
@@ -251,8 +252,6 @@ function AiPanel({
   const isDark = theme === 'dark';
   const hasTriggeredInitial = useRef(false);
 
-
-
   const sendMessage = useCallback(async (prompt) => {
     if (!prompt?.trim() || loading) return;
 
@@ -262,7 +261,6 @@ function AiPanel({
     setInput("");
     setLoading(true);
 
-    // Placeholder for streaming
     const placeholderId = Date.now();
     setMessages(prev => [...prev, { role: "model", content: "", _id: placeholderId }]);
 
@@ -316,16 +314,14 @@ function AiPanel({
             }
           } catch (e) {
             if (e.message && !e.message.includes("JSON")) throw e;
-            console.warn("⚠️ [SAM AI] Chunk parse:", e.message);
           }
         }
       }
 
-      // Finalize — remove _id marker
       setMessages(prev => {
         const next = [...prev];
         const idx = next.findIndex(m => m._id === placeholderId);
-        if (idx !== -1) next[idx] = { role: "model", content: accumulated || "✅ Done." };
+        if (idx !== -1) next[idx] = { role: "model", content: accumulated || "✅ Done.", _id: undefined };
         return next;
       });
 
@@ -357,7 +353,6 @@ function AiPanel({
     }
   }, [initialPrompt, isOpen, sendMessage]);
 
-  // Reset trigger when prompt changes
   useEffect(() => {
     if (initialPrompt) {
        hasTriggeredInitial.current = false;
@@ -390,7 +385,7 @@ function AiPanel({
 
   return (
     <section
-      className="flex flex-col overflow-hidden transition-all duration-300 w-full lg:w-auto"
+      className="flex flex-col h-full overflow-hidden transition-all duration-300 w-full lg:w-auto"
       style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${width}%`, flexGrow: 0, flexShrink: 0 }}
     >
       <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ border: isMobile ? 'none' : '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
@@ -410,6 +405,7 @@ function AiPanel({
               animate={{ opacity: [0.4, 1, 0.4] }}
               transition={{ duration: 2, repeat: Infinity }}
               className={`h-1.5 w-1.5 rounded-full ${isDark ? 'bg-green-400' : 'bg-green-500'}`}
+              style={{ boxShadow: isDark ? '0 0 8px rgba(74, 222, 128, 0.5)' : 'none' }}
             />
           </div>
           <button
@@ -421,7 +417,7 @@ function AiPanel({
         </div>
 
         {/* Chat Messages */}
-        <div ref={scrollRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-2 space-y-3' : 'p-4 space-y-4'} custom-scrollbar min-w-0`}>
+        <div ref={scrollRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-5'} custom-scrollbar min-w-0`}>
           <AnimatePresence initial={false}>
             {messages.map((msg, i) => (
               <MessageBubble
@@ -440,10 +436,10 @@ function AiPanel({
               className="flex flex-col items-start"
             >
               <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
-                <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
+                <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black text-white'}`}>
                   <Sparkles size={9} />
                 </div>
-                <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/30' : 'text-slate-400'}`}>Sam AI</span>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Sam AI</span>
               </div>
               <TypingIndicator theme={theme} />
             </motion.div>
@@ -471,10 +467,10 @@ function AiPanel({
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask Sam AI anything about your code..."
               rows={3}
-              className={`w-full resize-none rounded-xl border p-3 pr-12 text-sm transition-all focus:outline-none ${
+              className={`w-full resize-none rounded-xl border p-3 pr-12 text-sm transition-all focus:outline-none shadow-inner ${
                 isDark
                   ? 'border-white/10 bg-black/40 text-white placeholder:text-white/20 focus:border-white/30'
-                  : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400 shadow-sm'
+                  : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400'
               }`}
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
@@ -487,7 +483,7 @@ function AiPanel({
               type="submit"
               disabled={!input.trim() || loading}
               className={`absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-90 disabled:opacity-20 shadow-lg ${
-                isDark ? 'bg-white text-black' : 'bg-black text-white'
+                isDark ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white hover:opacity-90'
               }`}
             >
               {loading
@@ -500,7 +496,7 @@ function AiPanel({
 
         {/* Footer */}
         <div className={`flex h-8 shrink-0 items-center justify-center border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`} style={{ background: 'var(--sam-surface-low)' }}>
-          <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', opacity: 0.4 }}>
+          <span style={{ fontSize: 8, fontBold: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', opacity: 0.3, fontWeight: 900 }}>
             Powered by Gemini · SAM AI
           </span>
         </div>
