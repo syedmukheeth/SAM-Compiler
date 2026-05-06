@@ -1635,33 +1635,38 @@ builtins.input = input_shim
 
           {/* SAM AI PANEL - Now Integrated */}
           {showAiPanel && (
-            <div className={`h-full flex-col ${isMobile && activeMobileTab !== 'ai' ? 'hidden' : 'flex'} w-full lg:w-auto`}>
+            <section 
+              className={`flex-col h-full overflow-hidden ${isMobile && activeMobileTab !== 'ai' ? 'hidden' : 'flex'} w-full lg:w-auto`}
+              style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${aiWidth}%`, flexGrow: 0, flexShrink: 0 }}
+            >
               <React.Suspense fallback={
-                <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md">
+                <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md rounded-2xl">
                   <div className="sam-spinner w-8 h-8" />
                 </div>
               }>
-              <AiPanel 
-                isOpen={showAiPanel}
-                onClose={() => {
-                  setShowAiPanel(false);
-                  if (isMobile) setActiveMobileTab('editor');
-                  else setEditorWidth(50); // Reset to 50/50 when closed
-                }}
-                currentCode={buffers[activeLangId]}
-                language={activeLangId}
-                onApplyRefactor={(refactoredCode) => {
-                  setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
-                  window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
-                }}
-                theme={theme}
-                width={aiWidth}
-                isMobile={isMobile}
-                activeMobileTab={activeMobileTab}
-                initialPrompt={pendingAiPrompt}
-              />
+                <AiPanel 
+                  isOpen={showAiPanel}
+                  onClose={() => {
+                    setShowAiPanel(false);
+                    if (isMobile) setActiveMobileTab('editor');
+                    else {
+                      setEditorWidth(50);
+                      setAiWidth(33.33);
+                    }
+                  }}
+                  currentCode={buffers[activeLangId]}
+                  language={activeLangId}
+                  onApplyRefactor={(refactoredCode) => {
+                    setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
+                    window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
+                  }}
+                  theme={theme}
+                  isMobile={isMobile}
+                  activeMobileTab={activeMobileTab}
+                  initialPrompt={pendingAiPrompt}
+                />
               </React.Suspense>
-            </div>
+            </section>
           )}
         </main>
       </div>

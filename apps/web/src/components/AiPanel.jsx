@@ -237,7 +237,6 @@ function AiPanel({
   language,
   onApplyRefactor,
   theme,
-  width = 33.33,
   isMobile,
   activeMobileTab,
   initialPrompt = null
@@ -382,125 +381,118 @@ function AiPanel({
       prompt: `Optimize this ${language} code for maximum performance and production-grade quality. Explain the improvements.`
     },
   ];
-
   return (
-    <section
-      className="flex flex-col h-full overflow-hidden transition-all duration-300 w-full lg:w-auto"
-      style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${width}%`, flexGrow: 0, flexShrink: 0 }}
-    >
-      <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ border: isMobile ? 'none' : '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
-
-        {/* Header */}
-        <div className={`flex h-11 shrink-0 items-center justify-between px-4 border-b ${
-          isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50'
-        }`}>
-          <div className="flex items-center gap-2.5">
-            <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
-              <Sparkles className="h-3.5 w-3.5" />
-            </div>
-            <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
-              SAM AI
-            </span>
-            <motion.div
-              animate={{ opacity: [0.4, 1, 0.4] }}
-              transition={{ duration: 2, repeat: Infinity }}
-              className={`h-1.5 w-1.5 rounded-full ${isDark ? 'bg-green-400' : 'bg-green-500'}`}
-              style={{ boxShadow: isDark ? '0 0 8px rgba(74, 222, 128, 0.5)' : 'none' }}
-            />
+    <div className={`sam-glass flex flex-1 flex-col h-full overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ border: isMobile ? 'none' : '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
+      {/* Header */}
+      <div className={`flex h-11 shrink-0 items-center justify-between px-4 border-b ${
+        isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50'
+      }`}>
+        <div className="flex items-center gap-2.5">
+          <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
+            <Sparkles className="h-3.5 w-3.5" />
           </div>
-          <button
-            onClick={onClose}
-            className={`rounded-lg p-1.5 transition-all ${isDark ? 'text-white/30 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {/* Chat Messages */}
-        <div ref={scrollRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-5'} custom-scrollbar min-w-0`}>
-          <AnimatePresence initial={false}>
-            {messages.map((msg, i) => (
-              <MessageBubble
-                key={msg._id || i}
-                msg={msg}
-                theme={theme}
-                onApplyRefactor={onApplyRefactor}
-                isLast={i === messages.length - 1}
-              />
-            ))}
-          </AnimatePresence>
-          {loading && (
-            <motion.div
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-start"
-            >
-              <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
-                <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black text-white'}`}>
-                  <Sparkles size={9} />
-                </div>
-                <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Sam AI</span>
-              </div>
-              <TypingIndicator theme={theme} />
-            </motion.div>
-          )}
-        </div>
-
-        {/* Quick Actions + Input */}
-        <div className={`border-t p-3 space-y-3 ${isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50/50'}`}>
-          <div className="flex flex-wrap gap-2">
-            {quickActions.map(qa => (
-              <QuickAction
-                key={qa.label}
-                icon={qa.icon}
-                label={qa.label}
-                onClick={() => sendMessage(qa.prompt)}
-                theme={theme}
-              />
-            ))}
-          </div>
-
-          <form onSubmit={handleSubmit} className="relative">
-            <textarea
-              ref={inputRef}
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask Sam AI anything about your code..."
-              rows={3}
-              className={`w-full resize-none rounded-xl border p-3 pr-12 text-sm transition-all focus:outline-none shadow-inner ${
-                isDark
-                  ? 'border-white/10 bg-black/40 text-white placeholder:text-white/20 focus:border-white/30'
-                  : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400'
-              }`}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit();
-                }
-              }}
-            />
-            <button
-              type="submit"
-              disabled={!input.trim() || loading}
-              className={`absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-90 disabled:opacity-20 shadow-lg ${
-                isDark ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white hover:opacity-90'
-              }`}
-            >
-              {loading
-                ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                : <Send className="h-3.5 w-3.5" />
-              }
-            </button>
-          </form>
-        </div>
-
-        {/* Footer */}
-        <div className={`flex h-8 shrink-0 items-center justify-center border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`} style={{ background: 'var(--sam-surface-low)' }}>
-          <span style={{ fontSize: 8, fontBold: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', opacity: 0.3, fontWeight: 900 }}>
-            Powered by Gemini · SAM AI
+          <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
+            SAM AI
           </span>
+          <motion.div
+            animate={{ opacity: [0.4, 1, 0.4] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className={`h-1.5 w-1.5 rounded-full ${isDark ? 'bg-green-400' : 'bg-green-500'}`}
+            style={{ boxShadow: isDark ? '0 0 8px rgba(74, 222, 128, 0.5)' : 'none' }}
+          />
         </div>
+        <button
+          onClick={onClose}
+          className={`rounded-lg p-1.5 transition-all ${isDark ? 'text-white/30 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
+        >
+          <X className="h-4 w-4" />
+        </button>
       </div>
-    </section>
+
+      {/* Chat Messages */}
+      <div ref={scrollRef} className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-5'} custom-scrollbar min-w-0`}>
+        <AnimatePresence initial={false}>
+          {messages.map((msg, i) => (
+            <MessageBubble
+              key={msg._id || i}
+              msg={msg}
+              theme={theme}
+              onApplyRefactor={onApplyRefactor}
+              isLast={i === messages.length - 1}
+            />
+          ))}
+        </AnimatePresence>
+        {loading && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex flex-col items-start"
+          >
+            <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
+              <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black text-white'}`}>
+                <Sparkles size={9} />
+              </div>
+              <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Sam AI</span>
+            </div>
+            <TypingIndicator theme={theme} />
+          </motion.div>
+        )}
+      </div>
+
+      {/* Quick Actions + Input */}
+      <div className={`border-t p-3 space-y-3 ${isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50/50'}`}>
+        <div className="flex flex-wrap gap-2">
+          {quickActions.map(qa => (
+            <QuickAction
+              key={qa.label}
+              icon={qa.icon}
+              label={qa.label}
+              onClick={() => sendMessage(qa.prompt)}
+              theme={theme}
+            />
+          ))}
+        </div>
+
+        <form onSubmit={handleSubmit} className="relative">
+          <textarea
+            ref={inputRef}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask Sam AI anything about your code..."
+            rows={3}
+            className={`w-full resize-none rounded-xl border p-3 pr-12 text-sm transition-all focus:outline-none shadow-inner ${
+              isDark
+                ? 'border-white/10 bg-black/40 text-white placeholder:text-white/20 focus:border-white/30'
+                : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400'
+            }`}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSubmit();
+              }
+            }}
+          />
+          <button
+            type="submit"
+            disabled={!input.trim() || loading}
+            className={`absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-90 disabled:opacity-20 shadow-lg ${
+              isDark ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white hover:opacity-90'
+            }`}
+          >
+            {loading
+              ? <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+              : <Send className="h-3.5 w-3.5" />
+            }
+          </button>
+        </form>
+      </div>
+
+      {/* Footer */}
+      <div className={`flex h-8 shrink-0 items-center justify-center border-t ${isDark ? 'border-white/5' : 'border-slate-100'}`} style={{ background: 'var(--sam-surface-low)' }}>
+        <span style={{ fontSize: 8, fontBold: 900, textTransform: 'uppercase', letterSpacing: '0.25em', color: 'var(--sam-text)', opacity: 0.3, fontWeight: 900 }}>
+          Powered by Gemini · SAM AI
+        </span>
+      </div>
+    </div>
   );
 }
