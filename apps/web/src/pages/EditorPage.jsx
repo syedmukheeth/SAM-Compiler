@@ -609,11 +609,8 @@ builtins.input = input_shim
 
   useEffect(() => {
     // Proactive Socket Initialization (Zero-Lag Handshake)
-    const socket = getSocket(token);
-    if (socket) {
-      setSocketStatus("connecting");
-      socket.on("connect", () => setSocketStatus("connected"));
-    }
+    // Note: The listener in the second useEffect handles the actual status state management
+    getSocket(token);
   }, [token]);
 
   // Health check for worker availability (Backend sanity) & ADAPTIVE HEARTBEAT
@@ -641,8 +638,12 @@ builtins.input = input_shim
           setFailSafeActive(false);
         }
       } catch (err) {
-        // Only set to preparing if we haven't failed safe yet
-        if (!failSafeActive) {
+        // Transient network failure? Don't panic immediately unless navigator.onLine is false
+        if (!navigator.onLine) {
+          setIsEngineReady(false);
+          setEngineMode("offline");
+        } else if (!failSafeActive) {
+          // If we are online but the check fails, it might be a server-side waking state
           setIsEngineReady(false);
           setEngineMode("preparing");
         }

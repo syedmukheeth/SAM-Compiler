@@ -69,17 +69,21 @@ const StatusBar = ({
           <div className={`absolute -inset-1 rounded-full blur-md transition-all duration-500 ${glowClass}`} />
           <div className={`relative h-2 w-2 rounded-full transition-all duration-500 ring-2 ring-black/20 ${dotClass}`} />
           <span className={`relative ml-1 text-[9px] tracking-[0.2em] transition-all duration-300 ${statusColorClass} ${!showBanner && isOnline ? 'hidden' : 'inline'}`}>
-            {displayStatus}
+            {isFailed && navigator.onLine ? "DISCONNECTED" : displayStatus}
           </span>
         </span>
 
         {isFailed && (
           <button 
             onClick={() => reconnect()}
-            className="flex items-center gap-1.5 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white transition-all text-[8px] font-black"
+            className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all text-[9px] font-black shadow-lg ${
+              isSmallMobile 
+                ? "bg-rose-500 text-white animate-pulse px-4 py-2" 
+                : "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+            }`}
           >
-            <RefreshCw className="h-2.5 w-2.5" />
-            <span className={isSmallMobile ? "hidden" : "inline"}>RECONNECT</span>
+            <RefreshCw className={`h-3 w-3 ${isSmallMobile ? 'animate-spin-slow' : ''}`} />
+            <span>RECONNECT</span>
           </button>
         )}
 

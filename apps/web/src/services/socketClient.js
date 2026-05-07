@@ -49,11 +49,11 @@ export function getSocket(tokenArg) {
   }, 3500);
 
   socket = io(endpoint, {
-    transports: ["websocket"],
     auth: { token },
     withCredentials: true,
-    reconnectionDelay: 2000,
-    reconnectionDelayMax: 10000,
+    reconnectionDelay: 1000,
+    reconnectionDelayMax: 5000,
+    reconnectionAttempts: Infinity,
     autoConnect: true
   });
 
