@@ -150,7 +150,7 @@ const StatusBar = ({
                  : 'bg-slate-50 border-slate-200 text-slate-700 group-hover:bg-[#0077b5] group-hover:text-white'
             }`}>
               <span className={`text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap`}>
-                S. MUKHEETH
+                syed mukheeth
               </span>
             </div>
           </div>

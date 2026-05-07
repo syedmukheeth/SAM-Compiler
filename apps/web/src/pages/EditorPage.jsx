@@ -892,9 +892,14 @@ builtins.input = input_shim
       if ((e.metaKey || e.ctrlKey) && e.key === "/") {
         e.preventDefault();
         setShowAiPanel(prev => {
-          if (!prev) setEditorWidth(33.33);
-          else setEditorWidth(50);
-          return !prev;
+          const opening = !prev;
+          if (opening) {
+            if (isMobile) setActiveMobileTab('ai');
+            else setEditorWidth(33.33);
+          } else {
+            if (!isMobile) setEditorWidth(50);
+          }
+          return opening;
         });
       }
     };
@@ -1176,7 +1181,9 @@ builtins.input = input_shim
               onClick={() => {
                 const next = !showAiPanel;
                 setShowAiPanel(next);
-                if (!isMobile) {
+                if (isMobile) {
+                  if (next) setActiveMobileTab('ai');
+                } else {
                   if (next) {
                     setEditorWidth(33.33);
                     setAiWidth(33.33);
@@ -1482,9 +1489,11 @@ builtins.input = input_shim
                         exit={{ opacity: 0, scale: 0.8, x: -10 }}
                         onClick={() => {
                           setShowAiPanel(true);
-                          if (!isMobile) {
-                             setEditorWidth(33.33);
-                             setAiWidth(33.33);
+                          if (isMobile) {
+                            setActiveMobileTab('ai');
+                          } else {
+                            setEditorWidth(33.33);
+                            setAiWidth(33.33);
                           }
                         }}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)] ml-2"
