@@ -16,7 +16,9 @@ const EnvSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().trim().optional(),
   GOOGLE_CLIENT_ID: z.string().trim().optional(),
   GOOGLE_CLIENT_SECRET: z.string().trim().optional(),
-  CALLBACK_URL_BASE: z.string().trim().default("https://sam-compiler.onrender.com/api/auth")
+  CALLBACK_URL_BASE: z.string().trim().default("https://sam-compiler.onrender.com/api/auth"),
+  GEMINI_API_KEY: z.string().trim().min(1),
+  GEMINI_MODEL: z.string().trim().default("gemini-1.5-flash")
 });
 
 
@@ -39,7 +41,9 @@ if (!result.success) {
       GITHUB_CLIENT_ID: process.env.GITHUB_CLIENT_ID,
       GITHUB_CLIENT_SECRET: process.env.GITHUB_CLIENT_SECRET,
       GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
-      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET
+      GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-1.5-flash"
     };
   } else {
     // If local, we still want to throw to let the dev know

@@ -1,13 +1,14 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const { env } = require("../../config/env");
 const { logger } = require("../../config/logger");
 
 // Initialize Gemini
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "dummy-key");
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
 // SAM AI Configuration - Priority list for fallback resilience
 const MODELS = [
   "gemini-2.0-flash-exp",
-  process.env.GEMINI_MODEL || "gemini-1.5-flash",
+  env.GEMINI_MODEL,
   "gemini-1.5-pro"
 ];
 
