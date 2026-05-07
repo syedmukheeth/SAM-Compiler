@@ -209,12 +209,12 @@ export default function EditorPage() {
 
     // Caret/Arrow highlighting (GCC style)
     if (line.trim().startsWith('|') || line.includes('^')) {
-      return `${dim}${line}${reset}\r\n`;
+      return `${white}${line}${reset}\r\n`;
     }
 
     // Python Traceback styling
     if (line.includes('File "') && line.includes('line')) {
-      return `${dim}${line}${reset}\r\n`;
+      return `${white}${line}${reset}\r\n`;
     }
 
     // Default error/standard output
@@ -822,12 +822,13 @@ builtins.input = input_shim
         white: isDark ? '#FFFFFF' : '#0F172A',
       },
       fontFamily: 'var(--font-mono)',
-      fontSize: 13,
-      lineHeight: 1.4,
-      letterSpacing: 0.8,
+      fontSize: 12,
+      lineHeight: 1.5,
+      letterSpacing: 0.4,
       fontWeight: 500,
       cursorBlink: true,
       convertEol: true,
+      scrollback: 5000,
     });
     const fitAddon = new FitAddon();
     term.loadAddon(fitAddon);
@@ -1237,30 +1238,7 @@ builtins.input = input_shim
           CONTEXTUAL AI TRIGGER — Relocated to Root
           Floats opposite to the Run button
       ══════════════════════════════════════════════ */}
-      <AnimatePresence>
-        {pendingAiPrompt && !showAiPanel && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.9 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className={`fixed z-[210] ${isMobile ? 'bottom-[160px] left-5' : 'bottom-10 right-10'}`}
-          >
-            <button
-              onClick={() => {
-                setShowAiPanel(true);
-                if (!isMobile) {
-                   setEditorWidth(33.33);
-                   setAiWidth(33.33);
-                }
-              }}
-              className={`flex items-center gap-2.5 rounded-2xl bg-white px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[0_12px_40px_rgba(255,255,255,0.4)] transition-all hover:scale-105 active:scale-95 ${isMobile ? 'h-[44px] rounded-full' : ''}`}
-            >
-              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
-              {isMobile ? "Explain" : "Explain with SAM AI"}
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Floating AI Button Removed - Relocated to Terminal Header */}
       {isMobile && (
         <motion.button
           id="mobile-run-fab"
@@ -1494,6 +1472,28 @@ builtins.input = input_shim
                   <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
                     CLOUD ENGINE
                   </span>
+
+                  {/* 🤖 INTEGRATED AI DIAGNOSTIC TRIGGER */}
+                  <AnimatePresence>
+                    {pendingAiPrompt && !showAiPanel && (
+                      <motion.button
+                        initial={{ opacity: 0, scale: 0.8, x: -10 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.8, x: -10 }}
+                        onClick={() => {
+                          setShowAiPanel(true);
+                          if (!isMobile) {
+                             setEditorWidth(33.33);
+                             setAiWidth(33.33);
+                          }
+                        }}
+                        className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)] ml-2"
+                      >
+                        <Sparkles className="h-3 w-3 animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">Explain Error</span>
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
                 </div>
                 <div style={{ fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? '#FF3B3B' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>

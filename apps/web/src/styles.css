@@ -533,7 +533,7 @@ body {
 }
 
 .sam-terminal-container {
-  padding: 16px !important;
+  padding: clamp(8px, 2vw, 12px) !important;
   background-color: var(--sam-surface) !important;
 }
 
