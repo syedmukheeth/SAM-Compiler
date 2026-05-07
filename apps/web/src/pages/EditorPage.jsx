@@ -494,6 +494,7 @@ builtins.input = input_shim
         : rawMsg.substring(0, 200);
         
       if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${cleanMsg}\x1b[0m\r\n`);
+      setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${cleanMsg}\n\nIs this an issue with my code or the server?`);
     } finally {
       setBusy(false);
     }
@@ -1231,6 +1232,108 @@ builtins.input = input_shim
         />
       )}
 
+      {/* ═══════════════════════════════════════════
+          CONTEXTUAL AI TRIGGER — Relocated to Root
+          Floats opposite to the Run button
+      ══════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {pendingAiPrompt && !showAiPanel && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
+            className={`fixed z-[210] ${isMobile ? 'bottom-[160px] left-5' : 'bottom-10 right-10'}`}
+          >
+            <button
+              onClick={() => {
+                setShowAiPanel(true);
+                if (!isMobile) {
+                   setEditorWidth(33.33);
+                   setAiWidth(33.33);
+                }
+              }}
+              className={`flex items-center gap-2.5 rounded-2xl bg-white px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[0_12px_40px_rgba(255,255,255,0.4)] transition-all hover:scale-105 active:scale-95 ${isMobile ? 'h-[44px] rounded-full' : ''}`}
+            >
+              <Sparkles className="h-3.5 w-3.5 text-blue-600" />
+              {isMobile ? "Explain" : "Explain with SAM AI"}
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {isMobile && (
+        <motion.button
+          id="mobile-run-fab"
+          onClick={onRun}
+          disabled={busy}
+          whileTap={{ scale: 0.94, y: 2 }}
+          animate={{
+            backgroundColor:
+              runStatus === 'Succeeded' || runStatus === 'SUCCESS'
+                ? 'rgba(16,185,129,1)'
+                : runStatus?.toLowerCase().includes('error') ||
+                  runStatus?.toLowerCase().includes('fail') ||
+                  runStatus === 'Timeout' || runStatus === 'Memory_Limit'
+                ? 'rgba(239,68,68,1)'
+                : '#FFFFFF',
+            color:
+              runStatus === 'Succeeded' || runStatus === 'SUCCESS' ||
+              runStatus?.toLowerCase().includes('error') ||
+              runStatus?.toLowerCase().includes('fail') ||
+              runStatus === 'Timeout' || runStatus === 'Memory_Limit'
+                ? '#FFFFFF'
+                : '#000000',
+          }}
+          transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          style={{
+            position: 'fixed',
+            bottom: 160, // Increased to clear MobileTabNav (88px) + StatusBar (44px) + Gap
+            right: 20,
+            zIndex: 200, // Higher than footer and everything else
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '0 20px',
+            height: 44,
+            borderRadius: 99,
+            border: 'none',
+            cursor: busy ? 'not-allowed' : 'pointer',
+            boxShadow: '0 12px 40px rgba(0,0,0,0.65), 0 2px 8px rgba(0,0,0,0.3)',
+            minWidth: 100,
+            justifyContent: 'center',
+            fontFamily: 'var(--font-body)',
+            fontWeight: 900,
+            fontSize: 10,
+            letterSpacing: '0.25em',
+            textTransform: 'uppercase',
+            WebkitTapHighlightColor: 'transparent',
+          }}
+        >
+          <AnimatePresence mode="wait">
+            {busy ? (
+              <motion.div key="running" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Loader2 style={{ width: 13, height: 13, animation: 'spin 0.8s linear infinite' }} />
+                <span>Running...</span>
+              </motion.div>
+            ) : runStatus === 'Succeeded' || runStatus === 'SUCCESS' ? (
+              <motion.div key="success" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Check style={{ width: 13, height: 13, strokeWidth: 3 }} />
+                <span>Done</span>
+              </motion.div>
+            ) : runStatus?.toLowerCase().includes('error') || runStatus?.toLowerCase().includes('fail') || runStatus === 'Timeout' || runStatus === 'Memory_Limit' ? (
+              <motion.div key="error" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                <span>Error</span>
+              </motion.div>
+            ) : (
+              <motion.div key="idle" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Play style={{ width: 13, height: 13, fill: 'currentColor' }} />
+                <span>Run</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.button>
+      )}
+
 
 
       <div 
@@ -1333,85 +1436,9 @@ builtins.input = input_shim
             </div>
           </section>
 
-          {/* ═══════════════════════════════════════════
-              MOBILE RUN FAB — Only visible on <768px
-              Premium pill floating above the tab bar
-          ══════════════════════════════════════════════ */}
-          {isMobile && (
-            <motion.button
-              id="mobile-run-fab"
-              onClick={onRun}
-              disabled={busy}
-              whileTap={{ scale: 0.94, y: 2 }}
-              animate={{
-                backgroundColor:
-                  runStatus === 'Succeeded' || runStatus === 'SUCCESS'
-                    ? 'rgba(16,185,129,1)'
-                    : runStatus?.toLowerCase().includes('error') ||
-                      runStatus?.toLowerCase().includes('fail') ||
-                      runStatus === 'Timeout' || runStatus === 'Memory_Limit'
-                    ? 'rgba(239,68,68,1)'
-                    : '#FFFFFF',
-                color:
-                  runStatus === 'Succeeded' || runStatus === 'SUCCESS' ||
-                  runStatus?.toLowerCase().includes('error') ||
-                  runStatus?.toLowerCase().includes('fail') ||
-                  runStatus === 'Timeout' || runStatus === 'Memory_Limit'
-                    ? '#FFFFFF'
-                    : '#000000',
-              }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              style={{
-                position: 'fixed',
-                bottom: 100, // Elevated to avoid overlap with MobileTabNav
-                right: 20,
-                zIndex: 150,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '0 20px',
-                height: 44,
-                borderRadius: 99,
-                border: 'none',
-                cursor: busy ? 'not-allowed' : 'pointer',
-                boxShadow: '0 8px 32px rgba(0,0,0,0.55), 0 2px 8px rgba(0,0,0,0.3)',
-                minWidth: 100,
-                justifyContent: 'center',
-                fontFamily: 'var(--font-body)',
-                fontWeight: 900,
-                fontSize: 10,
-                letterSpacing: '0.25em',
-                textTransform: 'uppercase',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              <AnimatePresence mode="wait">
-                {busy ? (
-                  <motion.div key="running" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Loader2 style={{ width: 13, height: 13, animation: 'spin 0.8s linear infinite' }} />
-                    <span>Running...</span>
-                  </motion.div>
-                ) : runStatus === 'Succeeded' || runStatus === 'SUCCESS' ? (
-                  <motion.div key="success" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Check style={{ width: 13, height: 13, strokeWidth: 3 }} />
-                    <span>Done</span>
-                  </motion.div>
-                ) : runStatus?.toLowerCase().includes('error') || runStatus?.toLowerCase().includes('fail') || runStatus === 'Timeout' || runStatus === 'Memory_Limit' ? (
-                  <motion.div key="error" initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.7 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                    <span>Error</span>
-                  </motion.div>
-                ) : (
-                  <motion.div key="idle" initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Play style={{ width: 13, height: 13, fill: 'currentColor' }} />
-                    <span>Run</span>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </motion.button>
-          )}
 
           {/* SPLITTER 1 (Editor | Terminal) */}
+
           {!isMobile && (
             <div 
                onMouseDown={startResizingEditor}
@@ -1569,28 +1596,6 @@ builtins.input = input_shim
                 {/* 2. Actual XTerm Instance Mount Point */}
                 <div ref={terminalRef} id="terminal-container" className="h-full w-full overflow-hidden" style={{ padding: '10px' }} />
 
-                {/* 3. Contextual AI Error Trigger */}
-                <AnimatePresence>
-                  {pendingAiPrompt && !showAiPanel && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 20, scale: 0.9 }}
-                      className="absolute bottom-6 right-6 z-30"
-                    >
-                      <button
-                        onClick={() => {
-                          setShowAiPanel(true);
-                          setEditorWidth(33.33);
-                        }}
-                        className="flex items-center gap-2.5 rounded-2xl bg-white px-5 py-3.5 text-[11px] font-black uppercase tracking-widest text-black shadow-[0_8px_32px_rgba(255,255,255,0.3)] transition-all hover:scale-105 active:scale-95"
-                      >
-                        <Sparkles className="h-3.5 w-3.5" />
-                        Explain with SAM AI
-                      </button>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
 
                 {/* 4. Mobile Execution Overlay */}
                 <AnimatePresence>
