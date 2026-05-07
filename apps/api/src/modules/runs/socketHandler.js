@@ -35,10 +35,10 @@ setInterval(() => {
 function initSocket(server) {
   const { Server } = require("socket.io");
   io = new Server(server, {
-    transports: ["websocket"],
+    transports: ["websocket", "polling"],
     cors: {
       origin: (origin, callback) => {
-        const allowedOrigins = (process.env.WEB_ORIGIN || "").split(",").filter(Boolean);
+        const allowedOrigins = (env.WEB_ORIGIN || "").split(",").filter(Boolean);
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost") || origin.includes("127.0.0.1")) {
           callback(null, true);
         } else {
