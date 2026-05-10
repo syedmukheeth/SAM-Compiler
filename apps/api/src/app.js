@@ -137,7 +137,11 @@ function createApp() {
   // Serve Static Frontend Assets (Monolith Mode)
   // __dirname is apps/api/src, so we need to go up 3 levels to reach apps/
   const distPath = path.resolve(__dirname, "../../..", "apps/web/dist");
-  app.use(express.static(distPath));
+  app.use(express.static(distPath, {
+    maxAge: "7d", // Cache assets for 7 days
+    etag: true,
+    immutable: true // Assets with hashes in names (Vite) are immutable
+  }));
 
   // Catch-all: Route anything else to index.html for React Router support (SPA)
   app.get("*", (req, res) => {

@@ -264,13 +264,16 @@ function AiPanel({
     setMessages(prev => [...prev, { role: "model", content: "", _id: placeholderId }]);
 
     try {
+      // 🚀 LATENCY OPTIMIZATION: Prune history to last 10 messages to keep prompt context lean
+      const historyToSend = [...messages, userMsg].slice(-10);
+      
       const response = await fetch(`${ENDPOINTS.API_BASE_URL}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Accept": "text/event-stream"
         },
-        body: JSON.stringify({ code: currentCode, language, messages: [...messages, userMsg] })
+        body: JSON.stringify({ code: currentCode, language, messages: historyToSend })
       });
 
       if (!response.ok) {

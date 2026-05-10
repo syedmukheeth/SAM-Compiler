@@ -7,9 +7,9 @@ const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
 // SAM AI Configuration - Priority list for fallback resilience (Updated for May 2026)
 const MODELS = [
-  "gemini-2.5-flash",
-  "gemini-2.5-pro",
-  "gemini-2.0-flash"
+  "gemini-1.5-flash", // High-speed, low-latency default
+  "gemini-1.5-pro",   // High-intelligence fallback
+  "gemini-1.0-pro"    // Legacy fallback
 ];
 
 const SAM_AI_PERSONA = `

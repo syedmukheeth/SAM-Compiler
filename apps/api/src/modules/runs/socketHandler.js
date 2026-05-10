@@ -35,7 +35,8 @@ setInterval(() => {
 function initSocket(server) {
   const { Server } = require("socket.io");
   io = new Server(server, {
-    transports: ["websocket", "polling"],
+    transports: ["websocket"], // Prioritize websocket to avoid polling latency
+    compression: true,        // Enable gzip/deflate for payloads
     cors: {
       origin: (origin, callback) => {
         const allowedOrigins = (env.WEB_ORIGIN || "").split(",").filter(Boolean);
@@ -47,8 +48,8 @@ function initSocket(server) {
       },
       credentials: true
     },
-    pingTimeout: 120000,
-    pingInterval: 30000
+    pingTimeout: 20000, // Detect disconnects faster (from 120s to 20s)
+    pingInterval: 10000 // Send heartbeat more frequently (from 30s to 10s)
   });
   
   // 🚀 HORIZONTAL SCALING: Sync events across multiple API instances via Redis
