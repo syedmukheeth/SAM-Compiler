@@ -23,7 +23,7 @@ import { Link, useSearchParams } from "react-router-dom";
 
 import { 
   Sparkles, Keyboard, Clock, Menu, X, Play, Check, RotateCcw, 
-  CircleHelp, Loader2, Code2, Terminal as TerminalIcon 
+  CircleHelp, Loader2, Code2, Zap, Terminal as TerminalIcon 
 } from "lucide-react";
 import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
