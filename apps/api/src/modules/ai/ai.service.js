@@ -8,9 +8,9 @@ const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 // SAM AI Configuration - Priority list for fallback resilience (Updated for May 2026)
 const MODELS = [
   "gemini-1.5-flash", // High-speed, low-latency default
-  "gemini-1.5-pro",   // High-intelligence fallback
-  "gemini-1.0-pro"    // Legacy fallback
+  "gemini-1.5-pro"    // High-intelligence fallback
 ];
+
 
 const SAM_AI_PERSONA = `
 You are Sam AI, a World-Class Code Helper and Compiler Assistant.
@@ -67,33 +67,31 @@ async function streamChat(context, onChunk) {
 
   for (const modelName of MODELS) {
     try {
-      const model = genAI.getGenerativeModel({ model: modelName });
+      const model = genAI.getGenerativeModel({ 
+        model: modelName,
+        systemInstruction: `${SAM_AI_PERSONA}\n\nLanguage: ${language}\nCurrent file content:\n\n${code}`
+      });
       
-      // Filter out the initial greeting if it's the first message to avoid role conflicts
-      const chatMessages = messages[0]?.role === "model" ? messages.slice(1) : messages;
+      // Map chat messages correctly and ensure history starts with 'user'
+      let chatMessages = messages;
+      while (chatMessages.length > 0 && (chatMessages[0].role === "assistant" || chatMessages[0].role === "model")) {
+        chatMessages = chatMessages.slice(1);
+      }
 
-      const formattedHistory = [
-        {
-          role: "user",
-          parts: [{ text: `SYSTEM CONTEXT:\n${SAM_AI_PERSONA}\n\nLanguage: ${language}\nCurrent file content:\n\n${code}` }],
-        },
-        {
-          role: "model",
-          parts: [{ text: "Acknowledged. I am Sam AI, your elite coding partner. I am ready." }],
-        },
-        ...chatMessages.slice(0, -1).map(m => ({
-          role: m.role,
-          parts: [{ text: m.content || " " }]
-        }))
-      ];
+      const formattedHistory = chatMessages.slice(0, -1).map(m => ({
+        role: m.role === "assistant" ? "model" : (m.role || "user"),
+        parts: [{ text: m.content || " " }]
+      }));
 
       const chat = model.startChat({
         history: formattedHistory,
       });
 
+
+
       // INITIAL CONNECTION RETRY
       const result = await withRetry(async () => {
-        const prompt = chatMessages[chatMessages.length - 1]?.content || "Hello!";
+        const prompt = messages[messages.length - 1]?.content || "Hello!";
         return await chat.sendMessageStream(prompt);
       });
 
