@@ -27,55 +27,46 @@ To save your code history or increase your execution rate limits, sign in via yo
 
 ## 💻 Developer Setup & Architecture
 
-### The Stack
+### The Zenith Stack
 - **Frontend**: React 18, Vite, TailwindCSS, Framer Motion, Monaco Editor.
-- **Backend**: Node.js, Express, Socket.io, Passport.js, Piston API.
+- **Backend (API)**: Node.js, Express, Socket.io, BullMQ, Redis.
+- **Worker**: Node.js, Docker, gVisor.
 - **Database**: MongoDB Atlas.
 
-### Local Installation
+### Local Installation (The Pro Flow)
 To get a local instance of the SAM Compiler running on your machine:
 
 1. **Clone the Repository**
    ```bash
-   git clone https://github.com/syedmukheeth/Liquid-IDE.git
-   cd Liquid-IDE
+   git clone https://github.com/syedmukheeth/SAM-Compiler.git
+   cd SAM-Compiler
    ```
 
 2. **Install Dependencies**
-   We use a monorepo-style split, so you need to install dependencies for both the frontend (`web`) and backend (`api`).
+   We use a monorepo structure. You can install all dependencies from the root.
    ```bash
-   cd apps/api && npm install
-   cd ../web && npm install
+   npm install
    ```
 
-3. **Environment Variables**
-   Create a `.env` file in `apps/api/`:
-   ```env
-   PORT=5000
-   MONGODB_URI=your_mongo_cluster_connection_string
-   GOOGLE_CLIENT_ID=your_google_oauth_client_id
-   GOOGLE_CLIENT_SECRET=your_google_oauth_client_secret
-   GITHUB_CLIENT_ID=your_github_oauth_client_id
-   GITHUB_CLIENT_SECRET=your_github_oauth_client_secret
-   FRONTEND_URL=http://localhost:5173
-   SESSION_SECRET=super_secret_sam_key
-   ```
-   Create a `.env` file in `apps/web/`:
-   ```env
-   VITE_API_URL=http://localhost:5000
-   VITE_WS_URL=http://localhost:5000
-   ```
+3. **Environment Configuration**
+   Populate the `.env` files in `apps/api`, `apps/web`, and `apps/worker` using the provided `.env.example` templates. 
+
+   **Required Secrets**:
+   - `GEMINI_API_KEY`: Get from [Google AI Studio](https://aistudio.google.com/).
+   - `MONGO_URI`: A running MongoDB instance.
+   - `REDIS_URL`: A running Redis instance.
 
 4. **Booting the Engines**
-   Start the backend (from `apps/api`):
+   The fastest way to start is using Docker Compose:
+   ```bash
+   docker-compose up -d
+   ```
+
+   Alternatively, run the development server locally:
    ```bash
    npm run dev
    ```
-   Start the frontend (from `apps/web`):
-   ```bash
-   npm run dev
-   ```
-   Your compiler will be running brilliantly at `localhost:5173`!
+   This will concurrently start the API, Worker, and Web services.
 
 ---
 
@@ -87,25 +78,25 @@ We actively welcome pull requests from the community! From bug fixes to feature 
 1. **Fork the Repository**: Click the 'Fork' button at the top right of this page.
 2. **Create a Branch**: 
    ```bash
-   git checkout -b feature/amazing-new-idea
+   git checkout -b feat/amazing-new-idea
    ```
-3. **Make Your Changes**: Follow the core principles of our UI (Tailwind `sam-` classes).
-4. **Test Thoroughly**: Ensure that the compiler correctly executes code and websocket connections do not drop.
+3. **Make Your Changes**: Adhere to the "Digital Obsidian" design principles.
+4. **Test Thoroughly**: Ensure that the compiler correctly executes code and websocket connections are stable.
 5. **Commit Your Changes**: We prefer conventional commits!
    ```bash
    git commit -m "feat(ui): add amazing new idea directly to the engine"
    ```
 6. **Push to Your Fork**:
    ```bash
-   git push origin feature/amazing-new-idea
+   git push origin feat/amazing-new-idea
    ```
 7. **Open a Pull Request**: Submit the PR against our `main` branch.
 
 ### UI/UX Design System Rules
-If you are contributing to the frontend, please adhere strictly to our "Monolith Obsidian" design system:
-- **Colors**: Never hardcode colors. Always use CSS variables (`var(--sam-bg)`, `var(--sam-accent)`).
-- **Glassmorphism**: Use the `.sam-glass` and `.noise-overlay` classes to maintain the premium backdrop filter aesthetic.
-- **Responsiveness**: Ensure every new component hides gracefully on `md:hidden` or breaks down appropriately for mobile screens.
+If you are contributing to the frontend, please adhere strictly to our **Digital Obsidian** design system:
+- **Colors**: Use the Tailwind classes or CSS variables provided in `index.css`.
+- **Glassmorphism**: Use the `.glass-panel` and `.noise-background` utility classes.
+- **Responsiveness**: SAM is "Mobile-First". Ensure all components stack beautifully on small screens.
 
 ---
 
