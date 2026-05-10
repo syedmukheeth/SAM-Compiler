@@ -16,9 +16,7 @@ async function main() {
   
   initSocket(server);
 
-  // ⚡ RESILIENCE ENGINE: Initialize AI Background Worker
-  const { initAiWorker } = require("./modules/ai/ai.worker");
-  initAiWorker();
+
 
   // 💓 HEARTBEAT: Prevent Render/Railway from sleeping (Self-Warming)
   setInterval(() => {

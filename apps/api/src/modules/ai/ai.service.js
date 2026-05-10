@@ -57,49 +57,7 @@ async function withRetry(fn, maxRetries = 2) {
   throw lastErr;
 }
 
-/**
- * Generates an AI response based on the current editor context and SRE metrics.
- */
-async function generateRefactor(context) {
-  const { code, language, metrics, query } = context;
 
-  for (const modelName of MODELS) {
-    try {
-      const model = genAI.getGenerativeModel({ model: modelName });
-      const prompt = `
-${SAM_AI_PERSONA}
-
-CONTEXT:
-Language: ${language}
-Current Metrics: ${JSON.stringify(metrics || {})}
-Query: ${query || "Refactor this code for production-grade excellence."}
-
-STRICT INSTRUCTIONS:
-Predict the performance impact of your changes.
-If the current metrics show high latency (e.g. > 100ms), prioritize algorithmic optimization.
-
-FILE CONTENT:
-\`\`\`${language}
-${code}
-\`\`\`
-  `;
-
-      return await withRetry(async () => {
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        return response.text();
-      });
-    } catch (err) {
-      logger.warn({ model: modelName, error: err.message }, "AI model fallback triggered in generateRefactor");
-      if (modelName === MODELS[MODELS.length - 1]) {
-        const isConfig = err.message.includes("404") || err.message.includes("403");
-        let userMessage = "AI Assistant is currently facing high demand. Please try again in a moment.";
-        if (isConfig) userMessage = "AI Assistant configuration error.";
-        throw new Error(`${userMessage} (${err.message})`);
-      }
-    }
-  }
-}
 
 /**
  * Streams the AI response for a better UX.
@@ -169,4 +127,4 @@ async function streamChat(context, onChunk) {
   }
 }
 
-module.exports = { generateRefactor, streamChat };
+module.exports = { streamChat };

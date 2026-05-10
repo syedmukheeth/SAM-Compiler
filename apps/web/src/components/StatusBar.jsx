@@ -9,8 +9,7 @@ const StatusBar = ({
   theme = 'dark',
   busy = false,
   socketStatus = "connected",
-  showBanner = true,
-  isAiThinking = false
+  showBanner = true
 }) => {
   const [localPos, setLocalPos] = React.useState({ lineNumber: 1, column: 1 });
   const [isSmallMobile, setIsSmallMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth < 480 : false);
@@ -98,12 +97,7 @@ const StatusBar = ({
           <span className={`text-[8px] opacity-40 font-black tracking-widest hidden md:inline ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
             Ln {localPos.lineNumber}, Col {localPos.column}
           </span>
-          {isAiThinking && (
-            <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 animate-pulse ml-2">
-              <RefreshCw className="h-2.5 w-2.5 animate-spin" />
-              <span className="text-[8px] font-black uppercase tracking-widest">SAM IS THINKING...</span>
-            </div>
-          )}
+
         </div>
 
         <span className={`opacity-20 hidden lg:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
