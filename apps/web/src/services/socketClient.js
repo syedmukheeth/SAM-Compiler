@@ -40,20 +40,22 @@ export function getSocket(tokenArg) {
 
   emitStatus(SOCKET_STATES.CONNECTING);
 
-  // 3s Waking Engine: If connecting takes too long, it's likely a cold start
+  // 5s Waking Engine: If connecting takes too long, it's likely a heavy cold start
   if (wakingTimer) clearTimeout(wakingTimer);
   wakingTimer = setTimeout(() => {
     if (currentStatus === SOCKET_STATES.CONNECTING || currentStatus === SOCKET_STATES.RECONNECTING) {
+      console.warn("⚠️ [SAM] Connection taking longer than expected. Engine might be waking up (Cold Start).");
       emitStatus(SOCKET_STATES.WAKING);
     }
-  }, 3500);
+  }, 5000); // Increased to 5s for better cold-start detection
 
   socket = io(endpoint, {
     auth: { token },
     withCredentials: true,
     reconnectionDelay: 1000,
-    reconnectionDelayMax: 5000,
+    reconnectionDelayMax: 10000, // Increased to avoid spamming while server wakes
     reconnectionAttempts: Infinity,
+    timeout: 45000, // Increased timeout for slow cold starts
     autoConnect: true
   });
 

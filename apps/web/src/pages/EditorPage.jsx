@@ -290,10 +290,12 @@ builtins.input = input_shim
     if (socket && !socket.connected && activeLangId !== "python") {
       try {
         await new Promise((resolve) => {
+          // 🕒 AGGRESSIVE WAKEUP: Increase timeout to 10s for cold starts
           const timeout = setTimeout(() => {
             if (socket) socket.off("connect", onConnect);
+            console.warn("[SAM] Socket connection timed out during cold start, falling back to polling.");
             resolve(); 
-          }, 2000);
+          }, 10000);
           const onConnect = () => {
              clearTimeout(timeout);
              resolve();
@@ -624,8 +626,11 @@ builtins.input = input_shim
         return; 
       }
       try {
-        // 🔥 HARDENING: Use absolute Render URL to bypass Vercel proxy interference
-        const API_BASE = ENDPOINTS.WS_ENDPOINT; // ENDPOINTS.WS_ENDPOINT is the Render domain
+        // 🔥 WAKE UP PING: Proactively trigger Render cold-start wakeup
+        // We ping the root and the health check as early as possible
+        const API_BASE = ENDPOINTS.WS_ENDPOINT;
+        fetch(API_BASE).catch(() => {}); // Fire and forget root ping
+
         const res = await fetch(`${API_BASE}/api/runs/health/queue`);
         const data = await res.json();
         
@@ -868,6 +873,7 @@ builtins.input = input_shim
         const termElement = terminalRef.current;
         if (termElement && termElement.offsetParent !== null) {
           fitAddonRef.current.fit();
+          xtermRef.current.refresh(0, xtermRef.current.rows - 1); // 🔥 FORCE RENDER
         }
       } catch (err) {
         // Silent catch for transient dimension errors during layout transitions
@@ -877,12 +883,13 @@ builtins.input = input_shim
 
   // Consolidate layout fit on change
   useEffect(() => {
+    const delay = isMobile ? 300 : 100; // 🕒 LONGER DELAY for mobile tab transitions
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
       safeFit();
-    }, 100);
+    }, delay);
     return () => clearTimeout(timer);
-  }, [editorWidth, aiWidth, showAiPanel, safeFit]);
+  }, [editorWidth, aiWidth, showAiPanel, activeMobileTab, isMobile, safeFit]);
 
   // Keyboard Shortcuts
   useEffect(() => {
