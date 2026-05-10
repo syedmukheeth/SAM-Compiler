@@ -51,11 +51,23 @@ function redisConnectionFromUrl(redisUrl) {
       host: u.hostname, 
       port, 
       password, 
-      tls: u.protocol === "rediss:" ? {} : undefined,
+      tls: (u.protocol === "rediss:" || u.hostname.includes("upstash.io")) ? {} : undefined,
       maxRetriesPerRequest: null,
       enableOfflineQueue: true,
-      connectTimeout: 10000 
+      connectTimeout: 10000,
+      keepAlive: 10000,
+      commandTimeout: 5000,
+      reconnectOnError: (err) => {
+        const targetError = "READONLY";
+        if (err.message.includes(targetError) || err.message.includes("ECONNRESET")) {
+          return true; // Reconnect
+        }
+        return false;
+      }
     };
+
+
+
   } catch (err) {
     logger.error({ err, redisUrl }, "Invalid Redis URL");
     return { 

@@ -7,7 +7,8 @@ const { logger } = require("../../config/logger");
 const { getRedisClient } = require("./runs.queue");
 const Y = require("yjs");
 const { YSocketIO } = require("y-socket.io/dist/server");
-const { createRun } = require("./runs.service");
+// createRun is required inside the handler to avoid circular dependency issues
+
 
 let io = null;
 let redisSubscriber = null;
@@ -330,7 +331,9 @@ function initSocket(server) {
 
     socket.on("exec:start", async (data, callback) => {
       try {
+        const { createRun } = require("./runs.service");
         const { language, code, stdin } = data;
+
         const userId = (socket.user && socket.user.id !== "guest") ? socket.user.id : null;
         
         const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
@@ -351,10 +354,13 @@ function initSocket(server) {
 
         const jobId = run._id.toString();
         
-        // Auto-subscribe the socket to its own run for high-fidelity log streaming
+        // 🚀 NITRO: Auto-subscribe to save 1 RTT. 
+        // No need for client to send a separate 'subscribe' event.
         socket.join(`run:${jobId}`);
-        if (redisSubscriber && !activeSubscriptions.has(jobId)) {
-          redisSubscriber.subscribe(`run:logs:${jobId}`).catch(() => {});
+        if (redisSubscriber) {
+          redisSubscriber.subscribe(`run:logs:${jobId}`).catch(err => {
+            logger.error({ err, jobId }, "Failed to auto-subscribe to Redis logs");
+          });
           activeSubscriptions.add(jobId);
         }
 

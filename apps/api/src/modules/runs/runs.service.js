@@ -2,9 +2,18 @@ const mongoose = require("mongoose");
 const { RunModel } = require("./runs.model");
 const { executeViaPiston } = require("./pistonExecutor");
 const { logger } = require("../../config/logger");
-const { emitLog } = require("./socketHandler");
+// socketHandler is required lazily inside functions to avoid circular dependency issues
+
 const { isVercel } = require("../../config/env");
 const { getRunsQueue, getRedisClient, WORKER_HEARTBEAT_KEY } = require("./runs.queue");
+
+module.exports = {
+  createRun,
+  getRun,
+  getQueueStatus,
+  getUserHistory
+};
+
 
 /**
  * Extracts a meaningful "title" from the run's code.
@@ -134,7 +143,10 @@ async function createRun(input) {
       }
 
       if (queue && workerOnline) {
-        if (emitLog) emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33mDelegating to Hardened Worker...\x1b[0m\n\r\n`);
+        const socketHandler = require("./socketHandler");
+        if (socketHandler.emitLog) socketHandler.emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33mDelegating to Hardened Worker...\x1b[0m\n\r\n`);
+
+
         logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Adding job to BullMQ");
         await queue.add("execute", { runId: run._id.toString() });
         logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Job added successfully to BullMQ");
@@ -151,7 +163,10 @@ async function createRun(input) {
         // 🚀 Fallback to external sandbox (Judge0/Piston)
         try {
           logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker Offline. Invoking Cloud Fallback (Piston)");
-          const result = await executeViaPiston(runData, emitLog);
+          const socketHandler = require("./socketHandler");
+          const result = await executeViaPiston(runData, socketHandler.emitLog);
+
+
           logger.info({ runId: run._id.toString(), status: result.status }, "📡 [SAM-AUDIT] [API] Piston Fallback completed");
           run.stdout = result.stdout;
           run.stderr = result.stderr;
@@ -168,7 +183,10 @@ async function createRun(input) {
                       `💡 \x1b[1;36mEnsure your SAM worker is running or check your internet connection.\x1b[0m\n\r\n`;
           }
 
-          if (emitLog) emitLog(run._id.toString(), "stderr", errMsg);
+          const socketHandler = require("./socketHandler");
+          if (socketHandler.emitLog) socketHandler.emitLog(run._id.toString(), "stderr", errMsg);
+
+
           run.status = "failed";
           run.stderr = `Environment Failure: ${pistonErr.message}`;
         }
@@ -199,13 +217,19 @@ async function createRun(input) {
     }
     
     // Notify frontend that it's done via socket
-    emitLog(run._id.toString(), "end", { status: run.status, metrics: run.metrics });
+    const socketHandler = require("./socketHandler");
+    socketHandler.emitLog(run._id.toString(), "end", { status: run.status, metrics: run.metrics });
+
+
   };
 
   // Trigger background task — .catch() guarantees "end" reaches client even on unhandled rejection
   runTask().catch((err) => {
     logger.error({ err }, "runTask unhandled rejection — emitting fallback end");
-    emitLog(run._id.toString(), "end", { status: "failed" });
+    const socketHandler = require("./socketHandler");
+    socketHandler.emitLog(run._id.toString(), "end", { status: "failed" });
+
+
   });
 
   return run;
@@ -237,7 +261,12 @@ async function getQueueStatus() {
   
   if (redis) {
     try {
-      const heartbeat = await redis.get(WORKER_HEARTBEAT_KEY);
+      // 🛡️ TIMEOUT: Don't let a hanging Redis block the health check
+      const heartbeat = await Promise.race([
+        redis.get(WORKER_HEARTBEAT_KEY),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis Timeout")), 3000))
+      ]);
+
       if (heartbeat) {
         try {
           workerStats = JSON.parse(heartbeat);
@@ -293,4 +322,5 @@ async function getUserHistory(userId) {
   return [];
 }
 
-module.exports = { createRun, getRun, getQueueStatus, getUserHistory };
+// Exports moved to top for circular dependency resolution
+
