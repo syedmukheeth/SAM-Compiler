@@ -122,7 +122,7 @@ export default function EditorPage() {
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 1024 : false);
+  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
   const [pyodide, setPyodide] = useState(null);
 
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
@@ -684,7 +684,7 @@ builtins.input = input_shim
     const handleResize = () => {
       clearTimeout(timeoutId);
       timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth < 1024);
+        setIsMobile(window.innerWidth < 768);
       }, 150);
     };
     window.addEventListener('resize', handleResize);
@@ -973,7 +973,7 @@ builtins.input = input_shim
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass dark:bg-black/95 bg-white/95 border-white/5 shadow-2xl z-[150] lg:hidden overflow-hidden"
+            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass dark:bg-black/95 bg-white/95 border-white/5 shadow-2xl z-[150] md:hidden overflow-hidden"
             style={{ borderRadius: 20 }}
           >
             <div className="flex flex-col gap-4">
@@ -1223,7 +1223,7 @@ builtins.input = input_shim
 
 
             {/* Desktop-only secondary actions */}
-            <div className="hidden lg:flex items-center gap-2">
+            <div className="hidden md:flex items-center gap-2">
               <button 
                 onClick={() => setShowShortcutsHelp(true)}
                 className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)] transition-all hover:text-white"
@@ -1344,10 +1344,10 @@ builtins.input = input_shim
         ref={containerRef}
         className="flex flex-1 overflow-hidden transition-all duration-200 ease-out"
       >
-        <main className="relative z-10 flex flex-1 flex-col lg:flex-row overflow-y-auto overflow-x-hidden lg:overflow-hidden p-0 lg:p-6 lg:pb-6 gap-2 lg:gap-0 transition-all duration-200 ease-out">
+        <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden p-0 md:p-6 md:pb-6 gap-2 md:gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden w-full lg:w-auto ${isMobile && activeMobileTab !== 'editor' ? 'hidden' : ''}`}
+            className={`flex flex-col overflow-hidden w-full md:w-auto ${isMobile && activeMobileTab !== 'editor' ? 'hidden' : ''}`}
             style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
           >
               <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`}>
