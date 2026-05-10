@@ -806,6 +806,22 @@ builtins.input = input_shim
     }
   }, [theme]);
 
+  // Safe Terminal Refit: Defense against dimension errors during layout shifts
+  const safeFit = useCallback(() => {
+    if (xtermRef.current && fitAddonRef.current) {
+      try {
+        // Only fit if terminal is attached to DOM and container is visible
+        const termElement = terminalRef.current;
+        if (termElement && termElement.offsetParent !== null) {
+          fitAddonRef.current.fit();
+          xtermRef.current.refresh(0, xtermRef.current.rows - 1); // 🔥 FORCE RENDER
+        }
+      } catch (err) {
+        // Silent catch for transient dimension errors during layout transitions
+      }
+    }
+  }, []);
+
   // Terminal (XTerm.js) initialization
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
@@ -877,22 +893,6 @@ builtins.input = input_shim
       xtermRef.current = null;
     };
   }, [theme, safeFit]);
-
-  // Safe Terminal Refit: Defense against dimension errors during layout shifts
-  const safeFit = useCallback(() => {
-    if (xtermRef.current && fitAddonRef.current) {
-      try {
-        // Only fit if terminal is attached to DOM and container is visible
-        const termElement = terminalRef.current;
-        if (termElement && termElement.offsetParent !== null) {
-          fitAddonRef.current.fit();
-          xtermRef.current.refresh(0, xtermRef.current.rows - 1); // 🔥 FORCE RENDER
-        }
-      } catch (err) {
-        // Silent catch for transient dimension errors during layout transitions
-      }
-    }
-  }, []);
 
   // Consolidate layout fit on change
   useEffect(() => {
