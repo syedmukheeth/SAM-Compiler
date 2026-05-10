@@ -40,7 +40,11 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
         >
           <button 
             onClick={onClose}
-            className="absolute right-6 top-6 rounded-full p-2 text-white/20 hover:bg-white/5 hover:text-white transition-all"
+            className={`absolute right-6 top-6 rounded-full p-2 transition-all ${
+              theme === 'dark' 
+                ? 'text-white/30 hover:bg-white/10 hover:text-white' 
+                : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'
+            }`}
           >
             <X className="h-4 w-4" />
           </button>
@@ -59,7 +63,7 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
 
             <div className="space-y-6 w-full">
               <div className="flex flex-col items-center gap-2">
-                <span className="text-[9px] font-black uppercase tracking-widest text-white/20">Architect & Developer</span>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>Architect & Developer</span>
                 <h3 className={`text-sm font-black uppercase tracking-widest ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
                   Syed Mukheeth
                 </h3>
