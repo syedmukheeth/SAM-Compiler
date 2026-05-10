@@ -3,6 +3,10 @@ const OpenAI = require("openai");
 const { env } = require("../../config/env");
 const { logger } = require("../../config/logger");
 
+// Model rotation priority
+const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4o"];
+const GEMINI_MODELS = [env.GEMINI_MODEL || "gemini-1.5-flash", "gemini-1.5-pro"];
+
 const SAM_AI_PERSONA = `
 You are Sam AI, a World-Class Code Helper and Compiler Assistant.
 Your goal is to help developers understand, debug, and optimize code quickly and effectively.
