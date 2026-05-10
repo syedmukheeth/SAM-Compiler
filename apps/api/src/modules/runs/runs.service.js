@@ -64,7 +64,8 @@ async function createRun(input) {
 
   if (isConnected) {
     try {
-      run = await RunModel.create({
+      // 🚀 NITRO: Instantiate model and save in background to avoid blocking the execution request
+      run = new RunModel({
         projectId: input.projectId,
         userId: userId,
         runtime: input.runtime,
@@ -79,10 +80,12 @@ async function createRun(input) {
         startedAt: new Date(),
         finishedAt: null
       });
+      
+      run.save().catch(err => logger.error({ err }, "Background run persistence failed"));
       useMongo = true;
-      logger.info({ runId: run._id, runtime: input.runtime }, "Run created in MongoDB");
+      logger.info({ runId: run._id, runtime: input.runtime }, "Run initialized optimistically");
     } catch (err) {
-      logger.error({ err }, "Failed to create run in MongoDB");
+      logger.error({ err }, "Failed to initialize run record");
     }
   } else {
     logger.warn("MongoDB not connected. Running without persistence.");

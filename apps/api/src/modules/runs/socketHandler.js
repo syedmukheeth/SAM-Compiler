@@ -7,6 +7,7 @@ const { logger } = require("../../config/logger");
 const { getRedisClient } = require("./runs.queue");
 const Y = require("yjs");
 const { YSocketIO } = require("y-socket.io/dist/server");
+const { createRun } = require("./runs.service");
 
 let io = null;
 let redisSubscriber = null;
@@ -54,11 +55,26 @@ function initSocket(server) {
   
   // 🚀 HORIZONTAL SCALING: Sync events across multiple API instances via Redis
   const redis = getRedisClient();
-  if (redis) {
-    const pubClient = redis.duplicate();
-    const subClient = redis.duplicate();
-    io.adapter(createAdapter(pubClient, subClient));
-    logger.info("Socket.IO Redis adapter initialized for horizontal scaling");
+  // 🛡️ NITRO: Only enable adapter if explicitly requested or if scaling is needed.
+  // This saves ~60% of Redis request quota on single-instance deployments like Render.
+  const enableAdapter = env.ENABLE_REDIS_ADAPTER === "true";
+  
+  if (redis && enableAdapter) {
+    try {
+      const pubClient = redis.duplicate();
+      const subClient = redis.duplicate();
+      
+      // 🔥 CRITICAL: Prevent process crash on Redis errors (e.g. Rate Limits)
+      pubClient.on("error", (err) => logger.error({ err }, "Socket.IO Redis PubClient Error"));
+      subClient.on("error", (err) => logger.error({ err }, "Socket.IO Redis SubClient Error"));
+      
+      io.adapter(createAdapter(pubClient, subClient));
+      logger.info("Socket.IO Redis adapter initialized for horizontal scaling");
+    } catch (err) {
+      logger.error({ err }, "Failed to initialize Socket.IO Redis adapter. Falling back to memory adapter.");
+    }
+  } else {
+    logger.info("Socket.IO using Memory adapter (Single-Node mode)");
   }
 
   // 🛡️ SECURITY: JWT Authentication with Guest Support
@@ -187,18 +203,24 @@ function initSocket(server) {
   
   // Dedicated Redis Subscriber for execution logs
   if (redis) {
-    redisSubscriber = redis.duplicate();
-    redisSubscriber.on("message", (channel, message) => {
-      try {
-        const jobId = channel.replace("run:logs:", "");
-        const data = JSON.parse(message);
-        logger.info({ jobId, type: data.type }, "📡 [SAM-AUDIT] [SOCKET] Received log from Redis channel");
-        emitLog(jobId, data.type, data.chunk);
-      } catch (err) {
-        logger.error({ err, channel }, "Failed to process Redis log message");
-      }
-    });
-    redisSubscriber.on("error", (err) => logger.error({ err }, "Redis Subscriber Error"));
+    try {
+      redisSubscriber = redis.duplicate();
+      // 🔥 CRITICAL: Prevent process crash if subscriber fails (e.g. Rate Limit)
+      redisSubscriber.on("error", (err) => logger.error({ err }, "Redis Subscriber Error"));
+      
+      redisSubscriber.on("message", (channel, message) => {
+        try {
+          const jobId = channel.replace("run:logs:", "");
+          const data = JSON.parse(message);
+          logger.info({ jobId, type: data.type }, "📡 [SAM-AUDIT] [SOCKET] Received log from Redis channel");
+          emitLog(jobId, data.type, data.chunk);
+        } catch (err) {
+          logger.error({ err, channel }, "Failed to process Redis log message");
+        }
+      });
+    } catch (err) {
+      logger.error({ err }, "Failed to initialize Redis Subscriber");
+    }
   }
 
   io.on("connection", (socket) => {
@@ -304,6 +326,44 @@ function initSocket(server) {
          redisSubscriber.unsubscribe(`run:logs:${jobId}`);
          activeSubscriptions.delete(jobId);
        }
+    });
+
+    socket.on("exec:start", async (data, callback) => {
+      try {
+        const { language, code, stdin } = data;
+        const userId = (socket.user && socket.user.id !== "guest") ? socket.user.id : null;
+        
+        const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
+        const filename = language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js";
+
+        // 🔥 NITRO: Direct execution pipeline invocation
+        const run = await createRun({
+          projectId: "playground",
+          userId,
+          runtime,
+          stdin: stdin || "",
+          entrypoint: filename,
+          files: [{
+            path: filename,
+            content: code
+          }]
+        });
+
+        const jobId = run._id.toString();
+        
+        // Auto-subscribe the socket to its own run for high-fidelity log streaming
+        socket.join(`run:${jobId}`);
+        if (redisSubscriber && !activeSubscriptions.has(jobId)) {
+          redisSubscriber.subscribe(`run:logs:${jobId}`).catch(() => {});
+          activeSubscriptions.add(jobId);
+        }
+
+        if (callback) callback({ jobId, status: run.status });
+        logger.info({ socketId: socket.id, jobId, runtime }, "📡 [SAM-AUDIT] [SOCKET] Direct execution started (Nitro Path)");
+      } catch (err) {
+        logger.error({ err }, "Direct socket execution failed");
+        if (callback) callback({ error: err.message });
+      }
     });
 
     socket.on("sam:ping", () => {

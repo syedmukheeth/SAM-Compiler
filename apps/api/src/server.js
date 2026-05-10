@@ -19,15 +19,27 @@ async function main() {
 
 
   // 💓 HEARTBEAT: Prevent Render/Railway from sleeping (Self-Warming)
+  const publicBaseUrl = env.CALLBACK_URL_BASE ? env.CALLBACK_URL_BASE.split('/api/auth')[0] : null;
+
   setInterval(() => {
-    // Ping self to stay warm
-    const selfUrl = `http://localhost:${env.PORT}/api/health`; 
-    http.get(selfUrl, (res) => {
-      logger.info({ status: res.statusCode }, "Heartbeat pulse sent to self to prevent cold start");
-    }).on("error", () => {
-      // Ignored - as long as it triggers some activity
-    });
-  }, 10 * 60 * 1000); // Pulse every 10 minutes
+    // 1. Internal Ping (Localhost)
+    const localUrl = `http://localhost:${env.PORT}/api/health`; 
+    http.get(localUrl, (res) => {
+      // Activity to keep the local process busy
+    }).on("error", () => {});
+
+    // 2. External Ping (Public URL) - CRITICAL for Render/Railway load balancer activity
+    if (publicBaseUrl && publicBaseUrl.startsWith('http')) {
+      const publicUrl = `${publicBaseUrl}/api/health`;
+      const client = publicUrl.startsWith('https') ? require('https') : http;
+      
+      client.get(publicUrl, (res) => {
+        logger.info({ status: res.statusCode, url: publicUrl }, "External heartbeat pulse successful");
+      }).on("error", (err) => {
+        logger.warn({ err: err.message, url: publicUrl }, "External heartbeat pulse failed (Expected if engine is cold)");
+      });
+    }
+  }, 5 * 60 * 1000); // Pulse every 5 minutes for aggressive warming
 
   server.listen(env.PORT, () => {
     logger.info(`SAM Compiler API listening on port ${env.PORT}`);

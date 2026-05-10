@@ -187,6 +187,8 @@ export default function EditorPage() {
     if (!line) return "";
     const dim = "\x1b[2m";
     const white = "\x1b[37m";
+    const boldRed = "\x1b[1;31m";
+    const reset = "\x1b[0m";
     
     // GCC/Clang Error Format: file:line:col: error: message
     const gccRegex = /^([^:\n]+):(\d+):(?:(\d+):)?\s+(error|warning|fatal error):\s+(.*)/i;
@@ -312,23 +314,10 @@ builtins.input = input_shim
         return;
       }
     }
-
     try {
-      const { jobId } = await submitRun({ language, code, stdin });
-      runRef.current.jobId = jobId;
-      
-      const sendSubscription = () => socket && socket.emit("subscribe", { jobId });
-      if (socket) {
-        if (!socket.connected) {
-          socket.once("connect", sendSubscription);
-          socket.connect();
-        } else {
-          sendSubscription();
-        }
-      }
-
       const onLog = (evt) => {
-        if (!evt || runRef.current.jobId !== jobId) return;
+        const currentJobId = runRef.current.jobId;
+        if (!evt || !currentJobId) return;
         
         if (evt.type === "stdout" || evt.type === "stderr") {
            const content = evt.chunk || "";
@@ -338,7 +327,6 @@ builtins.input = input_shim
            if (xtermRef.current) {
              if (evt.type === "stdout") xtermRef.current.write(content.replace(/\n/g, "\r\n"));
              else {
-               // Apply high-fidelity diagnostic rendering line by line
                const lines = content.split('\n');
                lines.forEach((l, idx) => {
                   if (idx === 0 && !stdErrRef.current) {
@@ -352,7 +340,7 @@ builtins.input = input_shim
         }
 
         if (evt.type === "end") {
-          const { status: jobStatus, metrics } = evt.chunk || {};
+          const { status: jobStatus } = evt.chunk || {};
           const success = jobStatus === "succeeded";
           
           if (!hasReceivedOutputRef.current && xtermRef.current && success) {
@@ -360,10 +348,6 @@ builtins.input = input_shim
           }
 
           if (xtermRef.current) {
-            const reset = '\x1b[0m';
-            const boldRed = '\x1b[1;31m';
-            const boldGreen = '\x1b[1;32m';
-            
             if (success) {
               xtermRef.current.write(`\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n`);
             } else {
@@ -373,7 +357,6 @@ builtins.input = input_shim
 
           setRunStatus(jobStatus === 'succeeded' ? 'Succeeded' : (jobStatus ? jobStatus.toUpperCase() : 'Failed'));
           
-          // 🛰️ DIAGNOSTIC ENGINE: Surface errors and warnings
           const { markers: diags, primaryLine, summary } = parseErrors(stdErrRef.current || "", activeLangId);
           if (diags.length > 0) {
             setErrorMarkers(diags);
@@ -390,7 +373,39 @@ builtins.input = input_shim
         }
       };
 
-      if (socket) socket.on("exec:log", onLog);
+      if (socket) {
+        socket.off("exec:log"); // Clear any stale listeners
+        socket.on("exec:log", onLog);
+      }
+
+      let jobId;
+      
+      // 🔥 NITRO: Direct Socket Submission (Bypasses HTTP overhead)
+      if (socket && socket.connected) {
+        console.log("📡 [SAM] Nitro Path: Submitting via Socket...");
+        try {
+          const response = await new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => reject(new Error("Socket submission timeout")), 5000);
+            socket.emit("exec:start", { language, code, stdin }, (res) => {
+              clearTimeout(timeout);
+              if (res.error) reject(new Error(res.error));
+              else resolve(res);
+            });
+          });
+          jobId = response.jobId;
+          setRunStatus("QUEUED"); // Instant feedback
+        } catch (socketErr) {
+          console.warn("Socket submission failed, falling back to HTTP:", socketErr);
+          const result = await submitRun({ language, code, stdin });
+          jobId = result.jobId;
+        }
+      } else {
+        console.log("📡 [SAM] Standard Path: Submitting via HTTP...");
+        const result = await submitRun({ language, code, stdin });
+        jobId = result.jobId;
+      }
+
+      runRef.current.jobId = jobId;
 
       const finalState = await pollUntilDone(jobId, {
         onUpdate: (s) => {
@@ -647,18 +662,18 @@ builtins.input = input_shim
       }
     };
 
-    // 🛡️ FAIL-SAFE: If engine isn't ready in 12s, allow sandbox anyway
+    // 🛡️ FAIL-SAFE: If engine isn't ready in 45s, allow sandbox anyway
     failSafeTimer = setTimeout(() => {
       if (!isEngineReady) {
-        console.warn("⚠️ [SAM-SYSTEM] Fail-safe triggered: Engine took >12s. Defaulting to Sandbox.");
+        console.warn("⚠️ [SAM-SYSTEM] Fail-safe triggered: Engine took >45s. Defaulting to Sandbox.");
         setIsEngineReady(true);
         setEngineMode("sandbox");
         setFailSafeActive(true);
       }
-    }, 12000);
+    }, 45000);
 
     checkStatus();
-    const interval = setInterval(checkStatus, isEngineReady ? 180000 : 5000);
+    const interval = setInterval(checkStatus, isEngineReady ? 180000 : 3000);
     
     return () => {
       clearInterval(interval);
@@ -1750,9 +1765,6 @@ builtins.input = input_shim
           busy={busy}
         />
       </footer>
-
-      <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
-
 
       <AnimatePresence>
         {showShortcutsHelp && (

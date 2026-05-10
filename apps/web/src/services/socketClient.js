@@ -47,15 +47,16 @@ export function getSocket(tokenArg) {
       console.warn("⚠️ [SAM] Connection taking longer than expected. Engine might be waking up (Cold Start).");
       emitStatus(SOCKET_STATES.WAKING);
     }
-  }, 12000); // Increased to 12s for better cold-start detection
+  }, 25000); // Increased to 25s for better cold-start detection
 
   socket = io(endpoint, {
     auth: { token },
     withCredentials: true,
+    transports: ["websocket"], // 🚀 NITRO: Bypass polling upgrade to save 150-300ms
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10000, // Increased to avoid spamming while server wakes
     reconnectionAttempts: Infinity,
-    timeout: 45000, // Increased timeout for slow cold starts
+    timeout: 60000, // Increased timeout for slow cold starts
     autoConnect: true
   });
 
