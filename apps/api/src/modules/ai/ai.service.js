@@ -19,6 +19,11 @@ Be helpful, concise, and focused on helping the user learn and build.
 const GEMINI_MODELS = ["gemini-2.5-flash", "gemini-2.0-flash"];
 const OPENAI_MODELS = ["gpt-4o-mini", "gpt-4-turbo", "gpt-3.5-turbo"];
 
+// Log AI health on initialization
+const geminiKeysCount = (env.GEMINI_API_KEY || "").split(",").filter(Boolean).length;
+const openAIKeysCount = (env.OPENAI_API_KEYS || "").split(",").filter(Boolean).length;
+logger.info({ geminiKeys: geminiKeysCount, openAIKeys: openAIKeysCount }, "AI Engine initialized with multi-provider queue");
+
 /**
  * Robust retry wrapper for transient AI failures (503, 429)
  */
