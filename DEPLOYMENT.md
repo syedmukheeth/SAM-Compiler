@@ -4,14 +4,16 @@ The SAM Compiler is architected for secure, high-scale cloud execution. To enabl
 
 ---
 
-## ☁️ Option 1: Render (Recommended)
+## ☁️ Option 1: Render (Recommended Native Node Deployment)
 
-Render is the simplest way to host the Dockerized SAM API.
+Render is the simplest way to host the SAM API and the built React Web App together in a single "Monolith" instance.
 
 ### 1. Create Web Service
 1.  **New Web Service** -> **Connect GitHub Repo**.
-2.  **Environment**: Select **Docker**.
-3.  **Root Directory**: `apps/api` (Important: Dockerfile is here).
+2.  **Environment**: Select **Node**. (Do NOT select Docker for Monolith mode).
+3.  **Root Directory**: Leave blank (this ensures the monorepo root is used).
+4.  **Build Command**: `npm install --include=dev && npm run build` (This ensures `vite` is installed and the React app is built).
+5.  **Start Command**: `npm start` (This will start the Express API which serves the built React app).
 
 ### 2. Environment Variables 🔒
 | Key | Value |
@@ -19,8 +21,8 @@ Render is the simplest way to host the Dockerized SAM API.
 | `PORT` | `8080` |
 | `NODE_ENV` | `production` |
 | `MONGO_URI` | `mongodb+srv://...` |
-| `REDIS_URL` | `rediss://...` (Upstash recommended) |
-| `WEB_ORIGIN` | `https://sam-compiler-web.vercel.app` |
+| `REDIS_URL` | `rediss://...` (Must use rediss:// for Upstash TLS) |
+| `WEB_ORIGIN` | `https://sam-compiler-web.vercel.app` (Required if hosting frontend on Vercel) |
 | `CALLBACK_URL_BASE` | `https://sam-compiler-api.onrender.com/api/auth` |
 | `GITHUB_CLIENT_ID` | Your ID |
 | `GITHUB_CLIENT_SECRET` | Your Secret |

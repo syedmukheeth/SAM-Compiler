@@ -7,8 +7,8 @@ const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
 // SAM AI Configuration - Priority list for fallback resilience (Updated for May 2026)
 const MODELS = [
-  "gemini-1.5-flash", // High-speed, low-latency default
-  "gemini-1.5-pro"    // High-intelligence fallback
+  "gemini-2.5-flash", // High-speed, low-latency default
+  "gemini-2.5-pro"    // High-intelligence fallback
 ];
 
 
@@ -113,12 +113,23 @@ async function streamChat(context, onChunk) {
     } catch (err) {
       logger.warn({ model: modelName, error: err.message }, "AI model fallback triggered in streamChat");
       if (modelName === MODELS[MODELS.length - 1]) {
+        logger.error({ error: err.message }, "All Gemini models failed. Activating Offline Sandbox fallback.");
         const isConfig = err.message.includes("404") || err.message.includes("403");
         
-        let userMessage = "AI Assistant is currently facing high demand. Please try again in a moment.";
-        if (isConfig) userMessage = "AI Assistant configuration error. Please contact support.";
+        let offlineMsg = "⚠️ **SAM AI is currently in Sandbox Mode (Offline).**\n\n";
+        if (isConfig) {
+          offlineMsg += "The AI engine configuration is outdated (e.g. legacy model versions) or the API key is missing permissions. Please check the `GEMINI_MODEL` environment variable. In the meantime, you can still compile and run your code natively!";
+        } else {
+          offlineMsg += "We are experiencing unusually high demand or connection timeouts. The AI engine will reconnect shortly. In the meantime, you can still compile and run your code natively!";
+        }
         
-        throw new Error(`${userMessage} (${err.message})`);
+        // Stream the graceful degradation message smoothly to avoid UI breakage
+        const chunks = offlineMsg.split(" ");
+        for (let i = 0; i < chunks.length; i++) {
+           onChunk(chunks[i] + " ");
+           await new Promise(r => setTimeout(r, 40));
+        }
+        return; // Resolve successfully without throwing
       }
     }
   }
