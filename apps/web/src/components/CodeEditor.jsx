@@ -113,6 +113,17 @@ const CodeEditor = ({
       color: localColorRef.current
     });
 
+    // 📡 Observe ytext directly for localStorage sync — fires once per Yjs transaction,
+    // regardless of how many Monaco model-change events that transaction generates.
+    // This is safer than Monaco's onChange which fires for EVERY model delta (including
+    // auto-formatting rewrites) and can cause unnecessary React re-render cycles.
+    const onYtextChange = () => {
+      if (hasInitializedRef.current) {
+        onChange?.(ytext.toString());
+      }
+    };
+    ytext.observe(onYtextChange);
+
     // 🔑 SEED GUARD: Only insert content if the shared room is genuinely empty after sync.
     // Uses defaultTemplate (not localStorage) to ensure clean canonical content.
     // A 150ms debounce lets concurrent joiners' seeds propagate first — whichever
@@ -140,6 +151,7 @@ const CodeEditor = ({
 
     // Return cleanup function
     cleanupRef.current = () => {
+      ytext.unobserve(onYtextChange);
       provider.off("sync", handleSync);
       try { binding.destroy(); } catch (_) {}
       try { provider.destroy(); } catch (_) {}
@@ -255,10 +267,7 @@ const CodeEditor = ({
     return () => window.removeEventListener("sam-editor-reset", handleResetEvent);
   }, []);
 
-  // ─── onChange — only fire once Yjs is initialized ───────────────────────────
-  const handleChange = useCallback((v) => {
-    if (hasInitializedRef.current) onChange?.(v ?? "");
-  }, [onChange]);
+  // onChange is now driven by ytext.observe inside initYjs — no Monaco onChange needed.
 
   return (
     <div className="h-full w-full bg-transparent">
@@ -266,7 +275,6 @@ const CodeEditor = ({
         theme={monacoTheme}
         language={monacoLanguage}
         onMount={handleMount}
-        onChange={handleChange}
         options={{
           minimap: { enabled: false },
           fontSize: options.fontSize || 12,
@@ -281,8 +289,13 @@ const CodeEditor = ({
           smoothScrolling: true,
           cursorSmoothCaretAnimation: "on",
           padding: { top: 12, bottom: 12 },
-          formatOnPaste: true,
-          formatOnType: true,
+          // formatOnType / formatOnPaste MUST be off in collaborative mode.
+          // When Monaco auto-reformats (e.g. re-indenting a block on '}'),
+          // it generates large multi-line edits that Yjs propagates to all peers.
+          // From peer's perspective this looks like "random code being changed"
+          // even though the user only pressed one key.
+          formatOnPaste: false,
+          formatOnType: false,
           scrollBeyondLastLine: false,
           readOnly: false,
           renderLineHighlight: "none",
