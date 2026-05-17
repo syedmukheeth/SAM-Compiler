@@ -21,6 +21,16 @@ const RANDOM_NAMES = [
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
+/**
+ * CodeEditor — Collaborative Monaco editor powered by Yjs + y-socket.io.
+ *
+ * Architecture:
+ *  - Yjs is the SINGLE SOURCE OF TRUTH for document state.
+ *  - `value` prop (from localStorage buffers) is ONLY used to seed a brand-new,
+ *    empty room on first sync. It NEVER overwrites an existing collaborative document.
+ *  - This prevents the "Code Soup" bug where a late-joining user's local template
+ *    was being inserted into an already-populated shared room.
+ */
 const CodeEditor = ({ 
   language, 
   value,
@@ -37,8 +47,14 @@ const CodeEditor = ({
   const bindingRef = useRef(null);
   const providerRef = useRef(null);
   const ydocRef = useRef(null);
-  const ytextRef = useRef(null);
   const hasInitializedRef = useRef(false);
+  // Store the latest `value` in a ref so the sync handler can access it
+  // without re-triggering the collaboration useEffect.
+  const seedValueRef = useRef(value);
+
+  useEffect(() => {
+    seedValueRef.current = value;
+  }, [value]);
 
   const monacoLanguage = useMemo(() => LANGUAGE_TO_MONACO[language] ?? "javascript", [language]);
 
@@ -50,7 +66,6 @@ const CodeEditor = ({
     monacoRef.current = monaco;
     window.samEditor = editor;
 
-    // Define themes (kept same as before)
     monaco.editor.defineTheme('monolith-dark', {
       base: 'vs-dark',
       inherit: true,
@@ -113,6 +128,7 @@ const CodeEditor = ({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
   }, [onCursorChange]);
+
   // THEME PERSISTENCE
   const monacoTheme = useMemo(() => theme === "light" ? "monolith-light" : "vs-dark", [theme]);
 
@@ -126,35 +142,36 @@ const CodeEditor = ({
     }
   }, [markers]);
 
-  // ⚡ INSTANT BOOT & COLLABORATIVE LIFECYCLE
+  // ⚡ COLLABORATIVE LIFECYCLE
   useEffect(() => {
     if (!editorRef.current) return;
     const editor = editorRef.current;
-    
-    // 1. Sync Protection: Only fill editor if empty
-    // On language switch, the parent passes a new 'value' which we should apply
-    if (value && editor.getValue() !== value) {
-      editor.setValue(value);
-    }
 
-    // 2. Clear previous session if exists
+    // 🔑 KEY FIX: Do NOT call editor.setValue() here.
+    // Setting value before MonacoBinding is established causes the content
+    // to be treated as a Yjs insertion, which then conflicts with the
+    // server's state when the provider syncs. This was the root cause of "Code Soup".
+
+    // Clean up any previous session
     if (bindingRef.current) bindingRef.current.destroy();
     if (providerRef.current) providerRef.current.destroy();
+    hasInitializedRef.current = false;
 
-    // 3. Initialize fresh collaborative room for this language
+    // The sessionId already encodes both the session and the language (e.g. "abc123::cpp").
+    // We use it directly as the room name to match the backend's document-loaded handler.
     const ydoc = new Y.Doc();
-    const endpoint = ENDPOINTS.WS_ENDPOINT;
-    const roomName = `${sessionId}-${language}`;
+    const roomName = sessionId; // e.g. "default::python" or "xyz123::cpp"
     
-    const provider = new SocketIOProvider(endpoint, roomName, ydoc, {
+    const provider = new SocketIOProvider(ENDPOINTS.WS_ENDPOINT, roomName, ydoc, {
       ...ENDPOINTS.SOCKET_OPTIONS,
       autoConnect: true
     });
 
-    const ytext = ydoc.getText(language);
+    // The ytext key must match what the backend initializes (the langId part of the room name).
+    const langId = language;
+    const ytext = ydoc.getText(langId);
     
     ydocRef.current = ydoc;
-    ytextRef.current = ytext;
     providerRef.current = provider;
 
     const binding = new MonacoBinding(
@@ -170,18 +187,39 @@ const CodeEditor = ({
       color: localColor
     });
 
-    provider.on('sync', (isSynced) => {
-      if (isSynced !== false) {
+    // 🔑 KEY FIX: The sync handler is the ONLY place we seed content.
+    // We wait until Yjs has fully synced with the server.
+    // Only if the shared document is EMPTY do we insert the local buffer as a seed.
+    // This guarantees User A's real code is NEVER overwritten by User B's local template.
+    const handleSync = (isSynced) => {
+      if (!isSynced) return; // Wait for a successful sync, not a disconnect
+      
+      if (!hasInitializedRef.current) {
         hasInitializedRef.current = true;
+
+        if (ytext.length === 0) {
+          // Room is brand new and empty on the server. Seed it from the local buffer.
+          const seedContent = seedValueRef.current;
+          if (seedContent && seedContent.trim() !== "") {
+            ydoc.transact(() => {
+              ytext.insert(0, seedContent);
+            });
+          }
+        }
+        // If ytext.length > 0, the server already has content (another user's code).
+        // MonacoBinding will automatically populate the editor — we do nothing.
       }
-    });
+    };
+
+    provider.on('sync', handleSync);
 
     return () => {
+      provider.off('sync', handleSync);
       binding.destroy();
       provider.destroy();
       hasInitializedRef.current = false;
     };
-  }, [sessionId, language, localName, localColor]); // Re-initialize on session/language change
+  }, [sessionId, language, localName, localColor]); // Re-initialize when session or language changes
 
   useEffect(() => {
     const handleResetEvent = (e) => {
@@ -197,10 +235,12 @@ const CodeEditor = ({
     window.addEventListener('sam-editor-reset', handleResetEvent);
     return () => window.removeEventListener('sam-editor-reset', handleResetEvent);
   }, []);
+
   const handleChange = useCallback((v) => {
-    // Only propagate changes to the parent buffers IF we are initialized
-    // or if the change is significant (not an accidental empty wipe)
-    if (hasInitializedRef.current || (v && v.trim() !== "")) {
+    // Only propagate changes to the parent (localStorage) once the Yjs room is
+    // initialized. This prevents an empty model wipe from overwriting the buffer
+    // during the initial handshake.
+    if (hasInitializedRef.current) {
       onChange?.(v ?? "");
     }
   }, [onChange]);
@@ -210,7 +250,6 @@ const CodeEditor = ({
       <Editor
         theme={monacoTheme}
         language={monacoLanguage}
-        value={value}
         onMount={handleMount}
         onChange={handleChange}
         options={{

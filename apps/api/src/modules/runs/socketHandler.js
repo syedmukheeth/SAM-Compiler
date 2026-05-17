@@ -176,24 +176,14 @@ function initSocket(server) {
           logger.info({ sessionId, langId }, "Server-side healer populated empty legacy room");
         }
       } else {
-        // DEFINITIVE INITIALIZATION (The One True Source)
-        const langId = sessionId.split('-').pop(); // Updated to dash separator
-        const templates = {
-          cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
-          c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}\n',
-          python: 'print("Welcome to SAM Compiler!")\n',
-          javascript: 'console.log("Welcome to SAM Compiler!");\n',
-          java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}\n'
-        };
-        
-        const template = templates[langId];
-        if (template) {
-          const ytext = doc.getText(langId); // Initialize the strict node
-          if (ytext.length === 0) {
-            ytext.insert(0, template);
-            logger.info({ sessionId, langId }, "Yjs room perfectly initialized by backend");
-          }
-        }
+        // NEW ROOM: No persisted state found in MongoDB.
+        // The frontend client is responsible for seeding empty rooms from their
+        // local buffer (see CodeEditor.jsx sync handler). This prevents a race
+        // condition where both the backend and the first user attempt to insert
+        // the default template simultaneously, causing duplicate content ("Code Soup").
+        // The '::' separator is the canonical format: "<sessionRaw>::<langId>"
+        const langId = sessionId.split('::').pop();
+        logger.info({ sessionId, langId }, "New Yjs room created. Awaiting client-side seed.");
       }
     } catch (err) {
       logger.error({ err, doc: doc.name }, "Failed to load/initialize Yjs state from MongoDB");
