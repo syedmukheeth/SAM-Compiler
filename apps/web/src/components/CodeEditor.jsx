@@ -239,20 +239,22 @@ const CodeEditor = ({
   }, [markers]);
 
   // ─── Reset event (AI panel + Reset button) ──────────────────────────────────
-  // Uses the Yjs API (transact delete + insert) instead of editor.setValue().
-  // editor.setValue() bypasses the MonacoBinding and creates a divergent Monaco
-  // model state — peers see the old content and the user sees the new content,
-  // with no Yjs operation to reconcile them. Yjs transact is the correct way.
+  // We use Monaco's executeEdits to replace the entire document.
+  // This is safely captured by MonacoBinding (which translates it into correct
+  // Yjs delete/insert operations) and avoids \r\n vs \n length mismatch bugs
+  // that occur when calling ytext.delete(0, ytext.length) directly.
   useEffect(() => {
     const handleResetEvent = (e) => {
       const template = e.detail?.template ?? "";
-      if (!template) return;
-      if (ydocRef.current && ytextRef.current) {
-        // ✅ Yjs-safe reset: propagates to ALL peers in the room
-        ydocRef.current.transact(() => {
-          ytextRef.current.delete(0, ytextRef.current.length);
-          ytextRef.current.insert(0, template);
-        });
+      if (!template || !editorRef.current) return;
+      
+      const model = editorRef.current.getModel();
+      if (model) {
+        editorRef.current.executeEdits("sam-reset", [{
+          range: model.getFullModelRange(),
+          text: template
+        }]);
+        
         toast.success("Applied to editor ✨", {
           style: { background: "var(--sam-surface)", color: "var(--sam-text)", border: "1px solid var(--sam-glass-border)", fontSize: "11px", fontWeight: 900 },
           icon: "✨"
