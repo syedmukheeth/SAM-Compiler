@@ -27,7 +27,7 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           onClick={onClose}
-          className="absolute inset-0 bg-black/60 backdrop-blur-md"
+          className="absolute inset-0 bg-sam-bg/60 backdrop-blur-md"
         />
         
         <motion.div
@@ -35,14 +35,14 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.9, y: 20, opacity: 0 }}
           className={`relative w-full max-w-sm overflow-hidden rounded-[32px] border p-8 shadow-2xl backdrop-blur-2xl ${
-            theme === 'dark' ? 'border-white/10 bg-black/95' : 'border-slate-200 bg-white/95'
+            theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-text/95'
           }`}
         >
           <button 
             onClick={onClose}
             className={`absolute right-6 top-6 rounded-full p-2 transition-all ${
               theme === 'dark' 
-                ? 'text-white/30 hover:bg-white/10 hover:text-white' 
+                ? 'text-white/30 hover:bg-sam-text/10 hover:text-sam-text' 
                 : 'text-slate-400 hover:bg-slate-100 hover:text-slate-900'
             }`}
           >
@@ -52,19 +52,19 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
           <div className="flex flex-col items-center text-center">
             <OfficialLogo theme={theme} size={64} className="mb-6" />
             
-            <h2 className={`text-lg font-black uppercase tracking-[0.3em] ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+            <h2 className={`text-lg font-black uppercase tracking-[0.3em] ${theme === 'dark' ? 'text-sam-text' : 'text-slate-900'}`}>
               SAM COMPILER
             </h2>
-            <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`}>
+            <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 ${theme === 'dark' ? 'text-sam-text' : 'text-slate-500'}`}>
               Syntax Analysis Machine v2.4
             </p>
 
-            <div className="my-8 h-[1px] w-full bg-white/5" />
+            <div className="my-8 h-[1px] w-full bg-sam-text/5" />
 
             <div className="space-y-6 w-full">
               <div className="flex flex-col items-center gap-2">
-                <span className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-white/20' : 'text-slate-400'}`}>Architect & Developer</span>
-                <h3 className={`text-sm font-black uppercase tracking-widest ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
+                <span className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-sam-text-muted' : 'text-slate-400'}`}>Architect & Developer</span>
+                <h3 className={`text-sm font-black uppercase tracking-widest ${theme === 'dark' ? 'text-sam-text' : 'text-slate-900'}`}>
                   Syed Mukheeth
                 </h3>
               </div>
@@ -80,12 +80,12 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
                   }`}
                 >
                   <div className={`flex items-center gap-3 transition-colors ${
-                    theme === 'dark' ? 'text-[#0077b5] group-hover:text-white' : 'text-[#0077b5] group-hover:text-white'
+                    theme === 'dark' ? 'text-[#0077b5] group-hover:text-sam-text' : 'text-[#0077b5] group-hover:text-sam-text'
                   }`}>
                     <LinkedinIcon className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Connect on LinkedIn</span>
                   </div>
-                  <ExternalLink className="h-4 w-4 text-[#0077b5] group-hover:text-white transition-colors" />
+                  <ExternalLink className="h-4 w-4 text-[#0077b5] group-hover:text-sam-text transition-colors" />
                 </a>
 
                 <a 
@@ -94,18 +94,18 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
                   rel="noopener noreferrer"
                   className={`flex items-center justify-between rounded-2xl p-4 transition-all group ${
                     theme === 'dark' 
-                      ? 'bg-white/5 border border-white/10 hover:bg-white hover:text-black' 
-                      : 'bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900 hover:text-white'
+                      ? 'bg-sam-text/5 border border-sam-glass-border hover:bg-sam-text hover:text-sam-bg' 
+                      : 'bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900 hover:text-sam-text'
                   }`}
                 >
                   <div className={`flex items-center gap-3 transition-colors ${
-                    theme === 'dark' ? 'text-white group-hover:text-black' : 'text-slate-900 group-hover:text-white'
+                    theme === 'dark' ? 'text-sam-text group-hover:text-sam-bg' : 'text-slate-900 group-hover:text-sam-text'
                   }`}>
                     <GithubIcon className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Follow on GitHub</span>
                   </div>
                   <ExternalLink className={`h-4 w-4 transition-colors ${
-                    theme === 'dark' ? 'text-white group-hover:text-black' : 'text-slate-900 group-hover:text-white'
+                    theme === 'dark' ? 'text-sam-text group-hover:text-sam-bg' : 'text-slate-900 group-hover:text-sam-text'
                   }`} />
                 </a>
             </div>

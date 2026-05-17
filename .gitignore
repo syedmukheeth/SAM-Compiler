@@ -12,3 +12,4 @@ pnpm-debug.log*
 # Docker
 *.tar
 
+sam_compiler_deep_dive.md

@@ -14,12 +14,12 @@ function TypingIndicator({ theme }) {
   const isDark = theme === 'dark';
   return (
     <div className={`flex items-center gap-1 px-4 py-3 rounded-2xl rounded-tl-none w-fit border ${
-      isDark ? 'bg-white/5 border-white/5' : 'bg-white border-slate-100'
+      isDark ? 'bg-sam-text/5 border-sam-glass-border' : 'bg-sam-text border-slate-100'
     }`}>
       {[0, 1, 2].map(i => (
         <motion.div
           key={i}
-          className={`h-2 w-2 rounded-full ${isDark ? 'bg-white/40' : 'bg-slate-400'}`}
+          className={`h-2 w-2 rounded-full ${isDark ? 'bg-sam-text/40' : 'bg-slate-400'}`}
           animate={{ y: [0, -6, 0] }}
           transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.15, ease: "easeInOut" }}
         />
@@ -37,11 +37,11 @@ function QuickAction({ icon, label, onClick, theme, accent }) {
       whileTap={{ scale: 0.95 }}
       className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-[10px] font-bold uppercase tracking-wider transition-all ${
         isDark
-          ? 'border-white/10 bg-white/5 text-white/50 hover:bg-white/10 hover:text-white hover:border-white/20'
-          : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-white hover:text-slate-900 hover:border-slate-300 shadow-sm'
+          ? 'border-sam-glass-border bg-sam-text/5 text-white/50 hover:bg-sam-text/10 hover:text-sam-text hover:border-white/20'
+          : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-sam-text hover:text-slate-900 hover:border-slate-300 shadow-sm'
       }`}
     >
-      {React.cloneElement(icon, { size: 12, className: isDark ? 'text-white/60' : 'text-slate-600' })}
+      {React.cloneElement(icon, { size: 12, className: isDark ? 'text-sam-text-dim' : 'text-slate-600' })}
       {label}
     </motion.button>
   );
@@ -62,21 +62,21 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
   const remarkPlugins = React.useMemo(() => [remarkGfm], []);
 
   const MarkdownComponents = React.useMemo(() => ({
-    h1: ({ children }) => <h1 className={`text-xl font-black mb-4 tracking-tighter ${isDark ? 'text-white' : 'text-slate-900'}`}>{children}</h1>,
-    h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 ${isDark ? 'text-white/90' : 'text-slate-900'}`}>{children}</h2>,
+    h1: ({ children }) => <h1 className={`text-xl font-black mb-4 tracking-tighter ${isDark ? 'text-sam-text' : 'text-slate-900'}`}>{children}</h1>,
+    h2: ({ children }) => <h2 className={`text-lg font-bold mb-3 ${isDark ? 'text-sam-text' : 'text-slate-900'}`}>{children}</h2>,
     h3: ({ children }) => <h3 className={`text-base font-bold mb-2 ${isDark ? 'text-white/80' : 'text-slate-800'}`}>{children}</h3>,
     p: ({ children }) => <p className={`mb-3 last:mb-0 leading-relaxed break-words ${isDark ? 'text-white/85' : 'text-slate-800'}`}>{children}</p>,
     ul: ({ children }) => <ul className="mb-4 space-y-1.5 list-none">{children}</ul>,
     ol: ({ children }) => <ol className="mb-4 space-y-1.5 list-decimal pl-4">{children}</ol>,
     li: ({ children }) => (
       <li className="flex gap-2.5 items-start">
-        <span className={`mt-2 h-1.5 w-1.5 flex-none rounded-full ${isDark ? 'bg-white/30' : 'bg-slate-400'}`} />
+        <span className={`mt-2 h-1.5 w-1.5 flex-none rounded-full ${isDark ? 'bg-sam-text/30' : 'bg-slate-400'}`} />
         <span className={`leading-relaxed ${isDark ? 'text-white/85' : 'text-slate-800'}`}>{children}</span>
       </li>
     ),
-    strong: ({ children }) => <strong className={`font-bold ${isDark ? 'text-white' : 'text-slate-900'}`}>{children}</strong>,
+    strong: ({ children }) => <strong className={`font-bold ${isDark ? 'text-sam-text' : 'text-slate-900'}`}>{children}</strong>,
     blockquote: ({ children }) => (
-      <blockquote className={`border-l-2 pl-3 my-3 italic ${isDark ? 'border-white/20 text-white/60' : 'border-slate-300 text-slate-500'}`}>
+      <blockquote className={`border-l-2 pl-3 my-3 italic ${isDark ? 'border-white/20 text-sam-text-dim' : 'border-slate-300 text-slate-500'}`}>
         {children}
       </blockquote>
     ),
@@ -91,12 +91,12 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
         return (
           <div className="group relative my-4">
             <div className={`absolute -top-3 left-3 px-2 py-0.5 text-[9px] font-black uppercase tracking-tighter rounded-md z-10 ${
-              isDark ? 'bg-white text-black' : 'bg-black text-white'
+              isDark ? 'bg-sam-text text-sam-bg' : 'bg-sam-bg text-sam-text'
             }`}>
               {match[1]}
             </div>
             <div className={`rounded-2xl border overflow-hidden shadow-xl min-w-0 ${
-              isDark ? 'bg-black/60 border-white/10' : 'bg-slate-50 border-slate-200'
+              isDark ? 'bg-sam-bg/60 border-sam-glass-border' : 'bg-slate-50 border-slate-200'
             }`}>
               <pre className={`p-4 font-mono text-[12px] leading-relaxed whitespace-pre-wrap break-words ${
                 isDark ? 'text-white/80' : 'text-slate-700'
@@ -104,12 +104,12 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
                 <code className={className} {...props}>{children}</code>
               </pre>
               <div className={`flex items-center justify-end gap-2 border-t p-2 ${
-                isDark ? 'border-white/5 bg-white/[0.02]' : 'border-slate-200 bg-slate-100/50'
+                isDark ? 'border-sam-glass-border bg-sam-text/[0.02]' : 'border-slate-200 bg-slate-100/50'
               }`}>
                 <button
                   onClick={() => navigator.clipboard.writeText(codeStr)}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-bold transition-all active:scale-95 ${
-                    isDark ? 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white' : 'bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-900'
+                    isDark ? 'bg-sam-text/5 text-white/50 hover:bg-sam-text/10 hover:text-sam-text' : 'bg-slate-200 text-slate-500 hover:bg-slate-300 hover:text-slate-900'
                   }`}
                 >
                   <Copy size={11} /> Copy
@@ -121,7 +121,7 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
                     }
                   }}
                   className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-[10px] font-black tracking-wider uppercase transition-all active:scale-95 ${
-                    isDark ? 'bg-white text-black hover:opacity-90' : 'bg-black text-white hover:opacity-90'
+                    isDark ? 'bg-sam-text text-sam-bg hover:opacity-90' : 'bg-sam-bg text-sam-text hover:opacity-90'
                   }`}
                 >
                   <Zap size={11} fill="currentColor" /> Apply
@@ -133,13 +133,13 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
       }
       return (
         <code className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] ${
-          isDark ? 'bg-white/10 text-white' : 'bg-slate-200 text-slate-900'
+          isDark ? 'bg-sam-text/10 text-sam-text' : 'bg-slate-200 text-slate-900'
         }`} {...props}>{children}</code>
       );
     },
     a: ({ href, children }) => (
       <a href={href} target="_blank" rel="noopener noreferrer"
-        className={`inline-flex items-center gap-1 font-bold underline ${isDark ? 'text-white' : 'text-slate-900'}`}>
+        className={`inline-flex items-center gap-1 font-bold underline ${isDark ? 'text-sam-text' : 'text-slate-900'}`}>
         {children} <ExternalLink size={10} />
       </a>
     ),
@@ -154,17 +154,17 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
     >
       {!isUser && (
         <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
-          <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black text-white'}`}>
+          <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-sam-text text-sam-bg shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-sam-bg text-sam-text'}`}>
             <Sparkles size={9} />
           </div>
-          <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Sam AI</span>
+          <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-sam-text-muted' : 'text-slate-500'}`}>Sam AI</span>
         </div>
       )}
       <div className="relative w-full min-w-0">
         <div className={`w-full rounded-2xl px-5 py-4 text-[13px] leading-[1.7] border select-text overflow-hidden break-words transition-all ${
           isUser
-            ? (isDark ? 'bg-white/10 text-white border-white/10 rounded-tr-none' : 'bg-slate-100 text-slate-900 border-slate-200 rounded-tr-none')
-            : (isDark ? 'bg-white/[0.07] text-white/95 border-white/10 rounded-tl-none backdrop-blur-sm' : 'bg-white text-slate-800 border-slate-200 rounded-tl-none shadow-sm')
+            ? (isDark ? 'bg-sam-text/10 text-sam-text border-sam-glass-border rounded-tr-none' : 'bg-slate-100 text-slate-900 border-slate-200 rounded-tr-none')
+            : (isDark ? 'bg-sam-text/[0.07] text-white/95 border-sam-glass-border rounded-tl-none backdrop-blur-sm' : 'bg-sam-text text-slate-800 border-slate-200 rounded-tl-none shadow-sm')
         }`}>
           {msg.isError ? (
             <div className="flex items-start gap-2 text-rose-400">
@@ -183,7 +183,7 @@ function MessageBubble({ msg, theme, onApplyRefactor, isLast }) {
         <button
           onClick={handleCopy}
           className={`absolute -bottom-2 ${isUser ? 'left-2' : 'right-2'} opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold shadow-md ${
-            isDark ? 'bg-white/10 text-white/60 hover:text-white border border-white/10' : 'bg-white text-slate-500 hover:text-slate-900 border border-slate-200'
+            isDark ? 'bg-sam-text/10 text-sam-text-dim hover:text-sam-text border border-sam-glass-border' : 'bg-sam-text text-slate-500 hover:text-slate-900 border border-slate-200'
           }`}
         >
           {copied ? <Check size={9} /> : <Copy size={9} />}
@@ -388,10 +388,10 @@ function AiPanel({
     <div className={`sam-glass flex flex-1 flex-col h-full overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ border: isMobile ? 'none' : '1px solid var(--sam-glass-border)', background: 'var(--sam-surface)' }}>
       {/* Header */}
       <div className={`flex h-11 shrink-0 items-center justify-between px-4 border-b ${
-        isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50'
+        isDark ? 'border-sam-glass-border bg-sam-bg/20' : 'border-slate-100 bg-slate-50'
       }`}>
         <div className="flex items-center gap-2.5">
-          <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${isDark ? 'bg-white text-black' : 'bg-black text-white'}`}>
+          <div className={`flex h-6 w-6 items-center justify-center rounded-lg ${isDark ? 'bg-sam-text text-sam-bg' : 'bg-sam-bg text-sam-text'}`}>
             <Sparkles className="h-3.5 w-3.5" />
           </div>
           <span style={{ fontSize: 10, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>
@@ -406,7 +406,7 @@ function AiPanel({
         </div>
         <button
           onClick={onClose}
-          className={`rounded-lg p-1.5 transition-all ${isDark ? 'text-white/30 hover:text-white hover:bg-white/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
+          className={`rounded-lg p-1.5 transition-all ${isDark ? 'text-white/30 hover:text-sam-text hover:bg-sam-text/5' : 'text-slate-400 hover:text-slate-900 hover:bg-slate-100'}`}
         >
           <X className="h-4 w-4" />
         </button>
@@ -432,10 +432,10 @@ function AiPanel({
             className="flex flex-col items-start"
           >
             <div className={`mb-1.5 flex items-center gap-1.5 ml-1`}>
-              <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-white text-black shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-black text-white'}`}>
+              <div className={`flex h-4 w-4 items-center justify-center rounded-md ${isDark ? 'bg-sam-text text-sam-bg shadow-[0_0_10px_rgba(255,255,255,0.3)]' : 'bg-sam-bg text-sam-text'}`}>
                 <Sparkles size={9} />
               </div>
-              <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-white/40' : 'text-slate-500'}`}>Sam AI</span>
+              <span className={`text-[9px] font-black uppercase tracking-widest ${isDark ? 'text-sam-text-muted' : 'text-slate-500'}`}>Sam AI</span>
             </div>
             <TypingIndicator theme={theme} />
           </motion.div>
@@ -443,7 +443,7 @@ function AiPanel({
       </div>
 
       {/* Quick Actions + Input */}
-      <div className={`border-t p-3 space-y-3 ${isDark ? 'border-white/5 bg-black/20' : 'border-slate-100 bg-slate-50/50'}`}>
+      <div className={`border-t p-3 space-y-3 ${isDark ? 'border-sam-glass-border bg-sam-bg/20' : 'border-slate-100 bg-slate-50/50'}`}>
         <div className="flex flex-wrap gap-2">
           {quickActions.map(qa => (
             <QuickAction
@@ -465,8 +465,8 @@ function AiPanel({
             rows={3}
             className={`w-full resize-none rounded-xl border p-3 pr-12 text-sm transition-all focus:outline-none shadow-inner ${
               isDark
-                ? 'border-white/10 bg-black/40 text-white placeholder:text-white/20 focus:border-white/30'
-                : 'border-slate-200 bg-white text-slate-900 placeholder:text-slate-300 focus:border-slate-400'
+                ? 'border-sam-glass-border bg-sam-bg/40 text-sam-text placeholder:text-sam-text-muted focus:border-white/30'
+                : 'border-slate-200 bg-sam-text text-slate-900 placeholder:text-slate-300 focus:border-slate-400'
             }`}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
@@ -479,7 +479,7 @@ function AiPanel({
             type="submit"
             disabled={!input.trim() || loading}
             className={`absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-lg transition-all active:scale-90 disabled:opacity-20 shadow-lg ${
-              isDark ? 'bg-white text-black hover:bg-white/90' : 'bg-black text-white hover:opacity-90'
+              isDark ? 'bg-sam-text text-sam-bg hover:bg-sam-text/90' : 'bg-sam-bg text-sam-text hover:opacity-90'
             }`}
           >
             {loading

@@ -35,7 +35,7 @@ const MobileTabNav = ({ activeTab, onTabChange, theme }) => {
               <div 
                 className={`transition-all duration-300 ${
                   isActive 
-                    ? (isDark ? 'text-white' : 'text-black') 
+                    ? (isDark ? 'text-sam-text' : 'text-sam-bg') 
                     : (isDark ? 'text-white/30' : 'text-slate-400')
                 }`}
               >
@@ -48,8 +48,8 @@ const MobileTabNav = ({ activeTab, onTabChange, theme }) => {
               <span 
                 className={`text-[9px] font-black uppercase tracking-[0.15em] transition-all duration-300 ${
                   isActive 
-                    ? (isDark ? 'text-white' : 'text-black') 
-                    : (isDark ? 'text-white/20' : 'text-slate-400/60')
+                    ? (isDark ? 'text-sam-text' : 'text-sam-bg') 
+                    : (isDark ? 'text-sam-text-muted' : 'text-slate-400/60')
                 }`}
               >
                 {tab.label}

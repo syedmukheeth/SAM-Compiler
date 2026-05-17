@@ -38,8 +38,8 @@ export default function FeedbackModal({ isOpen, onClose, theme }) {
           <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
             <CheckCircle size={32} />
           </div>
-          <h3 className="text-lg font-black text-white">Report Received</h3>
-          <p className="mt-2 text-xs font-medium text-white/40 uppercase tracking-widest">Our engineers are on it.</p>
+          <h3 className="text-lg font-black text-sam-text">Report Received</h3>
+          <p className="mt-2 text-xs font-medium text-sam-text-muted uppercase tracking-widest">Our engineers are on it.</p>
         </div>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -61,7 +61,7 @@ export default function FeedbackModal({ isOpen, onClose, theme }) {
           <button
             type="submit"
             disabled={isSubmitting || !feedback.trim()}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-white px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-black transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-sam-text px-6 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-sam-bg transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100"
           >
             {isSubmitting ? (
               <span className="h-4 w-4 animate-spin rounded-full border-2 border-black border-t-transparent" />

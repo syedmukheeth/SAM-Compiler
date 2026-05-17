@@ -9,7 +9,7 @@ export default function TerminalPanel({
 }) {
   return (
     <div className="terminal-container flex w-full flex-col overflow-hidden" style={{ height }}>
-      <div className="flex items-center justify-between border-b border-white/10 px-2 py-1">
+      <div className="flex items-center justify-between border-b border-sam-glass-border px-2 py-1">
         <div className="flex items-center gap-1">
           {["Terminal", "Output"].map((t) => {
             const active = t === activeTab;
@@ -20,7 +20,7 @@ export default function TerminalPanel({
                 onClick={() => onTabChange?.(t)}
                 className={[
                   "rounded-lg px-2 py-1 text-xs transition duration-200 ease-out",
-                  active ? "bg-white/10 text-white" : "text-white/60 hover:bg-white/8 hover:text-white"
+                  active ? "bg-sam-text/10 text-sam-text" : "text-sam-text-dim hover:bg-sam-text/8 hover:text-sam-text"
                 ].join(" ")}
               >
                 {t}

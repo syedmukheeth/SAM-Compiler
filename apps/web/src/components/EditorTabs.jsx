@@ -11,8 +11,8 @@ export default function EditorTabs({ tabs, activeId, onSelect, onClose }) {
             className={[
               "group flex items-center gap-2 rounded-xl border px-3 text-sm transition duration-200 ease-out",
               active
-                ? "border-white/12 bg-white/10 text-white"
-                : "border-transparent bg-transparent text-white/65 hover:border-white/10 hover:bg-white/8 hover:text-white"
+                ? "border-white/12 bg-sam-text/10 text-sam-text"
+                : "border-transparent bg-transparent text-white/65 hover:border-sam-glass-border hover:bg-sam-text/8 hover:text-sam-text"
             ].join(" ")}
           >
             <button type="button" className="flex items-center gap-2" onClick={() => onSelect?.(t.id)}>
@@ -26,7 +26,7 @@ export default function EditorTabs({ tabs, activeId, onSelect, onClose }) {
               onClick={() => onClose?.(t.id)}
               className={[
                 "ml-1 grid h-6 w-6 place-items-center rounded-lg transition",
-                active ? "text-white/70 hover:bg-white/10 hover:text-white" : "text-white/0 group-hover:text-white/60"
+                active ? "text-white/70 hover:bg-sam-text/10 hover:text-sam-text" : "text-white/0 group-hover:text-sam-text-dim"
               ].join(" ")}
             >
               ×

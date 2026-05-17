@@ -59,8 +59,8 @@ const StatusBar = ({
   return (
     <div className={`relative flex w-full h-11 sm:h-12 items-center justify-between px-3 sm:px-6 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-700 backdrop-blur-xl overflow-hidden select-none ${
       theme === 'dark' 
-        ? 'bg-black/95 text-white/70 border-t border-white/5' 
-        : 'bg-white/95 text-slate-600 border-t border-slate-100 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)]'
+        ? 'bg-sam-bg/95 text-white/70 border-t border-sam-glass-border' 
+        : 'bg-sam-text/95 text-slate-600 border-t border-slate-100 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)]'
     }`}>
       {/* Top Accent Bar replaced by parent footer neon box-shadow */}
 
@@ -78,8 +78,8 @@ const StatusBar = ({
             onClick={() => reconnect()}
             className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all text-[9px] font-black shadow-lg ${
               isSmallMobile 
-                ? "bg-rose-500 text-white animate-pulse px-4 py-2" 
-                : "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
+                ? "bg-rose-500 text-sam-text animate-pulse px-4 py-2" 
+                : "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-sam-text"
             }`}
           >
             <RefreshCw className={`h-3 w-3 ${isSmallMobile ? 'animate-spin-slow' : ''}`} />
@@ -87,26 +87,26 @@ const StatusBar = ({
           </button>
         )}
 
-        <span className={`opacity-20 ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'} ${!isOnline ? 'hidden' : ''} hidden sm:inline`}>|</span>
+        <span className={`opacity-20 ${theme === 'dark' ? 'text-sam-text-muted' : 'text-slate-300'} ${!isOnline ? 'hidden' : ''} hidden sm:inline`}>|</span>
 
         {/* Language & Metrics (Lean on Mobile) */}
         <div className="flex items-center gap-3 flex-nowrap shrink-0">
           <span className={`text-[9.5px] font-mono tracking-widest uppercase ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`}>
             {language}
           </span>
-          <span className={`text-[8px] opacity-40 font-black tracking-widest hidden md:inline ${theme === 'dark' ? 'text-white' : 'text-black'}`}>
+          <span className={`text-[8px] opacity-40 font-black tracking-widest hidden md:inline ${theme === 'dark' ? 'text-sam-text' : 'text-sam-bg'}`}>
             Ln {localPos.lineNumber}, Col {localPos.column}
           </span>
 
         </div>
 
-        <span className={`opacity-20 hidden lg:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
+        <span className={`opacity-20 hidden lg:inline ${theme === 'dark' ? 'text-sam-text-muted' : 'text-slate-300'}`}>|</span>
         
         {/* DYNAMIC METRICS: CPU / RAM (Hidden on Mobile) */}
         <div className="hidden lg:flex items-center gap-6">
            <div className="flex items-center gap-2 group cursor-default">
-              <span className={`text-[8.5px] font-black uppercase tracking-widest opacity-30 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-white' : 'text-slate-500'}`}>CPU</span>
-              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-white/90' : 'text-slate-900'}`}>
+              <span className={`text-[8.5px] font-black uppercase tracking-widest opacity-30 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-sam-text' : 'text-slate-500'}`}>CPU</span>
+              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-sam-text' : 'text-slate-900'}`}>
                 {busy ? (8 + Math.random() * 5).toFixed(1) : (0.1 + Math.random() * 0.3).toFixed(1)}%
               </span>
            </div>
@@ -125,16 +125,16 @@ const StatusBar = ({
 
         <button 
            onClick={onShowAbout}
-           className={`group flex items-center justify-center p-1.5 rounded-lg border border-white/5 bg-white/5 transition-all hover:bg-white/10 ${isSmallMobile ? 'inline-flex' : 'hidden lg:inline-flex'}`}
+           className={`group flex items-center justify-center p-1.5 rounded-lg border border-sam-glass-border bg-sam-text/5 transition-all hover:bg-sam-text/10 ${isSmallMobile ? 'inline-flex' : 'hidden lg:inline-flex'}`}
            title="About SAM"
         >
-          <Info className="h-3.5 w-3.5 text-white/40 group-hover:text-white transition-colors" />
+          <Info className="h-3.5 w-3.5 text-sam-text-muted group-hover:text-sam-text transition-colors" />
         </button>
 
         {/* Branding - Hidden on Small Mobile (< 480px) */}
         <div className="hidden sm:flex items-center gap-3 flex-nowrap">
-          <span className={`font-black tracking-[0.3em] hidden lg:block ${theme === 'dark' ? 'text-white/40' : 'text-slate-500'}`}>SAM © 2026</span>
-          <span className={`opacity-10 hidden lg:inline ${theme === 'dark' ? 'text-white/40' : 'text-slate-300'}`}>|</span>
+          <span className={`font-black tracking-[0.3em] hidden lg:block ${theme === 'dark' ? 'text-sam-text-muted' : 'text-slate-500'}`}>SAM © 2026</span>
+          <span className={`opacity-10 hidden lg:inline ${theme === 'dark' ? 'text-sam-text-muted' : 'text-slate-300'}`}>|</span>
           
           <div 
              onClick={onShowAbout}
@@ -147,8 +147,8 @@ const StatusBar = ({
             </span>
             <div className={`flex items-center gap-2 rounded-md py-1 px-2 border transition-all duration-300 ${
                theme === 'dark' 
-                 ? 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] group-hover:bg-[#0077b5] group-hover:text-white' 
-                 : 'bg-slate-50 border-slate-200 text-slate-700 group-hover:bg-[#0077b5] group-hover:text-white'
+                 ? 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] group-hover:bg-[#0077b5] group-hover:text-sam-text' 
+                 : 'bg-slate-50 border-slate-200 text-slate-700 group-hover:bg-[#0077b5] group-hover:text-sam-text'
             }`}>
               <span className={`text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap`}>
                 syed mukheeth

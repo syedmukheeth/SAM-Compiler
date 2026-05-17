@@ -4,24 +4,24 @@ import { ArrowLeft, Shield } from "lucide-react";
 
 export default function PrivacyPage() {
   return (
-    <div className="relative min-h-screen w-full overflow-y-auto bg-black p-6 font-sans text-white/90 selection:bg-white/10 md:p-20">
+    <div className="relative min-h-screen w-full overflow-y-auto bg-sam-bg p-6 font-sans text-sam-text selection:bg-sam-text/10 md:p-20">
       <div className="bg-mesh opacity-20" />
       
       <div className="relative z-10 mx-auto max-w-3xl">
         <header className="mb-12 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link to="/" className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-all hover:bg-white/10">
-              <ArrowLeft className="h-5 w-5 text-white/40 transition-colors group-hover:text-white" />
+            <Link to="/" className="group flex h-10 w-10 items-center justify-center rounded-xl border border-sam-glass-border bg-sam-text/5 transition-all hover:bg-sam-text/10">
+              <ArrowLeft className="h-5 w-5 text-sam-text-muted transition-colors group-hover:text-sam-text" />
             </Link>
             <div>
-              <h1 className="text-2xl font-black tracking-tight text-white">Privacy Policy</h1>
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-white/20">Last updated: April 2026</p>
+              <h1 className="text-2xl font-black tracking-tight text-sam-text">Privacy Policy</h1>
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-sam-text-muted">Last updated: April 2026</p>
             </div>
           </div>
-          <Shield className="h-8 w-8 text-white/10" />
+          <Shield className="h-8 w-8 text-sam-text-muted" />
         </header>
 
-        <section className="space-y-10 text-sm leading-relaxed text-white/60">
+        <section className="space-y-10 text-sm leading-relaxed text-sam-text-dim">
           <div>
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-[var(--sam-accent)]">1. Information Collection</h2>
             <p>
@@ -57,9 +57,9 @@ export default function PrivacyPage() {
             </p>
           </div>
 
-          <div className="border-t border-white/5 pt-10">
-            <p className="text-xs italic text-white/20 text-center">
-              For privacy-related inquiries, contact <span className="text-white/40 font-bold">legal@sam-compiler.io</span>
+          <div className="border-t border-sam-glass-border pt-10">
+            <p className="text-xs italic text-sam-text-muted text-center">
+              For privacy-related inquiries, contact <span className="text-sam-text-muted font-bold">legal@sam-compiler.io</span>
             </p>
           </div>
         </section>

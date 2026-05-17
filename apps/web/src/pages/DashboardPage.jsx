@@ -50,10 +50,10 @@ export default function DashboardPage() {
 
   if (loading && !stats) {
     return (
-      <div className="flex h-screen items-center justify-center bg-black">
+      <div className="flex h-screen items-center justify-center bg-sam-bg">
         <div className="flex flex-col items-center gap-4">
-          <RefreshCw className="h-8 w-8 animate-spin text-white/40" />
-          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-white/40">Initialising SRE Metrics...</span>
+          <RefreshCw className="h-8 w-8 animate-spin text-sam-text-muted" />
+          <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-sam-text-muted">Initialising SRE Metrics...</span>
         </div>
       </div>
     );
@@ -63,15 +63,15 @@ export default function DashboardPage() {
   const overallSuccessRate = isNaN(rateRaw) ? 0 : rateRaw;
 
   return (
-    <div className="relative min-h-screen w-full p-4 md:p-8 font-sans text-white overflow-hidden selection:bg-white/10" style={{ background: 'var(--sam-bg)' }}>
+    <div className="relative min-h-screen w-full p-4 md:p-8 font-sans text-sam-text overflow-hidden selection:bg-sam-text/10" style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
       {/* Header */}
       <header className="relative z-20 mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-          <Link to="/" className="group flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/5 transition-all hover:bg-white/10">
-            <ArrowLeft className="h-5 w-5 text-white/40 transition-colors group-hover:text-white" />
+          <Link to="/" className="group flex h-10 w-10 items-center justify-center rounded-xl border border-sam-glass-border bg-sam-text/5 transition-all hover:bg-sam-text/10">
+            <ArrowLeft className="h-5 w-5 text-sam-text-muted transition-colors group-hover:text-sam-text" />
           </Link>
           <div>
               <h1 className="text-2xl font-black tracking-tight" style={{ fontFamily: 'var(--font-display)', color: '#dde2f1' }}>System Observability</h1>
@@ -93,28 +93,28 @@ export default function DashboardPage() {
       {/* KPI Section */}
       <div className="relative z-20 mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <KpiCard 
-          icon={<Activity className="text-white" />} 
+          icon={<Activity className="text-sam-text" />} 
           title="Availability" 
           value={queueStatus?.workerOnline ? "100%" : "Degraded"} 
           subtext={queueStatus?.workerOnline ? "Worker node active" : "Cloud fallback active"}
           color="white"
         />
         <KpiCard 
-          icon={<Zap className="text-white" />} 
+          icon={<Zap className="text-sam-text" />} 
           title="Success Rate" 
           value={`${(overallSuccessRate || 0).toFixed(1)}%`} 
           subtext="Last 24 hours"
           color="white"
         />
         <KpiCard 
-          icon={<Clock className="text-white/60" />} 
+          icon={<Clock className="text-sam-text-dim" />} 
           title="Avg Latency" 
           value={`${(stats?.executionStats?.[0]?.avgDurationMs || 0).toFixed(0)} ms`} 
           subtext="Across all runtimes"
           color="white"
         />
         <KpiCard 
-          icon={<Database className="text-white/60" />} 
+          icon={<Database className="text-sam-text-dim" />} 
           title="Throughput" 
           value={stats?.executionStats?.reduce((a, b) => a + b.count, 0) || 0} 
           subtext="Runs in last 24h"
@@ -127,7 +127,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-8 flex flex-col gap-6">
           <section className="glass-card flex flex-col p-6 h-[400px]">
              <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Platform Throughput</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Platform Throughput</h3>
                 <span className="text-[10px] text-white/30">Last 7 Days</span>
              </div>
              <div className="flex-1">
@@ -154,7 +154,7 @@ export default function DashboardPage() {
 
           <section className="glass-card flex flex-col p-6">
              <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Global Cluster Availability</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Global Cluster Availability</h3>
                 <div className="flex items-center gap-2">
                    <Globe className="h-3 w-3 text-blue-400" />
                    <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Multi-Region Failover Active</span>
@@ -163,12 +163,12 @@ export default function DashboardPage() {
              
              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {queueStatus?.regions?.map((reg) => (
-                  <div key={reg.id} className="group relative overflow-hidden rounded-2xl border border-white/5 bg-white/[0.02] p-4 transition-all hover:bg-white/[0.05] hover:border-white/10">
+                  <div key={reg.id} className="group relative overflow-hidden rounded-2xl border border-sam-glass-border bg-sam-text/[0.02] p-4 transition-all hover:bg-sam-text/[0.05] hover:border-sam-glass-border">
                      <div className="mb-3 flex items-center justify-between">
-                        <span className={`h-1.5 w-1.5 rounded-full ${reg.status === "online" ? "bg-white shadow-[0_0_8px_white]" : "bg-white/20 animate-pulse"}`} />
-                        <span className="text-[10px] font-black tabular-nums text-white/20 uppercase tracking-widest">{reg.latency}</span>
+                        <span className={`h-1.5 w-1.5 rounded-full ${reg.status === "online" ? "bg-sam-text shadow-[0_0_8px_white]" : "bg-sam-text/20 animate-pulse"}`} />
+                        <span className="text-[10px] font-black tabular-nums text-sam-text-muted uppercase tracking-widest">{reg.latency}</span>
                      </div>
-                     <div className="text-[10px] font-black text-white uppercase tracking-widest mb-1">{reg.name}</div>
+                     <div className="text-[10px] font-black text-sam-text uppercase tracking-widest mb-1">{reg.name}</div>
                      <div className="text-[8px] text-white/30 uppercase tracking-widest">{reg.id}</div>
                   </div>
                 ))}
@@ -177,7 +177,7 @@ export default function DashboardPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <section className="glass-card flex flex-col p-6 h-[300px]">
-               <h3 className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-white/60">Duration by runtime (ms)</h3>
+               <h3 className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Duration by runtime (ms)</h3>
                <div className="flex-1">
                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={stats?.executionStats}>
@@ -199,7 +199,7 @@ export default function DashboardPage() {
             </section>
 
             <section className="glass-card flex flex-col p-6 h-[300px]">
-               <h3 className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-white/60">Success Rate (%)</h3>
+               <h3 className="mb-6 text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Success Rate (%)</h3>
                <div className="flex-1">
                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={stats?.executionStats} layout="vertical">
@@ -227,7 +227,7 @@ export default function DashboardPage() {
            {/* Worker Load */}
            <section className="glass-card p-6 flex flex-col shrink-0">
              <div className="mb-6 flex items-center justify-between">
-                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-white/60">Worker Resource Load</h3>
+                <h3 className="text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Worker Resource Load</h3>
                 {queueStatus?.workerOnline ? (
                   <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[8px] font-black text-emerald-400 uppercase tracking-widest border border-emerald-500/20">Active</span>
                 ) : (
@@ -251,19 +251,19 @@ export default function DashboardPage() {
                   sub={`of ${formatBytes(queueStatus?.workerStats?.memTotal)}`}
                 />
 
-                <div className="mt-4 flex flex-col gap-2 rounded-xl bg-white/[0.03] p-4 border border-white/5">
+                <div className="mt-4 flex flex-col gap-2 rounded-xl bg-sam-text/[0.03] p-4 border border-sam-glass-border">
                   <div className="flex items-center justify-between">
-                     <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest">Active Jobs</span>
-                     <span className="text-lg font-black text-white">{queueStatus?.workerStats?.activeJobs || 0}</span>
+                     <span className="text-[10px] font-bold text-sam-text-muted uppercase tracking-widest">Active Jobs</span>
+                     <span className="text-lg font-black text-sam-text">{queueStatus?.workerStats?.activeJobs || 0}</span>
                   </div>
-                  <div className="text-[10px] text-white/20 italic">Currently being processed by multiSandbox.js</div>
+                  <div className="text-[10px] text-sam-text-muted italic">Currently being processed by multiSandbox.js</div>
                 </div>
              </div>
            </section>
 
            {/* Health Summary */}
            <section className="glass-card p-6 flex flex-col flex-1">
-              <h3 className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-white/60">SRE Health Summary</h3>
+              <h3 className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">SRE Health Summary</h3>
               <div className="flex flex-col gap-4">
                  <HealthItem 
                    status={queueStatus?.online ? "success" : "error"} 
@@ -307,8 +307,8 @@ export default function DashboardPage() {
 
 function KpiCard({ icon, title, value, subtext, color }) {
   const colorMap = {
-    white: "text-white",
-    gray: "text-white/40"
+    white: "text-sam-text",
+    gray: "text-sam-text-muted"
   };
   
   return (
@@ -317,15 +317,15 @@ function KpiCard({ icon, title, value, subtext, color }) {
       className="glass-card p-6 flex flex-col gap-4 group"
     >
       <div className="flex items-center justify-between">
-         <div className="rounded-xl bg-white/5 p-2 transition-colors group-hover:bg-white/15">
+         <div className="rounded-xl bg-sam-text/5 p-2 transition-colors group-hover:bg-sam-text/15">
             {React.cloneElement(icon, { size: 20 })}
          </div>
-         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/20">KPI</span>
+         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-sam-text-muted">KPI</span>
       </div>
       <div>
-        <div className="text-[10px] font-black uppercase tracking-widest text-white/40 mb-1">{title}</div>
+        <div className="text-[10px] font-black uppercase tracking-widest text-sam-text-muted mb-1">{title}</div>
         <div className={`text-2xl font-black ${colorMap[color]}`}>{value}</div>
-        <div className="text-[9px] font-medium text-white/20 mt-1 uppercase tracking-widest">{subtext}</div>
+        <div className="text-[9px] font-medium text-sam-text-muted mt-1 uppercase tracking-widest">{subtext}</div>
       </div>
     </motion.div>
   );
@@ -333,15 +333,15 @@ function KpiCard({ icon, title, value, subtext, color }) {
 
 function LoadMeter({ label, value, max, formattedValue, sub }) {
   const percentage = Math.min(100, (value / (max || 1)) * 100);
-  const colorClass = percentage > 80 ? "bg-white shadow-[0_0_10px_white]" : percentage > 50 ? "bg-white/60 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "bg-white/30";
+  const colorClass = percentage > 80 ? "bg-sam-text shadow-[0_0_10px_white]" : percentage > 50 ? "bg-sam-text/60 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "bg-sam-text/30";
 
   return (
     <div className="flex flex-col gap-2">
        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
-          <span className="text-white/40">{label}</span>
-          <span className="text-white/80">{formattedValue} <span className="text-white/20 ml-1 font-normal lowercase">{sub}</span></span>
+          <span className="text-sam-text-muted">{label}</span>
+          <span className="text-white/80">{formattedValue} <span className="text-sam-text-muted ml-1 font-normal lowercase">{sub}</span></span>
        </div>
-       <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
+       <div className="h-1.5 w-full rounded-full bg-sam-text/5 overflow-hidden">
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${percentage}%` }}

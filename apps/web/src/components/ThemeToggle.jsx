@@ -8,7 +8,7 @@ const ThemeToggle = ({ theme, toggle }) => {
     <motion.button
       onClick={toggle}
       className={`relative flex h-8 w-14 items-center rounded-full p-1 focus:outline-none overflow-hidden transition-colors border ${
-        isDark ? 'border-white/10 bg-white/10' : 'border-black/10 bg-black/5'
+        isDark ? 'border-sam-glass-border bg-sam-text/10' : 'border-sam-glass-border bg-sam-bg/5'
       }`}
       style={{ backdropFilter: 'blur(10px)' }}
       whileTap={{ scale: 0.95 }}

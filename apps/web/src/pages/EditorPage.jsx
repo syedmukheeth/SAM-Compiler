@@ -943,7 +943,7 @@ builtins.input = input_shim
 
 
   return (
-    <div className={`relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-white/10 ${isMobile ? 'pb-[88px]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
+    <div className={`relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isMobile ? 'pb-[88px]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -988,28 +988,28 @@ builtins.input = input_shim
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass dark:bg-black/95 bg-white/95 border-white/5 shadow-2xl z-[150] md:hidden overflow-hidden"
+            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass dark:bg-sam-bg/95 bg-sam-text/95 border-sam-glass-border shadow-2xl z-[150] md:hidden overflow-hidden"
             style={{ borderRadius: 20 }}
           >
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
                 <button 
                   onClick={() => { setShowShortcutsHelp(true); setMobileMenuOpen(false); }}
-                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sam-text/5 border border-sam-glass-border hover:bg-sam-text/10 transition-colors gap-2"
                 >
-                  <Keyboard className="h-5 w-5 text-white/60" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">Shortcuts</span>
+                  <Keyboard className="h-5 w-5 text-sam-text-dim" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-sam-text-muted">Shortcuts</span>
                 </button>
                 <button 
                   onClick={() => { setShowHistory(true); setMobileMenuOpen(false); }}
-                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors gap-2"
+                  className="flex flex-col items-center justify-center p-4 rounded-2xl bg-sam-text/5 border border-sam-glass-border hover:bg-sam-text/10 transition-colors gap-2"
                 >
-                  <Clock className="h-5 w-5 text-white/60" />
-                  <span className="text-[9px] font-black uppercase tracking-widest text-white/40">History</span>
+                  <Clock className="h-5 w-5 text-sam-text-dim" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-sam-text-muted">History</span>
                 </button>
               </div>
               
-              <div className="h-[1px] bg-white/5 w-full" />
+              <div className="h-[1px] bg-sam-text/5 w-full" />
 
               <div className="flex flex-col gap-1">
                  {['Editor', 'Dashboard', 'Settings'].map((tab) => {
@@ -1019,10 +1019,10 @@ builtins.input = input_shim
                       <button
                         key={tab}
                         onClick={() => { setActiveModal(tab === 'Editor' ? null : tab.toLowerCase()); setMobileMenuOpen(false); }}
-                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${isActive ? 'bg-white/10 text-white' : 'text-white/40'}`}
+                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${isActive ? 'bg-sam-text/10 text-sam-text' : 'text-sam-text-muted'}`}
                       >
                         <span className="text-xs font-bold uppercase tracking-[0.2em]">{tab}</span>
-                        {isActive && <div className="h-1.5 w-1.5 rounded-full bg-white" />}
+                        {isActive && <div className="h-1.5 w-1.5 rounded-full bg-sam-text" />}
                       </button>
                     );
                  })}
@@ -1042,7 +1042,7 @@ builtins.input = input_shim
                       setIsGuest(true);
                       setMobileMenuOpen(false);
                     }}
-                    className="w-full p-4 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-white/40 border border-white/5 bg-white/5"
+                    className="w-full p-4 rounded-xl text-[10px] font-bold uppercase tracking-[0.2em] text-sam-text-muted border border-sam-glass-border bg-sam-text/5"
                   >
                     Continue as Guest
                   </button>
@@ -1058,9 +1058,9 @@ builtins.input = input_shim
               )}
 
               {user && (
-                <div className="mt-2 flex items-center justify-between p-3 bg-white/5 rounded-2xl border border-white/5">
+                <div className="mt-2 flex items-center justify-between p-3 bg-sam-text/5 rounded-2xl border border-sam-glass-border">
                   <div className="flex items-center gap-3">
-                    <img src={user.avatar} className="h-8 w-8 rounded-full border border-white/10" />
+                    <img src={user.avatar} className="h-8 w-8 rounded-full border border-sam-glass-border" />
                     <span className="text-xs font-bold" style={{ color: 'var(--sam-text)' }}>{user.name}</span>
                   </div>
                   <button onClick={logoutUser} className="text-[9px] font-black uppercase tracking-widest text-rose-500 px-3 py-1.5 rounded-lg bg-rose-500/10">Sign Out</button>
@@ -1070,7 +1070,7 @@ builtins.input = input_shim
             {/* Close Button for mobile menu */}
             <button 
               onClick={() => setMobileMenuOpen(false)}
-              className="absolute top-4 right-4 p-2 text-white/40 hover:text-white"
+              className="absolute top-4 right-4 p-2 text-sam-text-muted hover:text-sam-text"
             >
               <X className="h-5 w-5" />
             </button>
@@ -1241,14 +1241,14 @@ builtins.input = input_shim
             <div className="hidden md:flex items-center gap-2">
               <button 
                 onClick={() => setShowShortcutsHelp(true)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)] transition-all hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)] transition-all hover:text-sam-text"
               >
                 <Keyboard className="h-5 w-5" />
               </button>
               <button 
                 id="history-btn"
                 onClick={() => setShowHistory(!showHistory)}
-                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)] transition-all hover:text-white"
+                className="flex h-10 w-10 items-center justify-center rounded-xl border border-[var(--sam-glass-border)] bg-[var(--sam-surface-low)] text-[var(--sam-text-dim)] transition-all hover:text-sam-text"
               >
                 <Clock className="h-5 w-5" />
               </button>
@@ -1461,9 +1461,9 @@ builtins.input = input_shim
           {!isMobile && (
             <div 
                onMouseDown={startResizingEditor}
-               className="hidden lg:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
+               className="hidden lg:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-sam-text/5 z-30"
             >
-              <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'} group-hover:bg-white/30 transition-all`} />
+              <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-sam-text/10' : 'bg-sam-bg/5'} group-hover:bg-sam-text/30 transition-all`} />
             </div>
           )}
 
@@ -1622,7 +1622,7 @@ builtins.input = input_shim
                   {isColdStarting && (
                     <motion.div 
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/60 backdrop-blur-md"
+                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-sam-bg/60 backdrop-blur-md"
                     >
                       <div className="relative mb-6">
                         <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20" />
@@ -1630,8 +1630,8 @@ builtins.input = input_shim
                           <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                         </div>
                       </div>
-                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-white">Engine Warming Up</h3>
-                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-white/40">Spinning up isolated sandbox...</p>
+                      <h3 className="text-sm font-black uppercase tracking-[0.3em] text-sam-text">Engine Warming Up</h3>
+                      <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-sam-text-muted">Spinning up isolated sandbox...</p>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -1647,11 +1647,11 @@ builtins.input = input_shim
                   {isMobile && busy && (
                     <motion.div 
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] bg-black/5"
+                      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] bg-sam-bg/5"
                     >
-                      <div className="flex items-center gap-3 px-6 py-3 rounded-full border border-white/10 bg-black/80 shadow-2xl">
-                        <Loader2 className="h-4 w-4 text-white animate-spin" />
-                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white">Executing...</span>
+                      <div className="flex items-center gap-3 px-6 py-3 rounded-full border border-sam-glass-border bg-sam-bg/80 shadow-2xl">
+                        <Loader2 className="h-4 w-4 text-sam-text animate-spin" />
+                        <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sam-text">Executing...</span>
                       </div>
                     </motion.div>
                   )}
@@ -1662,7 +1662,7 @@ builtins.input = input_shim
                 <div className="flex items-center gap-3">
                   <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', opacity: 0.8, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
                   {!user && (
-                    <span className="px-1.5 py-0.5 rounded-sm bg-white/5 border border-white/5 text-[7px] font-black uppercase tracking-widest text-white/30">Guest</span>
+                    <span className="px-1.5 py-0.5 rounded-sm bg-sam-text/5 border border-sam-glass-border text-[7px] font-black uppercase tracking-widest text-white/30">Guest</span>
                   )}
                 </div>
                 <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
@@ -1677,9 +1677,9 @@ builtins.input = input_shim
           {showAiPanel && !isMobile && (
             <div 
                onMouseDown={startResizingAi}
-               className="flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-white/5 z-30"
+               className="flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-sam-text/5 z-30"
             >
-              <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-white/10' : 'bg-black/5'} group-hover:bg-white/30 transition-all`} />
+              <div className={`h-24 w-[1px] ${theme === 'dark' ? 'bg-sam-text/10' : 'bg-sam-bg/5'} group-hover:bg-sam-text/30 transition-all`} />
             </div>
           )}
 
@@ -1690,7 +1690,7 @@ builtins.input = input_shim
               style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${aiWidth}%`, flexGrow: 0, flexShrink: 0 }}
             >
               <React.Suspense fallback={
-                <div className="flex h-full w-full items-center justify-center bg-black/50 backdrop-blur-md rounded-2xl">
+                <div className="flex h-full w-full items-center justify-center bg-sam-bg/50 backdrop-blur-md rounded-2xl">
                   <div className="sam-spinner w-8 h-8" />
                 </div>
               }>
@@ -1772,18 +1772,18 @@ builtins.input = input_shim
             <motion.div 
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                onClick={() => setShowShortcutsHelp(false)}
-               className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+               className="absolute inset-0 bg-sam-bg/40 backdrop-blur-sm" 
             />
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className={`relative w-full max-w-sm rounded-[32px] border p-8 shadow-2xl backdrop-blur-2xl sam-modal-mobile-center ${
-                theme === 'dark' ? 'border-white/5 bg-black/95' : 'border-slate-200 bg-white/95'
+                theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-text/95'
               }`}
             >
               <h3 className={`mb-8 flex items-center gap-3 text-sm font-black uppercase tracking-[0.25em] opacity-90 ${
-                theme === 'dark' ? 'text-white' : 'text-slate-900'
+                theme === 'dark' ? 'text-sam-text' : 'text-slate-900'
               }`}>
-                 <Keyboard className={`h-5 w-5 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`} strokeWidth={3} />
+                 <Keyboard className={`h-5 w-5 ${theme === 'dark' ? 'text-sam-text' : 'text-slate-900'}`} strokeWidth={3} />
                  Terminal Shortcuts
               </h3>
               <div className="flex flex-col gap-5">
@@ -1796,7 +1796,7 @@ builtins.input = input_shim
               <button 
                 onClick={() => setShowShortcutsHelp(false)}
                 className={`mt-10 w-full rounded-2xl p-4 text-[10px] font-black uppercase tracking-[0.2em] transition-all active:scale-95 ${
-                  theme === 'dark' ? 'bg-white/10 text-white hover:bg-white/20' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
+                  theme === 'dark' ? 'bg-sam-text/10 text-sam-text hover:bg-sam-text/20' : 'bg-slate-100 text-slate-900 hover:bg-slate-200'
                 }`}
               >
                 Close Guidelines
