@@ -14,19 +14,13 @@ export async function submitRun({ language, code, stdin = "" }) {
   const headers = { "content-type": "application/json" };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    try {
-    const API_URL = `${API_BASE}`;
-    console.log(`📡 [SAM-INFO] [FRONTEND] Click RUN detected for language: ${language}`);
-    console.log(`📡 [SAM-INFO] [FRONTEND] Auth Token preserved: ${!!token}`);
-    console.log(`📡 [SAM-INFO] [API] submitRun starting. URL: ${API_URL}`);
-
-    const res = await fetch(API_URL, {
+  try {
+    const res = await fetch(`${API_BASE}`, {
       method: "POST",
       headers,
       body: JSON.stringify({ language, code, stdin })
     });
-    
-    console.log(`📡 [SAM-INFO] [API] submitRun response received. Status: ${res.status}`);
+
     await checkResponseType(res);
 
     if (!res.ok) {
@@ -42,10 +36,16 @@ export async function submitRun({ language, code, stdin = "" }) {
   }
 }
 
-export async function fetchStatus(jobId) {
+export async function fetchStatus(jobId, { signal } = {}) {
   try {
-    const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`);
-    
+    // GET /api/runs/:runId now enforces ownership, so an authenticated user
+    // must identify themselves or their own run reads back as 404.
+    const token = localStorage.getItem("token");
+    const headers = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+
+    const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`, { headers, signal });
+
     await checkResponseType(res);
 
     if (!res.ok) {
@@ -63,31 +63,43 @@ export async function fetchStatus(jobId) {
   }
 }
 
-export async function runAndPoll({ language, code, onUpdate, pollMs = 500 }) {
-  const { jobId } = await submitRun({ language, code });
+export const TERMINAL_STATUSES = [
+  "succeeded", "failed", "cancelled", "compilation_error",
+  "runtime_error", "timeout", "memory_limit"
+];
 
-  let done = false;
-  while (!done) {
-    const status = await fetchStatus(jobId);
-    onUpdate?.(status);
-    if (["succeeded", "failed", "cancelled", "compilation_error", "runtime_error", "timeout", "memory_limit"].includes(status.status)) {
-      done = true;
-      return status;
-    }
-    await sleep(pollMs);
-  }
+// Default ceiling on polling. Previously `while (!done)` had no timeout, no
+// abort and no attempt cap: a job stuck in "queued" polled every 500ms forever,
+// the caller's await never resolved (so setBusy(false) never ran), and
+// navigating away did not stop it.
+const DEFAULT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
+
+export async function runAndPoll({ language, code, onUpdate, pollMs = 500, signal, timeoutMs }) {
+  const { jobId } = await submitRun({ language, code });
+  return pollUntilDone(jobId, { onUpdate, pollMs, signal, timeoutMs });
 }
 
-export async function pollUntilDone(jobId, { onUpdate, pollMs = 500 } = {}) {
-  let done = false;
-  while (!done) {
-    const status = await fetchStatus(jobId);
+export async function pollUntilDone(
+  jobId,
+  { onUpdate, pollMs = 500, signal, timeoutMs = DEFAULT_POLL_TIMEOUT_MS } = {}
+) {
+  const deadline = Date.now() + timeoutMs;
+
+  for (;;) {
+    if (signal?.aborted) throw new DOMException("Polling aborted", "AbortError");
+
+    const status = await fetchStatus(jobId, { signal });
     onUpdate?.(status);
-    if (["succeeded", "failed", "cancelled", "compilation_error", "runtime_error", "timeout", "memory_limit"].includes(status.status)) {
-      done = true;
-      return status;
+
+    if (TERMINAL_STATUSES.includes(status.status)) return status;
+
+    if (Date.now() >= deadline) {
+      throw new Error(
+        `Execution timed out after ${Math.round(timeoutMs / 1000)}s while the run was still "${status.status}".`
+      );
     }
-    await sleep(pollMs);
+
+    await sleep(pollMs, signal);
   }
 }
 
@@ -109,7 +121,19 @@ export async function fetchHistory() {
   return await res.json();
 }
 
-function sleep(ms) {
-  return new Promise((r) => setTimeout(r, ms));
+function sleep(ms, signal) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(resolve, ms);
+    if (signal) {
+      signal.addEventListener(
+        "abort",
+        () => {
+          clearTimeout(timer);
+          reject(new DOMException("Polling aborted", "AbortError"));
+        },
+        { once: true }
+      );
+    }
+  });
 }
 

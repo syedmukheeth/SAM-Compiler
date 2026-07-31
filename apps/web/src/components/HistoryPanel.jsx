@@ -69,7 +69,7 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
     try {
       const data = await fetchHistory();
       setRuns(data);
-    } catch (e) {
+    } catch {
       setError("Failed to load run history.");
     } finally {
       setLoading(false);
@@ -77,6 +77,8 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
   }, [token]);
 
   useEffect(() => {
+    // Fetching history when the panel opens is an external data sync.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (isOpen) load();
   }, [isOpen, load]);
 

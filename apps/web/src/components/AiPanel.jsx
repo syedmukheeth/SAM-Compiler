@@ -7,7 +7,6 @@ import {
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ENDPOINTS from "../services/endpoints";
-import analytics from "../services/metrics";
 
 // ── Typing Indicator ─────────────────────────────────────────────────────────
 function TypingIndicator({ isDark }) {
@@ -307,30 +306,56 @@ function AiPanel({
   const scrollRef = useRef(null);
   const inputRef = useRef(null);
   const isDark = theme === 'dark';
-  const hasTriggeredInitial = useRef(false);
+  // Stores the prompt value that was last auto-sent, rather than a boolean.
+  // The old boolean guard was reset by a second effect on every render where
+  // initialPrompt was truthy, which re-armed the auto-send immediately.
+  const lastAutoPrompt = useRef(null);
+  // Mirrors `messages` so sendMessage does not need it as a dependency. With
+  // `messages` in the dep array its identity changed on every streaming chunk,
+  // which re-fired the auto-send effect after every completed response —
+  // re-sending the same prompt forever while the panel stayed open.
+  const messagesRef = useRef(messages);
+  const abortRef = useRef(null);
+  const focusTimerRef = useRef(null);
+
+  useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Abort any in-flight stream and cancel the pending focus timer on unmount.
+  // Closing the panel unmounts this component, and previously the reader kept
+  // running and called setMessages/setLoading on an unmounted component.
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+  }, []);
 
   const sendMessage = useCallback(async (prompt) => {
     if (!prompt?.trim() || loading) return;
 
     const userMsg = { role: "user", content: prompt };
     setMessages(prev => [...prev, userMsg]);
-    analytics.trackAiInteraction("chat", prompt.length);
     setInput("");
     setLoading(true);
 
     const placeholderId = Date.now();
     setMessages(prev => [...prev, { role: "model", content: "", _id: placeholderId }]);
 
-    try {
-      const historyToSend = [...messages, userMsg].slice(-10);
+    const controller = new AbortController();
+    abortRef.current?.abort();
+    abortRef.current = controller;
 
+    try {
+      const historyToSend = [...messagesRef.current, userMsg].slice(-10);
+
+      const token = localStorage.getItem("token");
       const response = await fetch(`${ENDPOINTS.API_BASE_URL}/ai/chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "text/event-stream"
+          "Accept": "text/event-stream",
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
         },
-        body: JSON.stringify({ code: currentCode, language, messages: historyToSend })
+        body: JSON.stringify({ code: currentCode, language, messages: historyToSend }),
+        signal: controller.signal
       });
 
       if (!response.ok) {
@@ -343,7 +368,11 @@ function AiPanel({
       let accumulated = "";
       let buffer = "";
 
-      while (true) {
+      // `streamDone` replaces a bare `while (true)`: the [DONE] sentinel used to
+      // break only the inner `for`, so the reader kept consuming after the
+      // stream had logically ended.
+      let streamDone = false;
+      while (!streamDone) {
         const { done, value } = await reader.read();
         if (done) break;
 
@@ -355,7 +384,7 @@ function AiPanel({
           const trimmed = line.trim();
           if (!trimmed || !trimmed.startsWith("data: ")) continue;
           const dataStr = trimmed.slice(6).trim();
-          if (dataStr === "[DONE]") break;
+          if (dataStr === "[DONE]") { streamDone = true; break; }
           try {
             const parsed = JSON.parse(dataStr);
             if (parsed.error) {
@@ -385,7 +414,8 @@ function AiPanel({
       });
 
     } catch (err) {
-      console.error("[AiPanel] Stream error:", err);
+      // An aborted stream is an intentional teardown, not a failure to report.
+      if (err.name === "AbortError") return;
       setMessages(prev => {
         const next = [...prev];
         const idx = next.findIndex(m => m._id === placeholderId);
@@ -399,26 +429,27 @@ function AiPanel({
         return next;
       });
     } finally {
+      if (abortRef.current === controller) abortRef.current = null;
       setLoading(false);
-      setTimeout(() => inputRef.current?.focus(), 100);
+      if (focusTimerRef.current) clearTimeout(focusTimerRef.current);
+      focusTimerRef.current = setTimeout(() => inputRef.current?.focus(), 100);
     }
-  }, [loading, messages, currentCode, language]);
+  }, [loading, currentCode, language]);
 
   const handleSubmit = useCallback((e) => {
     e?.preventDefault();
     sendMessage(input);
   }, [input, sendMessage]);
 
+  // Auto-send a prompt handed in from the editor ("Explain Error"), exactly
+  // once per distinct prompt value. A *new* prompt re-arms it naturally
+  // because the stored value differs; the same prompt never re-sends.
   useEffect(() => {
-    if (initialPrompt && isOpen && !hasTriggeredInitial.current) {
-      sendMessage(initialPrompt);
-      hasTriggeredInitial.current = true;
-    }
+    if (!initialPrompt || !isOpen) return;
+    if (lastAutoPrompt.current === initialPrompt) return;
+    lastAutoPrompt.current = initialPrompt;
+    sendMessage(initialPrompt);
   }, [initialPrompt, isOpen, sendMessage]);
-
-  useEffect(() => {
-    if (initialPrompt) hasTriggeredInitial.current = false;
-  }, [initialPrompt]);
 
   useEffect(() => {
     if (scrollRef.current) {

@@ -36,12 +36,15 @@ export function useAuth() {
   }, [logoutUser]);
 
   useEffect(() => {
-    // PRIME MODE: Immediate OAuth token detection from URL
+    // PRIME MODE: Immediate OAuth token detection from URL.
+    // This is a genuine external-input sync (the URL is set by the OAuth
+    // redirect, outside React), which is exactly what an effect is for.
     const searchParams = new URLSearchParams(window.location.search);
     const oauthToken = searchParams.get("token");
-    
+
     if (oauthToken) {
       // 1. Immediately persist to state and storage
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setToken(oauthToken);
       localStorage.setItem("token", oauthToken);
       
@@ -55,9 +58,17 @@ export function useAuth() {
 
 
   useEffect(() => {
+    // Hydrating from localStorage + verifying the session against the API is a
+    // subscription to external state, not derived render data.
     if (token) {
       const savedUser = localStorage.getItem("sam_user");
-      if (savedUser) setUser(JSON.parse(savedUser));
+      try {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        if (savedUser) setUser(JSON.parse(savedUser));
+      } catch {
+        // Corrupt cached user — fetchUser below is the source of truth.
+        localStorage.removeItem("sam_user");
+      }
       fetchUser(token);
     } else {
       setLoading(false);

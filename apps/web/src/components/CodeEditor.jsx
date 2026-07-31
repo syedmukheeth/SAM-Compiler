@@ -62,9 +62,21 @@ const CodeEditor = ({
   useEffect(() => { sessionIdRef.current = sessionId; }, [sessionId]);
   useEffect(() => { languageRef.current = language; }, [language]);
 
+  // initYjs is a useCallback with no deps ("always reads from refs"), but it
+  // closed over `onChange`, which was NOT in a ref. onChange is memoised on
+  // activeLangId upstream, so after a language switch the Yjs observer kept
+  // calling the *previous* onChange and wrote edits into the previous
+  // language's buffer.
+  const onChangeRef = useRef(onChange);
+  useEffect(() => { onChangeRef.current = onChange; }, [onChange]);
+
   const monacoLanguage = useMemo(() => LANGUAGE_TO_MONACO[language] ?? "javascript", [language]);
-  const localName = useMemo(() => userName || RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)], [userName]);
-  const localColor = useMemo(() => COLORS[Math.floor(Math.random() * COLORS.length)], []);
+  // Randomised once via lazy state initialisers rather than in a useMemo body:
+  // Math.random() during render is impure, and with the previous deps the
+  // collaborator identity could change on re-render.
+  const [randomName] = useState(() => RANDOM_NAMES[Math.floor(Math.random() * RANDOM_NAMES.length)]);
+  const [localColor] = useState(() => COLORS[Math.floor(Math.random() * COLORS.length)]);
+  const localName = userName || randomName;
 
   // Store name/color in refs so the mount callback always has them without re-mounting
   const localNameRef = useRef(localName);
@@ -118,7 +130,7 @@ const CodeEditor = ({
     // auto-formatting rewrites) and can cause unnecessary React re-render cycles.
     const onYtextChange = () => {
       if (hasInitializedRef.current) {
-        onChange?.(ytext.toString());
+        onChangeRef.current?.(ytext.toString());
       }
     };
     ytext.observe(onYtextChange);
@@ -139,8 +151,8 @@ const CodeEditor = ({
     cleanupRef.current = () => {
       ytext.unobserve(onYtextChange);
       provider.off("sync", handleSync);
-      try { binding.destroy(); } catch (_) {}
-      try { provider.destroy(); } catch (_) {}
+      try { binding.destroy(); } catch { /* already torn down */ }
+      try { provider.destroy(); } catch { /* already torn down */ }
       hasInitializedRef.current = false;
     };
   }, []); // no deps — always reads from refs

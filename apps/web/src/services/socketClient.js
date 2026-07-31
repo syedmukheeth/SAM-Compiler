@@ -25,21 +25,13 @@ function emitStatus(status, details = {}) {
 export function getSocket(tokenArg) {
   const token = tokenArg || localStorage.getItem("token");
 
-  let hasLoggedGuestMode = false;
-
-  if (!token && !window.__sam_hasLoggedGuestMode) {
-    console.info("ℹ️ [SAM Compiler] No auth token found. Initializing in Guest mode.");
-    window.__sam_hasLoggedGuestMode = true;
-  }
-
   // Idempotent singleton check
   if (socket) {
     socket.auth = { token };
     return socket;
   }
-  
+
   const endpoint = ENDPOINTS.WS_ENDPOINT;
-  console.log(`📡 [SAM Compiler] Initializing Secure WebSocket machine @ ${endpoint}`);
 
   emitStatus(SOCKET_STATES.CONNECTING);
 
@@ -78,8 +70,7 @@ export function getSocket(tokenArg) {
 
   socket.on("connect_error", (err) => {
     if (!navigator.onLine) return;
-    console.error("❌ [SAM Compiler] Socket Error:", err.message);
-    
+
     // 🔥 FIX: Only report as RECONNECTING if we were previously stable
     if (hasConnectedOnce) {
       emitStatus(SOCKET_STATES.RECONNECTING, { error: err.message });

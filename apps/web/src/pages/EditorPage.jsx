@@ -1,9 +1,9 @@
 import React, { useRef, useState, useEffect, useCallback, useMemo } from "react";
 import CodeEditor from "../components/CodeEditor";
 import LanguageSelector from "../components/LanguageSelector";
-import { Terminal as XTerm } from 'xterm';
-import { FitAddon } from 'xterm-addon-fit';
-import 'xterm/css/xterm.css';
+import { Terminal as XTerm } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
 import { parseErrors } from "../services/errorParser";
@@ -11,10 +11,8 @@ import { parseErrors } from "../services/errorParser";
 // ⚡ LAZY LOAD PERFORMANCE HYDRATION (Code-Splitting)
 const SettingsModal = React.lazy(() => import("../components/SettingsModal"));
 const AuthModal     = React.lazy(() => import("../components/AuthModal"));
-const UpgradeModal  = React.lazy(() => import("../components/UpgradeModal"));
 const HistoryPanel  = React.lazy(() => import("../components/HistoryPanel"));
 const AiPanel       = React.lazy(() => import("../components/AiPanel"));
-const FeedbackModal = React.lazy(() => import("../components/FeedbackModal"));
 const AboutModal    = React.lazy(() => import("../components/AboutModal"));
 
 import StatusBar from "../components/StatusBar";
@@ -29,7 +27,6 @@ import toast, { Toaster } from 'react-hot-toast';
 import { motion, AnimatePresence } from "framer-motion";
 import ENDPOINTS from "../services/endpoints";
 import OfficialLogo, { OFFICIAL_LOGO_WHITE, OFFICIAL_LOGO_BLACK } from "../components/OfficialLogo";
-import analytics from "../services/metrics";
 
 // Standalone components imported for clean scoping
 import ThemeToggle from "../components/ThemeToggle";
@@ -70,18 +67,44 @@ const languageConfigs = {
   }
 };
 
+/** xterm colour scheme, applied on mount and updated in place on theme change. */
+function buildTerminalTheme(theme) {
+  const isDark = theme === "dark";
+  return {
+    background: isDark ? '#0A0A0A' : '#FAFAFA',
+    foreground: isDark ? '#FFFFFF' : '#0F172A',
+    cursor: isDark ? '#FFFFFF' : '#0F172A',
+    selectionBackground: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(15, 23, 42, 0.15)',
+    black: isDark ? '#1A1A1A' : '#000000',
+    red: isDark ? '#FF3B3B' : '#DC2626',
+    green: isDark ? '#10B981' : '#059669',
+    yellow: isDark ? '#FBBF24' : '#D97706',
+    blue: isDark ? '#60A5FA' : '#2563EB',
+    magenta: isDark ? '#F472B6' : '#DB2777',
+    cyan: isDark ? '#22D3EE' : '#0891B2',
+    white: isDark ? '#FFFFFF' : '#0F172A',
+  };
+}
+
 export default function EditorPage() {
   // --- 1. Framework Hooks (High Priority) ---
   const [searchParams, setSearchParams] = useSearchParams();
-  const { user, token, loginUser, logoutUser } = useAuth();
-  const [isGuest, setIsGuest] = useState(() => localStorage.getItem('sam_is_guest') === '1');
+  const { user, token, loginUser, logoutUser, loading: authLoading } = useAuth();
+  const [guestFlag, setGuestFlag] = useState(() => localStorage.getItem('sam_is_guest') === '1');
 
-  // Clear guest flag when a real user logs in
+  // Derived, not synced. Previously an effect called setIsGuest(false) in its
+  // body whenever `user` changed, which triggers a cascading re-render; a
+  // signed-in user is simply never a guest.
+  const isGuest = !user && guestFlag;
+
+  const setIsGuest = useCallback((value) => {
+    setGuestFlag(value);
+    if (value) localStorage.setItem('sam_is_guest', '1');
+    else localStorage.removeItem('sam_is_guest');
+  }, []);
+
   useEffect(() => {
-    if (user) {
-      localStorage.removeItem('sam_is_guest');
-      setIsGuest(false);
-    }
+    if (user) localStorage.removeItem('sam_is_guest');
   }, [user]);
   // --- 2. State Hooks ---
   const [activeLangId, setActiveLangId] = useState(() => {
@@ -113,12 +136,18 @@ export default function EditorPage() {
           return sanitized;
         }
       }
-    } catch (e) {}
+    } catch {
+      // Corrupt localStorage payload — fall through to defaults.
+    }
     return defaults;
   });
   const [isColdStarting] = useState(false);
   const [runStatus, setRunStatus] = useState("Ready");
   const [theme, setTheme] = useState(() => localStorage.getItem('sam-theme') || 'dark');
+  // Lets the mount-once terminal effect read the current theme without taking
+  // it as a dependency (which is what caused the terminal to be rebuilt).
+  const themeRef = useRef(theme);
+  useEffect(() => { themeRef.current = theme; }, [theme]);
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [showAiPanel, setShowAiPanel] = useState(false);
@@ -133,8 +162,36 @@ export default function EditorPage() {
   const [errorMarkers, setErrorMarkers] = useState([]);
   const stdErrRef = useRef("");
   const [editorWidth, setEditorWidth] = useState(() => Number(localStorage.getItem('sam-editor-width')) || 50);
-  const [terminalWidth, setTerminalWidth] = useState(() => Number(localStorage.getItem('sam-terminal-width')) || 33.33);
   const [aiWidth, setAiWidth] = useState(() => Number(localStorage.getItem('sam-ai-width-pct')) || 33.33);
+
+  /**
+   * The main row is: editor (fixed %) | splitter | terminal (flex:1) | splitter | AI (fixed %).
+   * The terminal only gets whatever is left over, so editorWidth + aiWidth must
+   * stay meaningfully under 100. The toggle paths used to set the two
+   * independently and never persist them, while the drag handlers did persist —
+   * so dragging AI to 70%, reloading, then pressing Ctrl+/ produced
+   * 33.33 + 70 = 103.33% and collapsed the terminal to zero width (which
+   * FitAddon.fit() then threw on, swallowed by a bare catch).
+   */
+  const applyLayout = useCallback((nextEditor, nextAi, aiVisible) => {
+    const MIN_PANEL = 15;
+    const MIN_TERMINAL = 15;
+    const maxSingle = 100 - MIN_TERMINAL;
+
+    let editor = Math.min(Math.max(nextEditor, MIN_PANEL), maxSingle);
+    let ai = aiVisible ? Math.min(Math.max(nextAi, MIN_PANEL), maxSingle) : nextAi;
+
+    if (aiVisible && editor + ai > maxSingle) {
+      ai = Math.max(MIN_PANEL, maxSingle - editor);
+      if (editor + ai > maxSingle) editor = Math.max(MIN_PANEL, maxSingle - ai);
+    }
+
+    setEditorWidth(editor);
+    setAiWidth(ai);
+    localStorage.setItem('sam-editor-width', String(editor));
+    localStorage.setItem('sam-ai-width-pct', String(ai));
+    return { editor, ai };
+  }, []);
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
@@ -142,8 +199,8 @@ export default function EditorPage() {
   const [pyodide, setPyodide] = useState(null);
 
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
+  const [pyodideError, setPyodideError] = useState(null);
   const [pendingAiPrompt, setPendingAiPrompt] = useState(null);
-  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [stdin, setStdin] = useState("");
   const [showInputPanel, setShowInputPanel] = useState(true);
@@ -152,7 +209,7 @@ export default function EditorPage() {
     try {
       const saved = typeof localStorage !== 'undefined' ? localStorage.getItem("sam_settings") : null;
       return saved ? JSON.parse(saved) : { fontSize: 14, tabSize: 2 };
-    } catch (e) { return { fontSize: 14, tabSize: 2 }; }
+    } catch { return { fontSize: 14, tabSize: 2 }; }
   });
 
 
@@ -211,7 +268,7 @@ export default function EditorPage() {
     const gccMatch = line.match(gccRegex);
     
     if (gccMatch) {
-      const [_, file, lineNum, colNum, type, msg] = gccMatch;
+      const [, file, lineNum, colNum, type, msg] = gccMatch;
       const isError = type.toLowerCase().includes('error');
       const typeColor = isError ? boldRed : "\x1b[1;33m";
       return `${dim}${file}:${lineNum}${colNum ? `:${colNum}` : ""}:${reset} ${typeColor}${type}:${reset} ${white}${msg}${reset}\r\n`;
@@ -288,7 +345,6 @@ builtins.input = input_shim
     hasReceivedOutputRef.current = false;
     setErrorMarkers([]);
     stdErrRef.current = "";
-    analytics.trackCodeRun(activeLangId, null); 
     
     const socket = getSocket(token);
     if (runRef.current.jobId && socket) {
@@ -318,8 +374,8 @@ builtins.input = input_shim
           socket.once("connect", onConnect);
           socket.connect();
         });
-      } catch (err) {
-        console.warn("Socket connection failed, proceeding with polling only.");
+      } catch {
+        // Socket unavailable — the polling fallback below still applies.
       }
     }
 
@@ -335,11 +391,13 @@ builtins.input = input_shim
         return;
       }
     }
-    try {
-      const onLog = (evt) => {
-        const currentJobId = runRef.current.jobId;
-        if (!evt || !currentJobId) return;
-        
+    // Declared outside the try so the finally block can always detach the
+    // listener and unsubscribe, even if the run throws part-way through.
+    let jobId;
+    const onLog = (evt) => {
+      const currentJobId = runRef.current.jobId;
+      if (!evt || !currentJobId) return;
+
         if (evt.type === "stdout" || evt.type === "stderr") {
            const content = evt.chunk || "";
            if (content.trim()) {
@@ -389,18 +447,17 @@ builtins.input = input_shim
             }
           }
 
-          analytics.trackCodeRun(activeLangId, success);
           setBusy(false);
         }
-      };
+    };
 
+    try {
       if (socket) {
         socket.off("exec:log"); // Clear any stale listeners
         socket.on("exec:log", onLog);
       }
 
-      let jobId;
-      
+
       // 🔥 NITRO: Direct Socket Submission (Bypasses HTTP overhead)
       if (socket && socket.connected) {
         console.log("📡 [SAM] Nitro Path: Submitting via Socket...");
@@ -468,8 +525,7 @@ builtins.input = input_shim
         }
         // Write summary
         const success = finalState.status === 'succeeded';
-        const reset = '\x1b[0m';
-        
+
         if (success) {
           xtermRef.current.write(`\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n`);
         } else {
@@ -491,10 +547,8 @@ builtins.input = input_shim
         setBusy(false);
       }
 
-      if (socket) {
-        socket.off("exec:log", onLog);
-        socket.emit("unsubscribe", { jobId });
-      }
+      // Listener teardown also happens in `finally` — if anything between here
+      // and there throws, the handler must still come off.
 
       // 🕒 PERSISTENT GUEST HISTORY ENGINE
       if (!user && finalState) {
@@ -529,9 +583,16 @@ builtins.input = input_shim
       if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${cleanMsg}\x1b[0m\r\n`);
       setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${cleanMsg}\n\nIs this an issue with my code or the server?`);
     } finally {
+      // This used to sit inside the `try`, so any throw on the way there —
+      // including a failed poll — left a permanent exec:log handler behind,
+      // holding a closure over the run's state. One leak per failed run.
+      if (socket) {
+        socket.off("exec:log", onLog);
+        if (jobId) socket.emit("unsubscribe", { jobId });
+      }
       setBusy(false);
     }
-  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin]);
+  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin, user, renderDiagnosticLine]);
 
   const onClear = () => {
     if (xtermRef.current) xtermRef.current.clear();
@@ -546,7 +607,10 @@ builtins.input = input_shim
     }
   }, [activeLangId]);
 
-  const startResizingEditor = useCallback(() => {
+  const startResizingEditor = useCallback((e) => {
+    // startResizingAi called preventDefault but this one did not, so dragging
+    // the editor splitter also began a native text/image selection.
+    e?.preventDefault();
     setIsResizingEditor(true);
     document.body.style.cursor = 'col-resize';
     document.body.style.userSelect = 'none';
@@ -567,12 +631,9 @@ builtins.input = input_shim
       const x = e.clientX - containerRect.left;
       const pct = (x / containerRect.width) * 100;
       
-      if (pct > 15 && pct < (showAiPanel ? 100 - aiWidth - 15 : 85)) {
-        setEditorWidth(pct);
-        localStorage.setItem('sam-editor-width', pct.toString());
-      }
+      applyLayout(pct, aiWidth, showAiPanel);
     });
-  }, [isResizingEditor, showAiPanel, aiWidth]);
+  }, [isResizingEditor, showAiPanel, aiWidth, applyLayout]);
 
   const startResizingAi = useCallback((e) => {
     e.preventDefault();
@@ -595,12 +656,9 @@ builtins.input = input_shim
       const x = e.clientX - containerRect.left;
       const pct = 100 - ((x / containerRect.width) * 100);
       
-      if (pct > 15 && pct < 100 - editorWidth - 15) {
-        setAiWidth(pct);
-        localStorage.setItem('sam-ai-width-pct', pct.toString());
-      }
+      applyLayout(editorWidth, pct, true);
     });
-  }, [isResizingAi, editorWidth]);
+  }, [isResizingAi, editorWidth, applyLayout]);
 
   useEffect(() => {
     if (isResizingEditor) {
@@ -662,14 +720,13 @@ builtins.input = input_shim
         const data = await res.json();
         
         setIsEngineReady(data.canExecute || data.workerOnline);
-        setIsWorkerOnline(data.workerOnline);
         setEngineMode(data.workerOnline ? "primary" : data.canExecute ? "sandbox" : "preparing");
         
         if (data.canExecute || data.workerOnline) {
           if (failSafeTimer) clearTimeout(failSafeTimer);
           setFailSafeActive(false);
         }
-      } catch (err) {
+      } catch {
         // Transient network failure? Don't panic immediately unless navigator.onLine is false
         if (!navigator.onLine) {
           setIsEngineReady(false);
@@ -738,7 +795,7 @@ builtins.input = input_shim
   // Socket status monitoring with Stability Timer
   useEffect(() => {
     fetch(`${ENDPOINTS.WS_ENDPOINT}/api/runs/health/queue`).catch(() => {}); // Explicit ping to wake Render early
-    const socket = getSocket(token);
+    getSocket(token);
     
     let stabilityTimer = null;
     let flickerTimer = null;
@@ -797,35 +854,59 @@ builtins.input = input_shim
       try {
         const socket = getSocket(token);
         if (socket) {
-          console.log(`🛡️ [SAM] Connection recovered. Resubscribing to active job: ${runRef.current.jobId}`);
           socket.emit("subscribe", { jobId: runRef.current.jobId });
         }
-      } catch (err) {
-        console.warn("⚠️ [SAM] Resubscribe failed:", err);
+      } catch {
+        // Resubscribe is best-effort; the polling fallback still resolves the run.
       }
     }
     prevSocketStatusRef.current = socketStatus;
   }, [socketStatus, busy]);
 
-  // Pyodide (Python-in-browser) engine
+  // Pyodide (Python-in-browser) engine.
+  //
+  // Loads once on mount. Previously the effect depended on the very state it
+  // set (isPyodideLoading/pyodide) and called setState synchronously in its
+  // body, and it had no script.onerror — so a blocked CDN pinned
+  // isPyodideLoading at true forever — and never removed the injected <script>.
+  const pyodideRequestedRef = useRef(false);
   useEffect(() => {
-    if (!window.loadPyodide && !isPyodideLoading && !pyodide) {
-      setIsPyodideLoading(true);
-      const script = document.createElement("script");
-      script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
-      script.onload = async () => {
-        try {
-          const py = await window.loadPyodide({ indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/" });
-          setPyodide(py);
-          setIsPyodideLoading(false);
-        } catch (err) {
-          console.error("Pyodide failed:", err);
-          setIsPyodideLoading(false);
-        }
-      };
-      document.body.appendChild(script);
-    }
-  }, [isPyodideLoading, pyodide]);
+    if (pyodideRequestedRef.current || window.loadPyodide) return;
+    pyodideRequestedRef.current = true;
+
+    let cancelled = false;
+    const script = document.createElement("script");
+    script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
+
+    script.onload = async () => {
+      try {
+        const py = await window.loadPyodide({
+          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
+        });
+        if (cancelled) return;
+        setPyodide(py);
+      } catch {
+        if (!cancelled) setPyodideError("The Python engine failed to initialise.");
+      } finally {
+        if (!cancelled) setIsPyodideLoading(false);
+      }
+    };
+
+    script.onerror = () => {
+      if (cancelled) return;
+      pyodideRequestedRef.current = false;
+      setIsPyodideLoading(false);
+      setPyodideError("Could not download the Python engine. Check your connection and retry.");
+    };
+
+    setIsPyodideLoading(true);
+    document.body.appendChild(script);
+
+    return () => {
+      cancelled = true;
+      script.remove();
+    };
+  }, []);
 
   // High-fidelity branding & Title sync
   useEffect(() => {
@@ -846,33 +927,27 @@ builtins.input = input_shim
           fitAddonRef.current.fit();
           xtermRef.current.refresh(0, xtermRef.current.rows - 1); // 🔥 FORCE RENDER
         }
-      } catch (err) {
+      } catch {
         // Silent catch for transient dimension errors during layout transitions
       }
     }
   }, []);
 
-  // Terminal (XTerm.js) initialization
+  // Terminal (XTerm.js) initialization.
+  //
+  // Mounts ONCE. `theme` used to be a dependency of this effect, so toggling
+  // light/dark disposed the terminal and built a new one — destroying the
+  // entire 5000-line scrollback (every compiler error the user had just read).
+  // Theme is now applied to the live instance in the effect below.
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
-    const isDark = theme === "dark";
     const term = new XTerm({
       allowTransparency: true,
-      theme: {
-        background: isDark ? '#0A0A0A' : '#FAFAFA',
-        foreground: isDark ? '#FFFFFF' : '#0F172A',
-        cursor: isDark ? '#FFFFFF' : '#0F172A',
-        selectionBackground: isDark ? 'rgba(255, 255, 255, 0.3)' : 'rgba(15, 23, 42, 0.15)',
-        black: isDark ? '#1A1A1A' : '#000000',
-        red: isDark ? '#FF3B3B' : '#DC2626',
-        green: isDark ? '#10B981' : '#059669',
-        yellow: isDark ? '#FBBF24' : '#D97706',
-        blue: isDark ? '#60A5FA' : '#2563EB',
-        magenta: isDark ? '#F472B6' : '#DB2777',
-        cyan: isDark ? '#22D3EE' : '#0891B2',
-        white: isDark ? '#FFFFFF' : '#0F172A',
-      },
-      fontFamily: 'var(--font-mono)',
+      theme: buildTerminalTheme(themeRef.current),
+      // xterm renders to a canvas and cannot resolve CSS custom properties, so
+      // 'var(--font-mono)' silently fell back to xterm's default monospace and
+      // the terminal never matched the rest of the app.
+      fontFamily: "'JetBrains Mono', Menlo, Monaco, Consolas, monospace",
       fontSize: 12,
       lineHeight: 1.5,
       letterSpacing: 0.4,
@@ -891,8 +966,8 @@ builtins.input = input_shim
         if (terminalRef.current && terminalRef.current.offsetParent !== null) {
           fitAddon.fit();
         }
-      } catch (e) {
-        console.warn("Terminal initial fit failed, will retry on resize.");
+      } catch {
+        // Initial fit can fail while the panel has zero size; the ResizeObserver retries.
       }
     }, 100);
 
@@ -910,7 +985,7 @@ builtins.input = input_shim
           if (terminalRef.current && terminalRef.current.offsetParent !== null) {
             fitAddon.fit();
           }
-        } catch (e) {}
+        } catch { /* terminal already disposed */ }
       }
     });
     if (terminalRef.current) resizeObserver.observe(terminalRef.current);
@@ -922,7 +997,12 @@ builtins.input = input_shim
       term.dispose();
       xtermRef.current = null;
     };
-  }, [theme, safeFit]);
+  }, [safeFit]);
+
+  // Recolour the existing terminal in place — no dispose, no lost scrollback.
+  useEffect(() => {
+    if (xtermRef.current) xtermRef.current.options.theme = buildTerminalTheme(theme);
+  }, [theme]);
 
   // Consolidate layout fit on change
   useEffect(() => {
@@ -949,9 +1029,9 @@ builtins.input = input_shim
           const opening = !prev;
           if (opening) {
             if (isMobile) setActiveMobileTab('ai');
-            else setEditorWidth(33.33);
+            else applyLayout(33.33, aiWidth, true);
           } else {
-            if (!isMobile) setEditorWidth(50);
+            if (!isMobile) applyLayout(50, aiWidth, false);
           }
           return opening;
         });
@@ -966,7 +1046,7 @@ builtins.input = input_shim
 
 
   return (
-    <div className={`relative flex h-screen h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isMobile ? 'pb-[88px]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
+    <div className={`relative flex h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isMobile ? 'pb-[88px]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -1011,8 +1091,17 @@ builtins.input = input_shim
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
-            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass dark:bg-sam-bg/95 bg-sam-text/95 border-sam-glass-border shadow-2xl z-[150] md:hidden overflow-hidden"
-            style={{ borderRadius: 20 }}
+            /* Was `md:hidden` (<768) while the header that opens it is
+               `lg:hidden` (<1024). Between 768–1023px the hamburger rendered
+               but the menu it toggled did not — the button did nothing. */
+            className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass border-sam-glass-border shadow-2xl z-[150] lg:hidden overflow-hidden"
+            style={{
+              borderRadius: 20,
+              // Was `dark:bg-sam-bg/95 bg-sam-text/95`. Tailwind's `dark:`
+              // variant follows the OS, not this app's `.light` class on
+              // <html>, so the menu inverted whenever the two disagreed.
+              background: theme === 'light' ? 'rgba(255,255,255,0.95)' : 'rgba(0,0,0,0.95)',
+            }}
           >
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-2 gap-3">
@@ -1119,7 +1208,10 @@ builtins.input = input_shim
             </div>
           </div>
           
-          <nav className="hidden xl:flex items-center gap-8">
+          {/* Was `xl:flex` (>=1280) inside a header that appears at `lg`
+              (>=1024). Combined with the menu bug above, Settings had no
+              trigger at all anywhere in the 768–1279px range. */}
+          <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {['Editor', 'Dashboard', 'Settings'].map((tab) => {
               if (tab === 'Dashboard') {
                 if (user?.role !== 'admin') return null;
@@ -1185,10 +1277,24 @@ builtins.input = input_shim
                   style={{ width: 22, height: 22, borderRadius: '50%', objectFit: 'cover' }}
                 />
               </div>
+            ) : authLoading ? (
+              /* useAuth exposes `loading`, which this page never read — so an
+                 authenticated user saw the "Sign In" button flash on every load
+                 until fetchUser resolved. */
+              <div
+                className="flex items-center gap-2 rounded-full border px-4 py-1.5 shadow-sm"
+                style={{ borderColor: 'var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}
+                aria-busy="true"
+              >
+                <Loader2 className="h-3 w-3 animate-spin" style={{ color: 'var(--sam-text-dim)' }} />
+                <span className="text-[9px] font-black uppercase tracking-[0.2em]" style={{ color: 'var(--sam-text-dim)' }}>
+                  Signing in
+                </span>
+              </div>
             ) : isGuest ? (
-              <div 
+              <div
                 className="flex items-center p-1 pl-4 rounded-full border transition-all shadow-sm"
-                style={{ 
+                style={{
                   borderColor: 'var(--sam-glass-border)',
                   background: 'var(--sam-surface-low)'
                 }}
@@ -1239,11 +1345,9 @@ builtins.input = input_shim
                   if (next) setActiveMobileTab('ai');
                 } else {
                   if (next) {
-                    setEditorWidth(33.33);
-                    setAiWidth(33.33);
+                    applyLayout(33.33, 33.33, true);
                   } else {
-                    setEditorWidth(50);
-                    setAiWidth(33.33); // Normal defaults
+                    applyLayout(50, 33.33, false);
                   }
                 }
               }}
@@ -1416,11 +1520,24 @@ builtins.input = input_shim
                     {languageConfigs[activeLangId]?.name}
                   </span>
                 </div>
+                {/* Python runs in-browser via Pyodide (~10MB from a CDN). This
+                    state existed but was never rendered, so hitting Run before
+                    the download finished just threw into the terminal. */}
+                {activeLangId === 'python' && (isPyodideLoading || pyodideError) && (
+                  <span
+                    className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest"
+                    style={{ color: pyodideError ? '#ef4444' : 'var(--sam-text-dim)' }}
+                    role="status"
+                  >
+                    {isPyodideLoading && <Loader2 className="h-3 w-3 animate-spin" />}
+                    {pyodideError ? 'Python engine unavailable' : 'Loading Python engine'}
+                  </span>
+                )}
                 {!isMobile && (
                   <motion.button
                     id="editor-run-btn"
                     onClick={onRun}
-                    disabled={busy}
+                    disabled={busy || (activeLangId === 'python' && isPyodideLoading)}
                     whileTap={{ scale: 0.95 }}
                     className="sam-button-run transition-all duration-300 flex items-center justify-center min-w-[100px] h-8 rounded-lg border shadow-sm px-4"
                     style={{
@@ -1461,7 +1578,11 @@ builtins.input = input_shim
               
               <div className="flex-1 overflow-hidden relative">
                 <CodeEditor
-                   key={sessionId}
+                   /* Deliberately NOT keyed on sessionId: that embeds
+                      activeLangId, so every language switch fully unmounted and
+                      remounted Monaco (~1-2s, losing undo stack, folds and
+                      cursor). CodeEditor re-inits Yjs on sessionId/language
+                      change internally, which is all that was needed. */
                    language={activeLangId}
                    value={buffers[activeLangId]}
                    onChange={onCodeChange}
@@ -1548,8 +1669,7 @@ builtins.input = input_shim
                           if (isMobile) {
                             setActiveMobileTab('ai');
                           } else {
-                            setEditorWidth(33.33);
-                            setAiWidth(33.33);
+                            applyLayout(33.33, 33.33, true);
                           }
                         }}
                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-500/30 bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-all shadow-[0_0_15px_rgba(59,130,246,0.1)] ml-2"
@@ -1723,8 +1843,7 @@ builtins.input = input_shim
                     setShowAiPanel(false);
                     if (isMobile) setActiveMobileTab('editor');
                     else {
-                      setEditorWidth(50);
-                      setAiWidth(33.33);
+                      applyLayout(50, 33.33, false);
                     }
                   }}
                   currentCode={buffers[activeLangId]}
@@ -1782,7 +1901,6 @@ builtins.input = input_shim
           language={activeLangId.toUpperCase()}
           socketStatus={socketStatus}
           showBanner={showStatusBanner}
-          onReportBug={() => setIsFeedbackModalOpen(true)}
           onShowAbout={() => setActiveModal('about')}
           theme={theme}
           busy={busy}
@@ -1850,7 +1968,6 @@ builtins.input = input_shim
             }
           }}
         />
-        <UpgradeModal isOpen={activeModal === 'upgrade'} onClose={() => setActiveModal(null)} />
         <HistoryPanel
           isOpen={showHistory}
           onClose={() => setShowHistory(false)}
@@ -1858,7 +1975,6 @@ builtins.input = input_shim
           token={token}
           onLoadCode={handleLoadFromHistory}
         />
-        <FeedbackModal isOpen={isFeedbackModalOpen} onClose={() => setIsFeedbackModalOpen(false)} />
         <AboutModal isOpen={activeModal === 'about'} onClose={() => setActiveModal(null)} theme={theme} />
       </React.Suspense>
       
