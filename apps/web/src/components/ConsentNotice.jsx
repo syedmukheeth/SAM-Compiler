@@ -26,13 +26,13 @@ export default function ConsentNotice() {
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 50, opacity: 0 }}
           style={{
-            zIndex: 95,
+            zIndex: 130,
             bottom: 'calc(env(safe-area-inset-bottom) + 110px)' // Position above mobile nav tabs (~96px)
           }}
           className="fixed left-4 right-4 mx-auto max-w-xl md:bottom-8 md:left-8 md:right-8 lg:left-auto lg:right-12"
         >
           <div 
-            className="sam-glass flex flex-col gap-4 border border-sam-glass-border bg-[#0A0A0A]/90 p-5 backdrop-blur-3xl shadow-[0_20px_60px_rgba(0,0,0,0.8)] rounded-[24px] overflow-hidden"
+            className="sam-glass flex flex-col gap-4 border border-sam-glass-border bg-sam-surface/95 p-5 backdrop-blur-3xl shadow-glass rounded-[24px] overflow-hidden"
             style={{ maxHeight: '25vh' }}
           >
             <div className="flex items-start gap-4 overflow-y-auto custom-scrollbar pr-1">
@@ -42,7 +42,7 @@ export default function ConsentNotice() {
               
               <div className="flex-1">
                 <h4 className="text-[10px] font-black uppercase tracking-[0.2em] text-sam-text mb-1">Workspace Persistence</h4>
-                <p className="text-[11px] font-medium leading-relaxed text-white/50">
+                <p className="text-[11px] font-medium leading-relaxed text-sam-text-dim">
                   SAM uses essential cookies to preserve your cloud workspace state and session data. 
                   By continuing, you agree to our <a href="/privacy" className="text-sam-text hover:underline underline-offset-4 decoration-white/20">Privacy Policy</a>.
                 </p>
@@ -50,7 +50,7 @@ export default function ConsentNotice() {
 
               <button
                 type="button"
-                onClick={() => setIsVisible(false)}
+                onClick={() => handleAction("dismissed")}
                 className="shrink-0 p-1 text-sam-text-muted hover:text-sam-text transition-colors"
                 title="Dismiss"
               >

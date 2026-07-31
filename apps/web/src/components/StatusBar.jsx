@@ -2,12 +2,12 @@ import React from "react";
 import { Bug, RefreshCw, Info } from "lucide-react";
 import { reconnect } from "../services/socketClient";
 
-const StatusBar = ({ 
-  language = "JavaScript", 
-  onReportBug,
+const ISSUES_URL = "https://github.com/syedmukheeth/Liquid-IDE/issues/new";
+
+const StatusBar = ({
+  language = "JavaScript",
   onShowAbout,
   theme = 'dark',
-  busy = false,
   socketStatus = "connected",
   showBanner = true
 }) => {
@@ -100,28 +100,24 @@ const StatusBar = ({
 
         </div>
 
-        <span className={`opacity-20 hidden lg:inline ${theme === 'dark' ? 'text-sam-text-muted' : 'text-slate-300'}`}>|</span>
-        
-        {/* DYNAMIC METRICS: CPU / RAM (Hidden on Mobile) */}
-        <div className="hidden lg:flex items-center gap-6">
-           <div className="flex items-center gap-2 group cursor-default">
-              <span className={`text-[8.5px] font-black uppercase tracking-widest opacity-30 transition-opacity group-hover:opacity-100 ${theme === 'dark' ? 'text-sam-text' : 'text-slate-500'}`}>CPU</span>
-              <span className={`font-mono text-[10px] font-bold tabular-nums tracking-[0.15em] ${theme === 'dark' ? 'text-sam-text' : 'text-slate-900'}`}>
-                {busy ? (8 + Math.random() * 5).toFixed(1) : (0.1 + Math.random() * 0.3).toFixed(1)}%
-              </span>
-           </div>
-        </div>
+        {/* Removed: a "CPU" readout rendered from Math.random() and presented
+            to users as live telemetry. It measured nothing. */}
       </div>
 
       <div className="flex items-center gap-3 sm:gap-6 flex-nowrap">
-        <button 
-          onClick={onReportBug}
+        {/* Was wired to a modal that told the user "Report Received / Our
+            engineers are on it" and then console.logged the report and threw it
+            away. Now it goes somewhere a report is actually recorded. */}
+        <a
+          href={ISSUES_URL}
+          target="_blank"
+          rel="noopener noreferrer"
           className={`group flex items-center gap-2 transition-all hover:scale-105 active:scale-95 ${theme === 'dark' ? 'text-rose-400 hover:text-rose-300' : 'text-rose-500 hover:text-rose-600'}`}
-          title="Report a bug"
+          title="Report a bug on GitHub"
         >
           <Bug className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
           <span className="tracking-[0.2em] font-black opacity-80 group-hover:opacity-100 hidden sm:inline">Report Bug</span>
-        </button>
+        </a>
 
         <button 
            onClick={onShowAbout}

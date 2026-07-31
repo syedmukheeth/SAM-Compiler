@@ -35,6 +35,8 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
+    // Polling an external metrics endpoint — an effect is the right place.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     const timer = setInterval(fetchData, 10000);
     return () => clearInterval(timer);
@@ -256,7 +258,7 @@ export default function DashboardPage() {
                      <span className="text-[10px] font-bold text-sam-text-muted uppercase tracking-widest">Active Jobs</span>
                      <span className="text-lg font-black text-sam-text">{queueStatus?.workerStats?.activeJobs || 0}</span>
                   </div>
-                  <div className="text-[10px] text-sam-text-muted italic">Currently being processed by multiSandbox.js</div>
+                  <div className="text-[10px] text-sam-text-muted italic">Currently being processed by the execution worker</div>
                 </div>
              </div>
            </section>
@@ -275,15 +277,18 @@ export default function DashboardPage() {
                    label="Execution Cluster" 
                    desc={queueStatus?.workerOnline ? "Remote Docker Worker" : "Secondary Piston Fallback"}
                  />
-                 <HealthItem 
-                   status="success" 
-                   label="DB Persistence" 
-                   desc="MongoDB Atlas Cluster"
+                 {/* These two were hardcoded status="success" — health
+                     indicators that were green no matter what was actually
+                     happening. They now reflect the real queue payload. */}
+                 <HealthItem
+                   status={queueStatus?.mongoConnected ? "success" : "warning"}
+                   label="DB Persistence"
+                   desc={queueStatus?.mongoConnected ? "MongoDB connected" : "Running without persistence"}
                  />
-                 <HealthItem 
-                   status="success" 
-                   label="Log Streaming" 
-                   desc="Redis Pub/Sub Layer"
+                 <HealthItem
+                   status={queueStatus?.redisConnected ? "success" : "warning"}
+                   label="Log Streaming"
+                   desc={queueStatus?.redisConnected ? "Redis Pub/Sub Layer" : "Redis unavailable"}
                  />
               </div>
 
