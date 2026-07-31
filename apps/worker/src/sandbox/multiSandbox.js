@@ -205,37 +205,4 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
   });
 }
 
-async function findPythonCommand() {
-  const commands = ["python3", "python", "py"];
-  const { exec } = require("node:child_process");
-  const { promisify } = require("node:util");
-  const execAsync = promisify(exec);
-
-  const isWin = process.platform === "win32";
-
-  for (const cmd of commands) {
-    try {
-      if (isWin) {
-        // Specifically check 'where' and ignore WindowsApps stubs
-        const { stdout } = await execAsync(`where ${cmd}`);
-        const paths = stdout.split(/\r?\n/).filter(Boolean);
-        const realPath = paths.find(p => !p.includes("Microsoft\\WindowsApps"));
-        
-        if (realPath) {
-          // Verify it actually runs
-          await execAsync(`"${realPath}" --version`);
-          return `"${realPath}"`;
-        }
-      } else {
-        await execAsync(`command -v ${cmd}`);
-        await execAsync(`${cmd} --version`);
-        return cmd;
-      }
-    } catch (err) {
-      // Continue searching
-    }
-  }
-  return null;
-}
-
 module.exports = { executeRun };
