@@ -1,9 +1,11 @@
 const jwt = require("jsonwebtoken");
+const { z } = require("zod");
 const { env } = require("../../config/env");
 const { RunModel } = require("./runs.model");
 const { ProjectStateModel } = require("./project.model");
 const { createAdapter } = require("@socket.io/redis-adapter");
 const { logger } = require("../../config/logger");
+const { originChecker } = require("../../config/cors");
 const { getRedisClient } = require("./runs.queue");
 const Y = require("yjs");
 const { YSocketIO } = require("y-socket.io/dist/server");
@@ -16,6 +18,65 @@ const inputBuffers = new Map(); // jobId -> string[]
 const logBuffers = new Map(); // jobId -> { type, chunk }[]
 const activeSubscriptions = new Set(); // jobId
 const jobTimestamps = new Map(); // jobId -> timestamp
+
+/**
+ * Guest runs have no userId, so ownership cannot be derived from the document.
+ * Without this, every guard that tested `job.userId && ...` short-circuited and
+ * any client could attach to, feed stdin to, or tear down any anonymous run.
+ * First socket to claim a guest job owns it for the life of that connection.
+ */
+const guestJobOwners = new Map(); // jobId -> socket.id
+const execStartCounts = new Map(); // socket.id -> { count, windowStart }
+
+const EXEC_START_LIMIT = 20;         // executions per socket per window
+const EXEC_START_WINDOW_MS = 60000;
+
+const isValidJobId = (jobId) => typeof jobId === "string" && /^[a-f0-9]{24}$/i.test(jobId);
+
+// Mirrors CreateRunSchema on the HTTP route so both entry points agree.
+const ExecStartSchema = z.object({
+  language: z.enum(["nodejs", "javascript", "python", "cpp", "c", "java"]),
+  code: z.string().min(1).max(1_000_000),
+  stdin: z.string().max(100_000).default("")
+});
+
+function releaseJobOwner(jobId, socketId) {
+  if (!socketId || guestJobOwners.get(jobId) === socketId) guestJobOwners.delete(jobId);
+}
+
+/**
+ * @param {object} socket
+ * @param {string} jobId
+ * @param {{userId?: unknown}} job  Lean run document.
+ */
+function canAccessJob(socket, jobId, job) {
+  const ownerId = job.userId ? job.userId.toString() : null;
+
+  if (ownerId) {
+    // Owned run: only the owner (or an admin) may attach.
+    return ownerId === socket.user.id || socket.user.role === "admin";
+  }
+
+  // Guest run: claim it, or verify an existing claim belongs to this socket.
+  const claimedBy = guestJobOwners.get(jobId);
+  if (!claimedBy) {
+    guestJobOwners.set(jobId, socket.id);
+    return true;
+  }
+  return claimedBy === socket.id;
+}
+
+/** Per-socket execution throttle — exec:start had no rate limiting at all. */
+function allowExecStart(socketId) {
+  const now = Date.now();
+  const entry = execStartCounts.get(socketId);
+  if (!entry || now - entry.windowStart > EXEC_START_WINDOW_MS) {
+    execStartCounts.set(socketId, { count: 1, windowStart: now });
+    return true;
+  }
+  entry.count += 1;
+  return entry.count <= EXEC_START_LIMIT;
+}
 
 // Prevent memory leaks for orphaned execution buffers
 setInterval(() => {
@@ -39,15 +100,10 @@ function initSocket(server) {
   io = new Server(server, {
     transports: ["websocket"], // Prioritize websocket to avoid polling latency
     compression: true,        // Enable gzip/deflate for payloads
+    // Same exact-match policy as the HTTP app (config/cors.js). This used to
+    // be a second, independently-maintained copy of the substring check.
     cors: {
-      origin: (origin, callback) => {
-        const allowedOrigins = (env.WEB_ORIGIN || "").split(",").filter(Boolean);
-        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost") || origin.includes("127.0.0.1")) {
-          callback(null, true);
-        } else {
-          callback(new Error("Not allowed by CORS"));
-        }
-      },
+      origin: originChecker,
       credentials: true
     },
     pingTimeout: 20000, // Detect disconnects faster (from 120s to 20s)
@@ -93,9 +149,12 @@ function initSocket(server) {
       socket.user = decoded; // { id, email, role }
       next();
     } catch (err) {
-      logger.warn({ err: err.message, socketId: socket.id }, "Socket authentication failed. Falling back to guest.");
-      socket.user = { id: "guest", role: "guest", isGuest: true };
-      next();
+      // Previously this silently downgraded to a guest session, making a
+      // forged or expired token indistinguishable from an anonymous visitor.
+      // A client that presents a token is asserting an identity; if it does
+      // not verify, reject rather than quietly de-privileging.
+      logger.warn({ err: err.message, socketId: socket.id }, "Socket authentication failed");
+      next(new Error("Invalid or expired token"));
     }
   });
 
@@ -223,7 +282,7 @@ function initSocket(server) {
         try {
           const jobId = channel.replace("run:logs:", "");
           const data = JSON.parse(message);
-          logger.info({ jobId, type: data.type }, "📡 [SAM-AUDIT] [SOCKET] Received log from Redis channel");
+          logger.trace({ jobId, type: data.type }, "Log chunk received");
           emitLog(jobId, data.type, data.chunk);
         } catch (err) {
           logger.error({ err, channel }, "Failed to process Redis log message");
@@ -235,11 +294,22 @@ function initSocket(server) {
   }
 
   io.on("connection", (socket) => {
-    logger.info({ socketId: socket.id, userId: socket.user.id }, "Client authenticated and connected to socket");
+    logger.debug({ socketId: socket.id, userId: socket.user.id }, "Client connected to socket");
     const userId = socket.user.id;
+
+    socket.on("disconnect", () => {
+      for (const [jobId, ownerSocketId] of guestJobOwners.entries()) {
+        if (ownerSocketId === socket.id) guestJobOwners.delete(jobId);
+      }
+      execStartCounts.delete(socket.id);
+    });
 
     socket.on("subscribe", async ({ jobId }) => {
       try {
+        if (!isValidJobId(jobId)) {
+          return socket.emit("error", { message: "Invalid job id" });
+        }
+
         // 🛡️ SECURITY Audit Fix: Preventive DoS check - Limit concurrent subscriptions per socket
         const activeRooms = Array.from(socket.rooms).filter(r => r.startsWith("run:"));
         if (activeRooms.length >= 10) {
@@ -253,26 +323,12 @@ function initSocket(server) {
           return socket.emit("error", { message: "Job not found" });
         }
 
-        const ownerId = job.userId ? job.userId.toString() : null;
-        
-        // 🔓 Access Control: 
-        // 1. If job has an owner, requester must match owner.
-        // 2. If job has NO owner (Guest job), requester must be a Guest or Admin.
-        if (ownerId) {
-          if (ownerId !== userId) {
-            logger.warn({ userId, ownerId, jobId }, "Unauthorized subscription attempt blocked");
-            return socket.emit("error", { message: "Unauthorized: You do not own this job" });
-          }
-        } else {
-          // It's a Guest job. In SAM Compiler, guest jobs are public but we usually 
-          // only want the creator to sub. Since we don't track Guest IDs yet, we allow all Guests.
-          if (!socket.user.isGuest && socket.user.role !== "admin") {
-            // Logged in users shouldn't really be subbing to guest jobs unless they are admins
-            logger.debug({ userId, jobId }, "Member subbing to guest job");
-          }
+        if (!canAccessJob(socket, jobId, job)) {
+          logger.warn({ userId, jobId, socketId: socket.id }, "Unauthorized subscription attempt blocked");
+          return socket.emit("error", { message: "Unauthorized: You do not own this job" });
         }
 
-        logger.info({ socketId: socket.id, jobId }, "📡 [SAM-AUDIT] [SOCKET] authorized and subscribed to job");
+        logger.debug({ socketId: socket.id, jobId }, "Socket subscribed to job");
         socket.join(`run:${jobId}`);
         
         // Also subscribe to Redis logs if not already active
@@ -297,55 +353,97 @@ function initSocket(server) {
     });
 
     socket.on("unsubscribe", ({ jobId }) => {
-      logger.info({ socketId: socket.id, jobId }, "Socket unsubscribed from job");
+      if (!isValidJobId(jobId)) return;
+      logger.debug({ socketId: socket.id, jobId }, "Socket unsubscribed from job");
       socket.leave(`run:${jobId}`);
-      
+      releaseJobOwner(jobId, socket.id);
+
       // Cleanup Redis subscription if no more socket clients are in the room
       const room = io.sockets.adapter.rooms.get(`run:${jobId}`);
       if (!room || room.size === 0) {
         if (redisSubscriber && activeSubscriptions.has(jobId)) {
-          redisSubscriber.unsubscribe(`run:logs:${jobId}`);
+          redisSubscriber.unsubscribe(`run:logs:${jobId}`)
+            .catch(err => logger.error({ err, jobId }, "Failed to unsubscribe Redis logs"));
           activeSubscriptions.delete(jobId);
         }
       }
     });
 
     socket.on("exec:input", async ({ jobId, input }) => {
-      // 🔒 SECURITY Audit Fix: Validate job ownership before accepting input
-      const job = await RunModel.findById(jobId).select("userId").lean();
-      if (!job || (job.userId && job.userId.toString() !== userId)) {
-        return logger.warn({ userId, jobId }, "Unauthorized input attempt blocked");
-      }
+      try {
+        if (!isValidJobId(jobId) || typeof input !== "string") {
+          return logger.warn({ jobId }, "Malformed exec:input rejected");
+        }
+        // The old guard was `job.userId && job.userId.toString() !== userId`,
+        // which short-circuits for every guest-owned run (userId == null) —
+        // so any connected client could inject stdin into any guest run.
+        // Requiring room membership means the caller must have passed the
+        // subscribe check first.
+        if (!socket.rooms.has(`run:${jobId}`)) {
+          return logger.warn({ userId, jobId, socketId: socket.id }, "Unauthorized input attempt blocked");
+        }
 
-      logger.info({ socketId: socket.id, jobId }, "Socket received input for job");
-      
-      const listenerCount = process.listenerCount(`run:input:${jobId}`);
-      if (listenerCount > 0) {
-        process.emit(`run:input:${jobId}`, input);
-      } else {
-        if (!inputBuffers.has(jobId)) inputBuffers.set(jobId, []);
-        inputBuffers.get(jobId).push(input);
-        logger.info({ jobId }, "Buffered input (no active listener yet)");
+        // findById can throw a CastError on a malformed id inside an async
+        // handler — previously uncaught, taking the process down.
+        const job = await RunModel.findById(jobId).select("userId").lean();
+        if (!job || !canAccessJob(socket, jobId, job)) {
+          return logger.warn({ userId, jobId }, "Unauthorized input attempt blocked");
+        }
+
+        const listenerCount = process.listenerCount(`run:input:${jobId}`);
+        if (listenerCount > 0) {
+          process.emit(`run:input:${jobId}`, input);
+        } else {
+          if (!inputBuffers.has(jobId)) inputBuffers.set(jobId, []);
+          inputBuffers.get(jobId).push(input);
+        }
+      } catch (err) {
+        logger.error({ err, jobId }, "exec:input handler failed");
       }
     });
 
     socket.on("exec:log:end", ({ jobId }) => {
-       inputBuffers.delete(jobId);
-       logBuffers.delete(jobId);
-       jobTimestamps.delete(jobId);
-       if (redisSubscriber && activeSubscriptions.has(jobId)) {
-         redisSubscriber.unsubscribe(`run:logs:${jobId}`);
-         activeSubscriptions.delete(jobId);
-       }
+      // This handler previously had NO authorization check at all: any client
+      // could send an arbitrary jobId and wipe another run's buffers and tear
+      // down its Redis log subscription mid-run.
+      if (!isValidJobId(jobId) || !socket.rooms.has(`run:${jobId}`)) {
+        return logger.warn({ userId, jobId, socketId: socket.id }, "Unauthorized exec:log:end blocked");
+      }
+      inputBuffers.delete(jobId);
+      logBuffers.delete(jobId);
+      jobTimestamps.delete(jobId);
+      releaseJobOwner(jobId);
+      if (redisSubscriber && activeSubscriptions.has(jobId)) {
+        redisSubscriber.unsubscribe(`run:logs:${jobId}`)
+          .catch(err => logger.error({ err, jobId }, "Failed to unsubscribe Redis logs"));
+        activeSubscriptions.delete(jobId);
+      }
     });
 
     socket.on("exec:start", async (data, callback) => {
       try {
         const { createRun } = require("./runs.service");
-        const { language, code, stdin } = data;
+        const { language, code, stdin } = data || {};
+
+        // The HTTP path validates with zod (CreateRunSchema); this one accepted
+        // anything, and multiSandbox defaults an unknown language to JavaScript.
+        const parsed = ExecStartSchema.safeParse({ language, code, stdin: stdin || "" });
+        if (!parsed.success) {
+          if (callback) callback({ error: "Invalid execution request" });
+          return;
+        }
+
+        // exec:start was a full unauthenticated execution pipeline with no rate
+        // limiting of any kind — neither runLimiter nor userRateLimiter apply to
+        // websocket events.
+        if (!allowExecStart(socket.id)) {
+          logger.warn({ socketId: socket.id }, "exec:start rate limit exceeded");
+          if (callback) callback({ error: "Too many executions. Please wait a moment." });
+          return;
+        }
 
         const userId = (socket.user && socket.user.id !== "guest") ? socket.user.id : null;
-        
+
         const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
         const filename = language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js";
 
@@ -363,8 +461,11 @@ function initSocket(server) {
         });
 
         const jobId = run._id.toString();
-        
-        // 🚀 NITRO: Auto-subscribe to save 1 RTT. 
+
+        // The creating socket owns this run for authorization purposes.
+        if (!userId) guestJobOwners.set(jobId, socket.id);
+
+        // 🚀 NITRO: Auto-subscribe to save 1 RTT.
         // No need for client to send a separate 'subscribe' event.
         socket.join(`run:${jobId}`);
         if (redisSubscriber) {
@@ -375,7 +476,7 @@ function initSocket(server) {
         }
 
         if (callback) callback({ jobId, status: run.status });
-        logger.info({ socketId: socket.id, jobId, runtime }, "📡 [SAM-AUDIT] [SOCKET] Direct execution started (Nitro Path)");
+        logger.debug({ socketId: socket.id, jobId, runtime }, "Direct execution started");
       } catch (err) {
         logger.error({ err }, "Direct socket execution failed");
         if (callback) callback({ error: err.message });
@@ -426,7 +527,7 @@ function emitLog(jobId, type, chunk) {
     }
   }
 
-  logger.info({ jobId, type }, "📡 [SAM-AUDIT] [SOCKET] Emitting to client via Socket.io");
+  logger.trace({ jobId, type }, "Emitting log chunk");
   io.to(`run:${jobId}`).emit("exec:log", { type, chunk });
 }
 

@@ -13,10 +13,21 @@ const UserSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   resetPasswordToken: { type: String },
-  resetPasswordExpires: { type: Date }
+  resetPasswordExpires: { type: Date },
+  // Bumped on password reset so previously issued JWTs stop verifying. Without
+  // it, a 7-day token kept working after the account owner reset their
+  // password — the exact scenario a reset is meant to shut down.
+  tokenVersion: { type: Number, default: 0 }
 }, {
   timestamps: true
 });
+
+// Every OAuth sign-in runs findOne({ provider, providerId }); without this it
+// was a full collection scan on each login.
+UserSchema.index({ provider: 1, providerId: 1 });
+// generateResetToken/resetPassword look up by token + expiry. Sparse because
+// only accounts with a reset in flight have one.
+UserSchema.index({ resetPasswordToken: 1 }, { sparse: true });
 
 // Hash password before saving
 UserSchema.pre("save", async function(next) {

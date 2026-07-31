@@ -10,7 +10,7 @@ const { runsRouter } = require("./modules/runs/runs.routes");
 const { githubRouter } = require("./modules/github/github.routes");
 const { authRouter } = require("./modules/auth/auth.routes");
 const { aiRouter } = require("./modules/ai/ai.routes");
-const { userRateLimiter } = require("./middleware/rateLimiter.middleware");
+const { originChecker } = require("./config/cors");
 const path = require("path");
 
 
@@ -20,31 +20,23 @@ function createApp() {
   // Enable trust proxy for correct IP detection behind Vercel/Render
   app.set("trust proxy", 1);
 
-  // 🛡️ SECURITY Audit Fix: Hardened CORS Policy
-  const allowedOrigins = (process.env.WEB_ORIGIN || "").split(",").filter(Boolean);
+  // 🛡️ SECURITY: Exact-match CORS policy (see config/cors.js for rationale).
   app.use(cors({
-    origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps or curl)
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.length === 0 || allowedOrigins.indexOf(origin) !== -1 || origin.includes("localhost") || origin.includes("127.0.0.1")) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
-    },
+    origin: originChecker,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
   }));
 
   // Handle preflight requests across all routes
-  app.options("*", cors());
+  // Express 5 / path-to-regexp v8: a bare "*" is no longer a valid pattern.
+  app.options("/{*splat}", cors());
 
   app.use((req, res, next) => {
     res.setHeader("X-Sam-Api", "v3.0-stable");
-    if (req.url.includes("/auth")) {
-      logger.info({ url: req.url, method: req.method });
-    }
+    // Removed: an unconditional logger.info of every URL containing "/auth".
+    // That included the OAuth callbacks, whose query string carries the
+    // provider `code` — writing exchangeable credentials into the logs.
     next();
   });
 
@@ -118,8 +110,11 @@ function createApp() {
     uptime: process.uptime()
   }));
 
-  // Standardized API mounting for production-grade proxying
-  app.use("/api/runs", userRateLimiter, runLimiter, runsRouter);
+  // Standardized API mounting for production-grade proxying.
+  // NOTE: userRateLimiter is applied *inside* runsRouter, after the auth
+  // middleware populates req.user. Mounting it here meant req.user was always
+  // undefined, so the per-user limit silently bypassed for every request.
+  app.use("/api/runs", runLimiter, runsRouter);
   app.use("/api/github", githubRouter);
   app.use("/api/auth", authRouter);
   app.use("/api/ai", aiRouter);
@@ -138,17 +133,26 @@ function createApp() {
   // __dirname is apps/api/src, so we need to go up 3 levels to reach apps/
   const distPath = path.resolve(__dirname, "../../..", "apps/web/dist");
   app.use(express.static(distPath, {
-    maxAge: "7d", // Cache assets for 7 days
     etag: true,
-    immutable: true // Assets with hashes in names (Vite) are immutable
+    // `immutable` previously applied to the whole dist directory, including
+    // index.html — so a stale SPA shell could be pinned in browser caches for
+    // 7 days after a deploy. Only the content-hashed /assets/* files are
+    // genuinely immutable.
+    setHeaders: (res, filePath) => {
+      if (filePath.includes(`${path.sep}assets${path.sep}`)) {
+        res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
+      } else {
+        res.setHeader("Cache-Control", "no-cache");
+      }
+    }
   }));
 
   // Catch-all: Route anything else to index.html for React Router support (SPA)
-  app.get("*", (req, res) => {
+  app.get("/{*splat}", (req, res) => {
     // Skip if it's an API request that 404'd
     if (req.url.startsWith("/api/")) return res.status(404).json({ message: "API endpoint not found" });
-    const indexPath = path.join(distPath, "index.html");
-    res.sendFile(indexPath);
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(distPath, "index.html"));
   });
 
 
@@ -156,9 +160,12 @@ function createApp() {
   app.use((err, _req, res, _next) => { // eslint-disable-line no-unused-vars
     const errorLogger = _req.log || logger;
     errorLogger.error({ err }, "Unhandled application error");
-    res.status(err.status || 500).json({
-      message: err.message || "Internal Server Error",
-      error: process.env.NODE_ENV === "production" ? {} : err
+    const status = err.status || 500;
+    // Never serialise the error object to the client. The previous version
+    // returned the full `err` (including its stack) whenever NODE_ENV was not
+    // exactly "production" — and docker-compose never set NODE_ENV at all.
+    res.status(status).json({
+      message: status < 500 && err.message ? err.message : "Internal Server Error"
     });
   });
 

@@ -39,15 +39,26 @@ async function login({ email, password }) {
 
 function generateToken(user) {
   return jwt.sign(
-    { id: user._id, email: user.email, role: user.role },
+    { id: user._id, email: user.email, role: user.role, tv: user.tokenVersion ?? 0 },
     env.JWT_SECRET,
     { expiresIn: env.JWT_EXPIRES_IN }
   );
 }
 
 async function getUserById(id) {
-  const user = await User.findById(id).select("-password");
+  // githubToken is a full-scope OAuth token stored in plaintext; it must never
+  // be serialised back to the browser (GET /api/auth/me previously returned it).
+  const user = await User.findById(id).select("-password -githubToken -resetPasswordToken -resetPasswordExpires");
   return user;
+}
+
+/**
+ * Server-side only. Returns the user document including the stored GitHub OAuth
+ * token, for use by the GitHub push/list flows. Never send the result of this
+ * to a client — use getUserById for anything that reaches a response body.
+ */
+async function getUserWithGithubToken(id) {
+  return User.findById(id).select("-password -resetPasswordToken -resetPasswordExpires");
 }
 
 /**
@@ -92,7 +103,9 @@ async function resetPassword(token, newPassword) {
   user.password = newPassword;
   user.resetPasswordToken = undefined;
   user.resetPasswordExpires = undefined;
-  
+  // Invalidate every JWT issued before this reset.
+  user.tokenVersion = (user.tokenVersion ?? 0) + 1;
+
   await user.save();
   return user;
 }
@@ -102,6 +115,7 @@ module.exports = {
   login,
   generateToken,
   getUserById,
+  getUserWithGithubToken,
   generateResetToken,
   resetPassword
 };

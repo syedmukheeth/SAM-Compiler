@@ -2,6 +2,8 @@ const { Router } = require("express");
 const { z } = require("zod");
 const { createRun, getRun, getQueueStatus, getUserHistory } = require("./runs.service");
 const { authMiddleware, optionalAuth } = require("../../middleware/auth.middleware");
+const { userRateLimiter } = require("../../middleware/rateLimiter.middleware");
+const { logger } = require("../../config/logger");
 
 const runsRouter = Router();
 
@@ -12,11 +14,12 @@ const CreateRunSchema = z.object({
   stdin: z.string().optional().default("")
 });
 
-runsRouter.post("/", optionalAuth, async (req, res, next) => {
+// optionalAuth must run before userRateLimiter so that req.user exists and the
+// per-user quota can actually be enforced.
+runsRouter.post("/", optionalAuth, userRateLimiter, async (req, res, next) => {
   try {
     const { language, code, stdin } = CreateRunSchema.parse(req.body);
     const userId = req.user ? req.user.id : null;
-    console.log(`📡 [SAM-AUDIT] [BACKEND] POST / created for user: ${userId || 'guest'} | lang: ${language}`);
     const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
     
     // Transform simplified payload to existing internal run format
@@ -47,11 +50,35 @@ runsRouter.get("/history", authMiddleware, async (req, res, next) => {
   }
 });
 
-runsRouter.get("/:runId", async (req, res, next) => {
+// IDOR fix: this route previously had no auth and no ownership check, so any
+// caller who guessed a 24-hex ObjectId could read another user's stdout/stderr.
+// The socket path (socketHandler subscribe) already checked ownership; the REST
+// path did not. Ownership semantics mirror it: a run with no userId is a guest
+// run and is only readable by an unauthenticated caller in the same session
+// sense (we cannot bind it to anyone), while an owned run requires a match.
+runsRouter.get("/:runId", optionalAuth, async (req, res, next) => {
   try {
+    if (!/^[a-f0-9]{24}$/i.test(req.params.runId)) {
+      return res.status(400).json({ message: "Invalid run id" });
+    }
     const run = await getRun(req.params.runId);
     if (!run) return res.status(404).json({ message: "Run not found" });
-    console.log(`📡 [SAM-AUDIT] [BACKEND] GET /${req.params.runId} | status: ${run.status}`);
+
+    const requesterId = req.user?.id ? String(req.user.id) : null;
+    const ownerId = run.userId ? String(run.userId) : null;
+
+    if (ownerId) {
+      // Owned run: only the owner may read it. 404 rather than 403 so the
+      // endpoint does not confirm that an id exists.
+      if (requesterId !== ownerId) {
+        return res.status(404).json({ message: "Run not found" });
+      }
+    } else if (requesterId) {
+      // Guest-owned run being requested by an authenticated user who cannot
+      // own it — nothing legitimately links them.
+      return res.status(404).json({ message: "Run not found" });
+    }
+
     res.json({
       runId: run._id.toString(),
       status: run.status,
@@ -77,14 +104,11 @@ runsRouter.get("/health/queue", async (req, res, next) => {
 });
 
 
-// eslint-disable-next-line no-unused-vars
-
 runsRouter.use((err, _req, res, _next) => { // eslint-disable-line no-unused-vars
   if (err instanceof z.ZodError) {
     return res.status(400).json({ message: "Invalid request", issues: err.issues });
   }
-  // eslint-disable-next-line no-console
-  console.error(err);
+  logger.error({ err }, "Runs route error");
   return res.status(500).json({ message: "Internal error" });
 });
 

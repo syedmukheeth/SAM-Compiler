@@ -21,13 +21,16 @@ async function getUserRepos({ token, user: authUser }) {
   }
 }
 
-async function pushToGithub({ token, repo, path, content, message, branch, user: authUser }) {
+async function pushToGithub({ repo, path, content, message, branch, user: authUser }) {
   const { Octokit } = await import("@octokit/rest");
-  
-  // Use provided token or fallback to user's stored OAuth token
-  const githubToken = token || authUser?.githubToken;
+
+  // Only the caller's own stored OAuth token is used. This previously accepted
+  // a `token` from the request body and *preferred* it over the stored one,
+  // which turned the endpoint into an open authenticated GitHub proxy for any
+  // PAT anyone chose to POST.
+  const githubToken = authUser?.githubToken;
   if (!githubToken) {
-    throw new Error("GitHub Authentication required. Please provide a PAT or link your GitHub account.");
+    throw new Error("GitHub account not linked. Please sign in with GitHub to push.");
   }
 
   const octokit = new Octokit({ auth: githubToken });
@@ -51,7 +54,7 @@ async function pushToGithub({ token, repo, path, content, message, branch, user:
         ref: branch
       });
       sha = fileData.sha;
-    } catch (err) {
+    } catch {
       // File doesn't exist, that's fine
     }
 
