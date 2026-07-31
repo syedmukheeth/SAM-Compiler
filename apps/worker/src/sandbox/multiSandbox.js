@@ -78,7 +78,12 @@ async function executeRun(opts, onLog) {
         "--cap-drop", "ALL",
         "--security-opt", "no-new-privileges",
         "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
-        "--tmpfs", "/workspace:rw,noexec,nosuid,size=128m",
+        // NOT noexec: g++/gcc compile to /workspace/main and then execute it,
+        // so noexec here made every C and C++ run fail structurally on the
+        // Docker path. Running the compiled artifact is the point of the
+        // sandbox; isolation still comes from --network none, --cap-drop ALL,
+        // --read-only, no-new-privileges, the pid/memory/cpu caps and uid 1000.
+        "--tmpfs", "/workspace:rw,nosuid,size=128m",
         "-v", `${runDir}:/workspace-host:ro`,
         "-w", "/workspace",
         "-u", "1000:1000",
@@ -92,7 +97,8 @@ async function executeRun(opts, onLog) {
 
       // 🛡️ High-Fidelity Status Mapping
       let status = "runtime_error";
-      if (result.exitCode === 0) status = "succeeded";
+      if (result.limitExceeded) status = "output_limit";
+      else if (result.exitCode === 0) status = "succeeded";
       else if (result.exitCode === 6) status = "compilation_error";
       else if (result.exitCode === 137) status = "timeout";
 
@@ -107,9 +113,11 @@ async function executeRun(opts, onLog) {
       // fails securely, allowing the upstream service to fallback to Judge0 Cloud API.
       throw new Error(`Security Error: Docker is required for executing untrusted code. Host fallback disabled.\nDetails: ${dockerErr.message}`);
     }
-  } catch (err) {
-    return { stdout: "", stderr: `Execution Error: ${err.message}`, exitCode: 1 };
   } finally {
+    // Errors deliberately propagate. This used to be a catch that returned
+    // { exitCode: 1 }, which made "the sandbox is unavailable" look identical to
+    // "the user's program exited 1" — so BullMQ marked the job completed and no
+    // retry or failover ever happened.
     await fs.rm(runDir, { recursive: true, force: true });
   }
 }
@@ -196,8 +204,10 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
 
       child.on("close", (code) => {
         clearTimeout(timeout);
-        console.log(`📡 [SAM-AUDIT] [SANDBOX] Command finished with exitCode: ${code}`);
-        resolve({ stdout, stderr, exitCode: isLimitExceeded ? 137 : code });
+        // 137 is SIGKILL, which the timeout above also produces. Reporting the
+        // output-cap kill as 137 too made "output too large" indistinguishable
+        // from "timed out" upstream, so it was reported to users as a timeout.
+        resolve({ stdout, stderr, exitCode: code, limitExceeded: isLimitExceeded });
       });
     } catch (err) {
       reject(err);

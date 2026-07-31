@@ -74,25 +74,30 @@ function createApp() {
   app.use(passport.initialize());
 
 
-  // Health check - moved from root to avoid conflict with frontend
-  app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString(), env: process.env.NODE_ENV }));
+  // Health check - moved from root to avoid conflict with frontend.
+  // No longer reports NODE_ENV: an unauthenticated endpoint should not disclose
+  // deployment configuration.
+  app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
-  
-  app.get("/api/ping", (req, res) => res.json({ status: "alive" }));
-  app.get("/api/health-check", (req, res) => res.json({ 
-    status: "healthy", 
+  // Both prefixes are served so the endpoints survive proxy path rewriting.
+  // These were previously registered twice each — once for /api only, then
+  // again for both — leaving a dead duplicate handler per route.
+  app.get(["/api/ping", "/ping"], (req, res) => res.json({ status: "alive" }));
+  app.get(["/api/health-check", "/health-check"], (req, res) => res.json({
+    status: "healthy",
     uptime: process.uptime()
   }));
-
 
   // Prevent favicon 404 noise in logs
   app.get(["/favicon.ico", "/favicon.png"], (req, res) => res.status(204).end());
 
-  
   // Standard API routes
   const routes = express.Router();
-  
-  // Match health/queue path specifically
+
+  // Queue status. Note this router is mounted at both "/api" and "/", but the
+  // "/api" copy is shadowed by app.use("/api/runs", ...) below and never runs;
+  // the reachable path is /runs/health/queue plus runsRouter's own
+  // /api/runs/health/queue.
   routes.get("/runs/health/queue", async (req, res, next) => {
     try {
       const { getQueueStatus } = require("./modules/runs/runs.service");
@@ -102,13 +107,6 @@ function createApp() {
       next(err);
     }
   });
-  
-  // Direct Mounting Fix: Absolute paths catch redirects regardless of proxy interference
-  app.get(["/api/ping", "/ping"], (req, res) => res.json({ status: "alive" }));
-  app.get(["/api/health-check", "/health-check"], (req, res) => res.json({ 
-    status: "healthy", 
-    uptime: process.uptime()
-  }));
 
   // Standardized API mounting for production-grade proxying.
   // NOTE: userRateLimiter is applied *inside* runsRouter, after the auth

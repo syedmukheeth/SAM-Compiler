@@ -69,6 +69,7 @@ async function main() {
             });
           };
 
+          let executionError = null;
           try {
             const { stdout, stderr, exitCode, status, metrics } = await executeRun({
               language: run.runtime,
@@ -83,19 +84,28 @@ async function main() {
             run.metrics = metrics || {};
             run.status = status || (exitCode === 0 ? "succeeded" : "failed");
           } catch (err) {
+            // Only infrastructure failures reach here now — a user program that
+            // exits non-zero returns normally with a status. The stack used to
+            // be appended to run.stderr and streamed to the user's terminal,
+            // exposing worker internals and host paths; it is logged instead.
             run.status = "failed";
             logger.error({ err, runId: run._id }, "Job execution failed");
-            const msg = err instanceof Error ? err.stack || err.message : String(err);
-            run.stderr = (run.stderr ?? "") + "\n" + msg;
+            const userMessage = "The execution sandbox was unavailable for this run. Please try again.";
+            run.stderr = (run.stderr ?? "") + "\n" + userMessage;
             run.exitCode = run.exitCode ?? 1;
-            publishLog("stderr", msg);
+            publishLog("stderr", userMessage);
+            executionError = err;
           } finally {
             run.finishedAt = new Date();
             await run.save();
-            logger.info({ runId: run._id }, "📡 [SAM-AUDIT] [WORKER] Job execution completed. Publishing 'end' log to Redis");
             publishLog("end", { status: run.status, metrics: run.metrics });
             logger.info({ runId: run._id, status: run.status }, "Job finished");
           }
+
+          // Surface infrastructure failures to BullMQ so the configured
+          // attempts/backoff actually retry them. Swallowing the error marked
+          // the job completed and no retry ever happened.
+          if (executionError) throw executionError;
         } catch (err) {
            logger.error({ err, jobId: job.id }, "Fatal job processing error");
         } finally {

@@ -12,9 +12,10 @@ const LANGUAGE_MAP = {
   javascript: 63, // Node.js
   cpp: 54,        // C++ (GCC 9.2.0)
   c: 50,          // C (GCC 9.2.0)
-  java: 62,       // Java (OpenJDK 13.0.1)
-  go: 60,         // Go (1.13.5)
-  rust: 73        // Rust (1.40.0)
+  java: 62        // Java (OpenJDK 13.0.1)
+  // go and rust were listed here but are rejected by the zod enum on both
+  // entry points, so they were unreachable and implied support that the rest
+  // of the app does not have.
 };
 
 const STATUS_MAP = {
@@ -51,11 +52,12 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
     throw new Error(`Cloud Sandbox does not support runtime: ${runtime}`);
   }
 
-  // Status logs removed as requested by user
-
   let finalCode = code;
   if (runtime === "java") {
-    // Judge0 expects the public class to be named 'Main' if the file is Main.java
+    // Judge0 requires the public class to be named Main. Only the FIRST match is
+    // rewritten deliberately: a file has exactly one public class, and a global
+    // replace would rename every other class to Main too, producing a file that
+    // no longer compiles.
     finalCode = code.replace(/public\s+class\s+\w+/, "public class Main");
   }
 
