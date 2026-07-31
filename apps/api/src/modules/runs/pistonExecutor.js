@@ -2,6 +2,10 @@ const { logger } = require("../../config/logger");
 
 const JUDGE0_API_URL = "https://ce.judge0.com/submissions?base64_encoded=true&wait=true";
 
+// Upper bound on the synchronous Judge0 call. Slightly above the worst-case
+// compile+run so legitimate slow runs are not cut off.
+const JUDGE0_TIMEOUT_MS = Number(process.env.JUDGE0_TIMEOUT_MS || 30000);
+
 // Mapping SAM Compiler language IDs to Judge0 language IDs
 const LANGUAGE_MAP = {
   python: 71,     // Python 3
@@ -107,6 +111,14 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
           reject(new Error(`Failed to parse Sandbox response: ${e.message}`));
         }
       });
+    });
+
+    // This is the primary production execution path (the Docker worker is
+    // usually offline). Without a timeout, a hung upstream request meant the
+    // promise never settled: no "end" was emitted to the socket, the run stayed
+    // "running" forever, and the closure leaked.
+    req.setTimeout(JUDGE0_TIMEOUT_MS, () => {
+      req.destroy(new Error(`Cloud Sandbox timed out after ${JUDGE0_TIMEOUT_MS}ms`));
     });
 
     req.on("error", (err) => {

@@ -56,7 +56,6 @@ function generateRunTitle(code, _runtime) { // eslint-disable-line no-unused-var
  */
 async function createRun(input) {
   const { userId } = input;
-  logger.info({ userId, runtime: input.runtime }, "📡 [SAM-AUDIT] [API] createRun called");
   if (!input.runtime) throw new Error("Runtime/Language is required");
   if (!input.code && (!input.files || input.files.length === 0)) {
     throw new Error("No code or files provided for execution");
@@ -90,11 +89,16 @@ async function createRun(input) {
         finishedAt: null
       });
       
-      run.save().catch(err => logger.error({ err }, "Background run persistence failed"));
+      // Must be awaited. When this was fire-and-forget, a fast run could reach
+      // findByIdAndUpdate (below) before the insert landed; the update then
+      // matched nothing, returned null, and nobody checked — leaving the run
+      // stuck in "running" with empty output forever.
+      await run.save();
       useMongo = true;
-      logger.info({ runId: run._id, runtime: input.runtime }, "Run initialized optimistically");
+      logger.debug({ runId: run._id, runtime: input.runtime }, "Run record persisted");
     } catch (err) {
       logger.error({ err }, "Failed to initialize run record");
+      run = null;
     }
   } else {
     logger.warn("MongoDB not connected. Running without persistence.");
@@ -131,9 +135,9 @@ async function createRun(input) {
             // Worker must explicitly report Docker availability to take local jobs
             workerOnline = stats.hasDocker === true;
             if (!workerOnline) {
-              logger.warn({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker online but lacks Docker. Forcing Cloud Fallback.");
+              logger.warn({ runId: run._id.toString() }, "Worker online but lacks Docker. Forcing cloud fallback.");
             }
-          } catch (parseErr) {
+          } catch {
             // If we can't parse or it's old format, assume NOT capable for safety
             workerOnline = false;
           }
@@ -147,9 +151,9 @@ async function createRun(input) {
         if (socketHandler.emitLog) socketHandler.emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33mDelegating to Hardened Worker...\x1b[0m\n\r\n`);
 
 
-        logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Adding job to BullMQ");
-        await queue.add("execute", { runId: run._id.toString() });
-        logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Job added successfully to BullMQ");
+        // Retry/backoff/retention come from DEFAULT_JOB_OPTIONS on the Queue.
+        // jobId dedupes against a double-submit for the same run.
+        await queue.add("execute", { runId: run._id.toString() }, { jobId: run._id.toString() });
         run.status = "queued";
         if (useMongo) {
           await RunModel.findByIdAndUpdate(run._id, { 
@@ -162,12 +166,12 @@ async function createRun(input) {
       } else {
         // 🚀 Fallback to external sandbox (Judge0/Piston)
         try {
-          logger.info({ runId: run._id.toString() }, "📡 [SAM-AUDIT] [API] Worker Offline. Invoking Cloud Fallback (Piston)");
+          logger.debug({ runId: run._id.toString() }, "Worker offline. Invoking cloud fallback.");
           const socketHandler = require("./socketHandler");
           const result = await executeViaPiston(runData, socketHandler.emitLog);
 
 
-          logger.info({ runId: run._id.toString(), status: result.status }, "📡 [SAM-AUDIT] [API] Piston Fallback completed");
+          logger.debug({ runId: run._id.toString(), status: result.status }, "Cloud fallback completed");
           run.stdout = result.stdout;
           run.stderr = result.stderr;
           run.exitCode = result.exitCode;
@@ -272,7 +276,7 @@ async function getQueueStatus() {
           workerStats = JSON.parse(heartbeat);
           // Worker must explicitly report Docker availability to be considered "Live" for primary execution
           workerOnline = workerStats.hasDocker === true;
-        } catch (e) {
+        } catch {
           workerOnline = false;
           workerStats = { timestamp: heartbeat };
         }
@@ -287,17 +291,24 @@ async function getQueueStatus() {
     workerOnline = false; // Forced false as the API node can no longer execute code
   }
 
-  // 🛡️ HARDENING: canExecute is true if worker is online OR if fallback is active
-  const canExecute = workerOnline || true; // Fallback is currently siempre disponible
+  // The Judge0/Piston cloud fallback is always reachable, so execution is
+  // available whether or not a Docker worker has checked in. (This was
+  // `workerOnline || true`, which is unconditionally true and read as a bug.)
+  const canExecute = true;
+
+  const mongoConnected = mongoose.connection.readyState === 1;
+  const redisConnected = Boolean(redis) && redis.status === "ready";
 
   return {
     status: "healthy",
     uptime: process.uptime(),
     workerOnline,
     canExecute,
+    mongoConnected,
+    redisConnected,
     mode: workerOnline ? "primary-worker" : "cloud-sandbox",
     workerStats: workerStats || { status: isSandbox ? "cloud-sandbox" : "idle", activeJobs: 0 },
-    version: "3.5.2-stable",
+    version: require("../../../package.json").version,
     runtimeMode: isVercel ? "serverless" : "distributed-worker",
     cluster: isVercel ? "cloud-edge" : "local-node",
     message: workerOnline 

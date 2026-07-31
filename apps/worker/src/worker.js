@@ -9,32 +9,6 @@ const { RunModel } = require("./db/run.model");
 const { RUNS_QUEUE_NAME } = require("./queue/constants");
 const { executeRun } = require("./sandbox/multiSandbox");
 
-async function startHeartbeat(redisClient, getWorkerStats) {
-  const HEARTBEAT_KEY = "sam:worker:heartbeat";
-  const interval = 5000; // 5 seconds for more "real-time" feel
-
-  const update = async () => {
-    try {
-      const stats = {
-        timestamp: Date.now(),
-        cpuLoad: os.loadavg()[0],
-        memFree: os.freemem(),
-        memTotal: os.totalmem(),
-        platform: os.platform(),
-        cpus: os.cpus().length,
-        ...(getWorkerStats ? getWorkerStats() : {})
-      };
-      await redisClient.setex(HEARTBEAT_KEY, 15, JSON.stringify(stats));
-      logger.debug({ stats }, "Worker heartbeat sent");
-    } catch (err) {
-      logger.warn({ err }, "Failed to send worker heartbeat");
-    }
-  };
-
-  await update();
-  setInterval(update, interval);
-}
-
 function startHealthServer() {
   const server = http.createServer((req, res) => {
     if (req.url === "/health") {
@@ -58,7 +32,7 @@ async function main() {
     execSync("docker --version", { stdio: "ignore" });
     hasDocker = true;
     logger.info("🐳 Docker detected on host. Hardened sandbox enabled.");
-  } catch (e) {
+  } catch {
     logger.warn("⚠️ Docker NOT detected on host. Worker will report capability to API for intelligent fallback.");
   }
 
@@ -68,9 +42,11 @@ async function main() {
   logger.info("SAM Compiler worker connected. Waiting for jobs...");
 
   let activeJobs = 0;
+  // Hoisted so the shutdown handler below can close it.
+  let worker = null;
 
   if (hasDocker) {
-    const worker = new Worker(
+    worker = new Worker(
       RUNS_QUEUE_NAME,
       async (job) => {
         activeJobs++;
@@ -183,13 +159,52 @@ async function main() {
         req.on("error", reject);
         req.setTimeout(5000, () => { req.destroy(); reject(new Error("Timeout")); });
       });
-      logger.info("📡 [SAM-AUDIT] [WORKER] Warmup pulse successful (Instance active)");
+      logger.debug("Warmup pulse successful (Instance active)");
     } catch (err) {
       logger.warn({ err: err.message }, "Worker warmup pulse failed");
     }
   }, 5 * 60 * 1000); // 5 minutes
 
+  // The worker had no signal handling at all, so every redeploy killed
+  // in-flight sandboxed jobs mid-execution and left their BullMQ locks to
+  // expire. worker.close() lets running jobs finish before we exit.
+  let shuttingDown = false;
+  const shutdown = async (signal) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    logger.info({ signal, activeJobs }, "Worker shutting down gracefully");
+
+    const forceExit = setTimeout(() => {
+      logger.error("Worker shutdown timed out, forcing exit");
+      process.exit(1);
+    }, 30000);
+    forceExit.unref();
+
+    try {
+      if (worker) await worker.close();
+      await redisClient.quit().catch(() => {});
+      const mongoose = require("mongoose");
+      await mongoose.connection.close(false);
+      clearTimeout(forceExit);
+      logger.info("Worker shutdown complete");
+      process.exit(0);
+    } catch (err) {
+      logger.error({ err }, "Error during worker shutdown");
+      process.exit(1);
+    }
+  };
+
+  process.on("SIGTERM", () => shutdown("SIGTERM"));
+  process.on("SIGINT", () => shutdown("SIGINT"));
 }
+
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason }, "Unhandled promise rejection");
+});
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "Uncaught exception — exiting");
+  process.exit(1);
+});
 
 function redisConnectionFromUrl(redisUrl) {
   const u = new URL(redisUrl);

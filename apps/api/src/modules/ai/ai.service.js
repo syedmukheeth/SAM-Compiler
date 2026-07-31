@@ -62,8 +62,7 @@ async function withRetry(fn, maxRetries = 1) {
  * Provider-agnostic stream generator with Intelligent Rotation
  */
 async function streamChat(context, onChunk) {
-  const { code, language, messages } = context;
-  
+  // `context` is forwarded whole to streamGemini/streamOpenAI below.
   const geminiKeys = (env.GEMINI_API_KEY || "").split(",").map(k => k.trim()).filter(Boolean);
   const openAIKeys = (env.OPENAI_API_KEYS || "").split(",").map(k => k.trim()).filter(Boolean);
 

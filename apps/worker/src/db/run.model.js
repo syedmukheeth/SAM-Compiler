@@ -1,31 +1,9 @@
-const { Schema, model } = require("mongoose");
+const mongoose = require("mongoose");
+const { getRunModel } = require("@sam/shared");
 
-const FileSchema = new Schema(
-  {
-    path: { type: String, required: true },
-    content: { type: String, required: true }
-  },
-  { _id: false }
-);
-
-const RunSchema = new Schema(
-  {
-    projectId: { type: String, required: true, index: true },
-    runtime: { type: String, required: true },
-    status: { type: String, required: true, index: true },
-    entrypoint: { type: String, required: true },
-    files: { type: [FileSchema], required: true },
-    stdout: { type: String, default: "" },
-    stderr: { type: String, default: "" },
-    exitCode: { type: Number, required: false, default: null },
-    metrics: { type: Schema.Types.Mixed, default: {} },
-    startedAt: { type: Date, required: false, default: null },
-    finishedAt: { type: Date, required: false, default: null }
-  },
-  { timestamps: true }
-);
-
-const RunModel = model("Run", RunSchema);
+// Shared with the API (packages/shared/src/runSchema.js). The worker used to
+// declare its own narrower copy of this schema over the same collection, which
+// silently dropped stdin, userId and title.
+const RunModel = getRunModel(mongoose);
 
 module.exports = { RunModel };
-
