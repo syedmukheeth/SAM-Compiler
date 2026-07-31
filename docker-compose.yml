@@ -1,12 +1,20 @@
+# Credentials and keys come from a local .env file (see .env.compose.example).
+# They used to be hardcoded here, and the api service was missing JWT_SECRET and
+# GEMINI_API_KEY entirely — both are validated at import time in
+# apps/api/src/config/env.js, so `docker compose up` could never start the API.
 services:
   mongo:
     image: mongo:7
     container_name: sam-mongo
-    ports:
-      - "27017:27017"
+    # Not published to the host by default: this is only reachable from the
+    # compose network. Uncomment to inspect it with a local client.
+    # ports:
+    #   - "27017:27017"
+    expose:
+      - "27017"
     environment:
-      MONGO_INITDB_ROOT_USERNAME: root
-      MONGO_INITDB_ROOT_PASSWORD: rootpassword
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:?set MONGO_USER in .env}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:?set MONGO_PASSWORD in .env}
     volumes:
       - mongo_data:/data/db
     restart: unless-stopped
@@ -19,8 +27,10 @@ services:
   redis:
     image: redis:7-alpine
     container_name: sam-redis
-    ports:
-      - "6379:6379"
+    # ports:
+    #   - "6379:6379"
+    expose:
+      - "6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
@@ -39,16 +49,26 @@ services:
     ports:
       - "8080:8080"
     environment:
+      - NODE_ENV=production
       - PORT=8080
-      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/sam?authSource=admin
+      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/sam?authSource=admin
       - REDIS_URL=redis://redis:6379
-      - WEB_ORIGIN=http://localhost
+      - WEB_ORIGIN=${WEB_ORIGIN:-http://localhost}
+      - JWT_SECRET=${JWT_SECRET:?set JWT_SECRET (min 32 chars) in .env}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:?set GEMINI_API_KEY in .env}
+      - OPENAI_API_KEYS=${OPENAI_API_KEYS:-}
     depends_on:
       mongo:
         condition: service_healthy
       redis:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:8080/api/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   worker:
     build:
@@ -56,9 +76,12 @@ services:
       dockerfile: apps/worker/Dockerfile
     container_name: sam-worker
     environment:
-      - MONGO_URI=mongodb://root:rootpassword@mongo:27017/sam?authSource=admin
+      - NODE_ENV=production
+      - MONGO_URI=mongodb://${MONGO_USER}:${MONGO_PASSWORD}@mongo:27017/sam?authSource=admin
       - REDIS_URL=redis://redis:6379
     volumes:
+      # Grants the worker host-root-equivalent access. Required for the Docker
+      # sandbox; keep this service isolated accordingly.
       - /var/run/docker.sock:/var/run/docker.sock
     depends_on:
       mongo:
@@ -66,19 +89,29 @@ services:
       redis:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://127.0.0.1:3001/health',r=>process.exit(r.statusCode===200?0:1)).on('error',()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
+      args:
+        # Baked into the bundle at build time; without this the image shipped
+        # whatever happened to be in apps/web/.env.
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
     container_name: sam-web
     ports:
       - "80:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
     restart: unless-stopped
 
 volumes:
   mongo_data:
   redis_data:
-
