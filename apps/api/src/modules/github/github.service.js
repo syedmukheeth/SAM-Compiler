@@ -1,7 +1,20 @@
-async function getUserRepos({ token, user: authUser }) {
+/**
+ * Thrown when the signed-in user has no linked GitHub account. Carries a status
+ * so the route layer answers 400 instead of letting it fall through to the
+ * generic handler as a 500, which is what an unlinked account used to produce.
+ */
+class GithubNotLinkedError extends Error {
+  constructor() {
+    super("No GitHub account linked. Sign in with GitHub to use this feature.");
+    this.name = "GithubNotLinkedError";
+    this.status = 400;
+  }
+}
+
+async function getUserRepos({ user: authUser }) {
   const { Octokit } = await import("@octokit/rest");
-  const githubToken = token || authUser?.githubToken;
-  if (!githubToken) throw new Error("GitHub Authentication required");
+  const githubToken = authUser?.githubToken;
+  if (!githubToken) throw new GithubNotLinkedError();
 
   const octokit = new Octokit({ auth: githubToken });
   try {
@@ -29,9 +42,7 @@ async function pushToGithub({ repo, path, content, message, branch, user: authUs
   // which turned the endpoint into an open authenticated GitHub proxy for any
   // PAT anyone chose to POST.
   const githubToken = authUser?.githubToken;
-  if (!githubToken) {
-    throw new Error("GitHub account not linked. Please sign in with GitHub to push.");
-  }
+  if (!githubToken) throw new GithubNotLinkedError();
 
   const octokit = new Octokit({ auth: githubToken });
 
@@ -81,4 +92,4 @@ async function pushToGithub({ repo, path, content, message, branch, user: authUs
   }
 }
 
-module.exports = { pushToGithub, getUserRepos };
+module.exports = { pushToGithub, getUserRepos, GithubNotLinkedError };

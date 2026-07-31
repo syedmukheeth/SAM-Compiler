@@ -25,7 +25,9 @@ function createApp() {
     origin: originChecker,
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"]
+    // X-Run-Token must be listed or the browser blocks the actual request after
+    // a successful preflight, since a custom header is not CORS-safelisted.
+    allowedHeaders: ["Content-Type", "Authorization", "X-Run-Token"]
   }));
 
   // Handle preflight requests across all routes
@@ -36,7 +38,7 @@ function createApp() {
     res.setHeader("X-Sam-Api", "v3.0-stable");
     // Removed: an unconditional logger.info of every URL containing "/auth".
     // That included the OAuth callbacks, whose query string carries the
-    // provider `code` — writing exchangeable credentials into the logs.
+    // provider `code` - writing exchangeable credentials into the logs.
     next();
   });
 
@@ -80,8 +82,8 @@ function createApp() {
   app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
   // Both prefixes are served so the endpoints survive proxy path rewriting.
-  // These were previously registered twice each — once for /api only, then
-  // again for both — leaving a dead duplicate handler per route.
+  // These were previously registered twice each - once for /api only, then
+  // again for both - leaving a dead duplicate handler per route.
   app.get(["/api/ping", "/ping"], (req, res) => res.json({ status: "alive" }));
   app.get(["/api/health-check", "/health-check"], (req, res) => res.json({
     status: "healthy",
@@ -133,7 +135,7 @@ function createApp() {
   app.use(express.static(distPath, {
     etag: true,
     // `immutable` previously applied to the whole dist directory, including
-    // index.html — so a stale SPA shell could be pinned in browser caches for
+    // index.html - so a stale SPA shell could be pinned in browser caches for
     // 7 days after a deploy. Only the content-hashed /assets/* files are
     // genuinely immutable.
     setHeaders: (res, filePath) => {
@@ -158,10 +160,12 @@ function createApp() {
   app.use((err, _req, res, _next) => { // eslint-disable-line no-unused-vars
     const errorLogger = _req.log || logger;
     errorLogger.error({ err }, "Unhandled application error");
+    // err.status lets a route signal a client error (e.g. an unlinked GitHub
+    // account) rather than having it reported as an internal failure.
     const status = err.status || 500;
     // Never serialise the error object to the client. The previous version
     // returned the full `err` (including its stack) whenever NODE_ENV was not
-    // exactly "production" — and docker-compose never set NODE_ENV at all.
+    // exactly "production" - and docker-compose never set NODE_ENV at all.
     res.status(status).json({
       message: status < 500 && err.message ? err.message : "Internal Server Error"
     });

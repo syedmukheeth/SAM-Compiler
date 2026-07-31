@@ -34,7 +34,7 @@ router.post("/push", authMiddleware, async (req, res, next) => {
 
   try {
     // Fetch full user to get githubToken (not stored in JWT). A caller-supplied
-    // token is deliberately NOT accepted — see github.service.pushToGithub.
+    // token is deliberately NOT accepted - see github.service.pushToGithub.
     const fullUser = await getUserWithGithubToken(req.user.id);
 
     const result = await pushToGithub({ ...parsed.data, user: fullUser });

@@ -4,11 +4,14 @@ const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const { env } = require("./env");
 const User = require("../modules/auth/user.model");
 
-// Helper to ensure the callback URL is correct for the production monolith
+// Built from CALLBACK_URL_BASE so the same code works locally, on staging and
+// in production. It was hardcoded to one Render domain, which meant OAuth could
+// never complete anywhere else, including local development.
+// CALLBACK_URL_BASE must match the callback registered in the GitHub/Google
+// dashboards, e.g. https://your-api.onrender.com/api/auth
 const getCallbackURL = (provider) => {
-  // Hard-enforce the monolithic Render domain for all OAuth callbacks
-  // This ensures Google/GitHub always match the dashboard whitelist perfectly
-  return `https://sam-compiler.onrender.com/api/auth/${provider}/callback`;
+  const base = (env.CALLBACK_URL_BASE || "").replace(/\/+$/, "");
+  return `${base}/${provider}/callback`;
 };
 
 

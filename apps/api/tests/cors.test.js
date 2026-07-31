@@ -18,7 +18,7 @@ describe("CORS origin policy", () => {
   });
 
   // The original check was `origin.includes("localhost")`, so any attacker
-  // domain containing that substring passed — with credentials: true.
+  // domain containing that substring passed - with credentials: true.
   it("rejects an attacker origin that merely contains 'localhost'", async () => {
     process.env.WEB_ORIGIN = "http://localhost:5174";
     const res = await request(createApp())
@@ -33,6 +33,20 @@ describe("CORS origin policy", () => {
       .get("/api/health")
       .set("Origin", "https://127.0.0.1.attacker.example");
     expect(res.headers["access-control-allow-origin"]).toBeUndefined();
+  });
+
+  // A custom header is not CORS-safelisted, so if it is missing from
+  // allowedHeaders the browser lets the preflight succeed and then blocks the
+  // real request. That is invisible to server-side tests, which skip CORS
+  // entirely, and it broke guest result polling in the actual browser.
+  it("permits the X-Run-Token header on preflight", async () => {
+    process.env.WEB_ORIGIN = "http://localhost:5174";
+    const res = await request(createApp())
+      .options("/api/runs/aaaaaaaaaaaaaaaaaaaaaaaa")
+      .set("Origin", "http://localhost:5174")
+      .set("Access-Control-Request-Method", "GET")
+      .set("Access-Control-Request-Headers", "x-run-token");
+    expect(res.headers["access-control-allow-headers"]).toMatch(/X-Run-Token/i);
   });
 
   // Previously an unset WEB_ORIGIN degraded to "reflect any origin" while

@@ -17,13 +17,20 @@ const EmailService = require("../../services/email.service");
 
 const router = express.Router();
 
+// First entry of WEB_ORIGIN. The OAuth callbacks hardcoded one Vercel domain,
+// so sign-in always bounced there no matter where the API was running.
+const webOrigin = () => {
+  const first = (env.WEB_ORIGIN || "").split(",")[0].trim().replace(/\/+$/, "");
+  return first || "http://localhost:5174";
+};
+
 /**
  * 🛡️ SECURITY: strict body schemas.
  *
  * These fields previously reached `User.findOne({ email })` unvalidated, so a
  * JSON body like {"email":{"$ne":null}} was passed to Mongo as an operator
  * query and selected an arbitrary user document. z.string() rejects any
- * non-string, which closes that. It also gives passwords a minimum length —
+ * non-string, which closes that. It also gives passwords a minimum length;
  * there was no password policy anywhere, so a 1-character password was accepted
  * by both register and reset.
  */
@@ -90,7 +97,7 @@ router.get("/google", (req, res, next) => {
 
 // Social Auth Callbacks
 router.get("/github/callback", (req, res, next) => {
-  const frontendUrl = "https://sam-compiler-web.vercel.app";
+  const frontendUrl = webOrigin();
       
   passport.authenticate("github", { 
     failureRedirect: `${frontendUrl}/?error=auth_failed`, 
@@ -107,7 +114,7 @@ router.get("/github/callback", (req, res, next) => {
 
 
 router.get("/google/callback", (req, res, next) => {
-  const frontendUrl = "https://sam-compiler-web.vercel.app";
+  const frontendUrl = webOrigin();
 
   passport.authenticate("google", { 
     failureRedirect: `${frontendUrl}/?error=auth_failed`, 
