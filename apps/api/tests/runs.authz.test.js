@@ -90,7 +90,7 @@ describe("GET /api/runs/:runId authorization", () => {
   });
 
   // Guest runs have no owner to check a reader against, so they used to be
-  // readable by anyone who knew the id — and ObjectIds are partially
+  // readable by anyone who knew the id - and ObjectIds are partially
   // time-ordered, so they are guessable. The creator now holds a capability
   // token derived from the run id.
   it("does not leak a guest run to a caller without the run token", async () => {

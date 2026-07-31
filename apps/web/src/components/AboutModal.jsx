@@ -18,7 +18,7 @@ const GithubIcon = ({ className }) => (
 
 export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
   // `if (!isOpen) return null` used to sit above <AnimatePresence>, which meant
-  // the component unmounted before AnimatePresence could play anything — so the
+  // the component unmounted before AnimatePresence could play anything - so the
   // exit variants below never ran and this modal snapped away while every other
   // overlay animated out. The gate belongs inside instead.
   return (

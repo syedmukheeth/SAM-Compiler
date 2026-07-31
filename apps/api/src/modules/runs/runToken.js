@@ -11,7 +11,7 @@ const { env } = require("../../config/env");
  *
  * The creator of a guest run now receives a token derived from the run id and
  * the server secret, and must present it to read the run back. It is not stored
- * — verification recomputes it — and it grants access to exactly one run.
+ * - verification recomputes it - and it grants access to exactly one run.
  */
 function signRunToken(runId) {
   return crypto

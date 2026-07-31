@@ -35,7 +35,7 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    // Polling an external metrics endpoint — an effect is the right place.
+    // Polling an external metrics endpoint - an effect is the right place.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     const timer = setInterval(fetchData, 10000);
@@ -277,7 +277,7 @@ export default function DashboardPage() {
                    label="Execution Cluster" 
                    desc={queueStatus?.workerOnline ? "Remote Docker Worker" : "Secondary Piston Fallback"}
                  />
-                 {/* These two were hardcoded status="success" — health
+                 {/* These two were hardcoded status="success" - health
                      indicators that were green no matter what was actually
                      happening. They now reflect the real queue payload. */}
                  <HealthItem

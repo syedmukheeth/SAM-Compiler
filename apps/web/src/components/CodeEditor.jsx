@@ -22,7 +22,7 @@ const RANDOM_NAMES = [
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
 /**
- * CodeEditor — Collaborative Monaco editor powered by Yjs + y-socket.io.
+ * CodeEditor - Collaborative Monaco editor powered by Yjs + y-socket.io.
  *
  * Key architecture decisions:
  * 1. Yjs is the SINGLE SOURCE OF TRUTH for document content.
@@ -52,7 +52,7 @@ const CodeEditor = ({
   const hasInitializedRef = useRef(false);
   const cleanupRef = useRef(null); // holds the current session cleanup fn
 
-  // Keep value in a ref for localStorage sync (not for seeding — server seeds new rooms)
+  // Keep value in a ref for localStorage sync (not for seeding - server seeds new rooms)
   const seedValueRef = useRef(value);
   useEffect(() => { seedValueRef.current = value; }, [value]);
 
@@ -124,7 +124,7 @@ const CodeEditor = ({
       color: localColorRef.current
     });
 
-    // 📡 Observe ytext directly for localStorage sync — fires once per Yjs transaction,
+    // 📡 Observe ytext directly for localStorage sync - fires once per Yjs transaction,
     // regardless of how many Monaco model-change events that transaction generates.
     // This is safer than Monaco's onChange which fires for EVERY model delta (including
     // auto-formatting rewrites) and can cause unnecessary React re-render cycles.
@@ -137,7 +137,7 @@ const CodeEditor = ({
 
     // 🔑 SYNC GUARD: Mark as initialized once the server has sent us the full document state.
     // The server seeds new rooms before the sync event fires, so ytext already has the
-    // template content at this point. We never seed from the client — server owns seeding.
+    // template content at this point. We never seed from the client - server owns seeding.
     const handleSync = (isSynced) => {
       if (!isSynced) return;
       if (!hasInitializedRef.current) {
@@ -155,7 +155,7 @@ const CodeEditor = ({
       try { provider.destroy(); } catch { /* already torn down */ }
       hasInitializedRef.current = false;
     };
-  }, []); // no deps — always reads from refs
+  }, []); // no deps - always reads from refs
 
   // ─── Monaco Mount Handler ────────────────────────────────────────────────────
   const handleMount = useCallback((editor, monaco) => {
@@ -221,13 +221,13 @@ const CodeEditor = ({
     });
 
     // ⚡ Initialize Yjs immediately after Monaco is ready.
-    // This is the correct place — editorRef.current is guaranteed to be set here.
+    // This is the correct place - editorRef.current is guaranteed to be set here.
     initYjs(editor);
   }, [onCursorChange, initYjs]);
 
   // ─── Re-initialize Yjs when session or language changes ─────────────────────
   useEffect(() => {
-    // Skip if Monaco hasn't mounted yet — handleMount will call initYjs
+    // Skip if Monaco hasn't mounted yet - handleMount will call initYjs
     if (!editorRef.current) return;
     initYjs(editorRef.current);
   }, [sessionId, language, initYjs]);
@@ -273,7 +273,7 @@ const CodeEditor = ({
 
         // This event is dispatched by three different actions (AI refactor,
         // reset-to-boilerplate, load-from-history) and always announced
-        // "Applied to editor ✨" — wrong copy for two of them, and a second
+        // "Applied to editor ✨" - wrong copy for two of them, and a second
         // toast on top of the one the dispatcher already showed. The caller
         // now says what happened; silence here unless it does not.
         if (e.detail?.notify !== false) {
@@ -287,7 +287,7 @@ const CodeEditor = ({
     return () => window.removeEventListener("sam-editor-reset", handleResetEvent);
   }, []);
 
-  // onChange is now driven by ytext.observe inside initYjs — no Monaco onChange needed.
+  // onChange is now driven by ytext.observe inside initYjs - no Monaco onChange needed.
 
   return (
     <div className="h-full w-full bg-transparent">

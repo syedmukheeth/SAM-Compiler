@@ -67,7 +67,7 @@ function createRunSchema(mongoose) {
 
 /**
  * Registers (or returns an already-registered) Run model on the given mongoose
- * instance. Idempotent so repeated requires — and test harnesses — cannot throw
+ * instance. Idempotent so repeated requires - and test harnesses - cannot throw
  * OverwriteModelError.
  */
 function getRunModel(mongoose) {

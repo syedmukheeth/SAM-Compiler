@@ -31,7 +31,7 @@ async function connectMongo() {
     mongoose.connection.on("reconnected", () => logger.info("MongoDB reconnected"));
 
     // autoIndex is off and nothing ever called syncIndexes(), so every index
-    // declared across the models was declaration-only — including the unique
+    // declared across the models was declaration-only - including the unique
     // index on User.email, whose absence allows duplicate accounts. Building
     // them in the background keeps startup non-blocking.
     syncIndexes().catch((err) => logger.error({ err }, "Index sync failed"));

@@ -66,7 +66,7 @@ export function useAuth() {
         // eslint-disable-next-line react-hooks/set-state-in-effect
         if (savedUser) setUser(JSON.parse(savedUser));
       } catch {
-        // Corrupt cached user — fetchUser below is the source of truth.
+        // Corrupt cached user - fetchUser below is the source of truth.
         localStorage.removeItem("sam_user");
       }
       fetchUser(token);

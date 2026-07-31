@@ -137,7 +137,7 @@ export default function EditorPage() {
         }
       }
     } catch {
-      // Corrupt localStorage payload — fall through to defaults.
+      // Corrupt localStorage payload - fall through to defaults.
     }
     return defaults;
   });
@@ -172,13 +172,9 @@ export default function EditorPage() {
   const [aiWidth, setAiWidth] = useState(() => Number(localStorage.getItem('sam-ai-width-pct')) || 33.33);
 
   /**
-   * The main row is: editor (fixed %) | splitter | terminal (flex:1) | splitter | AI (fixed %).
-   * The terminal only gets whatever is left over, so editorWidth + aiWidth must
-   * stay meaningfully under 100. The toggle paths used to set the two
-   * independently and never persist them, while the drag handlers did persist —
-   * so dragging AI to 70%, reloading, then pressing Ctrl+/ produced
-   * 33.33 + 70 = 103.33% and collapsed the terminal to zero width (which
-   * FitAddon.fit() then threw on, swallowed by a bare catch).
+   * Row layout: editor (fixed %) | terminal (flex:1) | AI (fixed %).
+   * The terminal takes the remainder, so editor + AI must stay under 100 or it
+   * collapses to zero width. Every setter goes through here to keep that true.
    */
   const applyLayout = useCallback((nextEditor, nextAi, aiVisible) => {
     const MIN_PANEL = 15;
@@ -370,7 +366,7 @@ builtins.input = input_shim
           socket.connect();
         });
       } catch {
-        // Socket unavailable — the polling fallback below still applies.
+        // Socket unavailable - the polling fallback below still applies.
       }
     }
 
@@ -389,12 +385,9 @@ builtins.input = input_shim
     // Declared outside the try so the finally block can always detach the
     // listener and unsubscribe, even if the run throws part-way through.
     let jobId;
-    // Frames that arrive before the job id is assigned are held, not dropped.
-    // The listener is attached before the run is submitted, but
-    // runRef.current.jobId is only set after the submission resolves — and on
-    // the socket path the server can start streaming immediately after its ack.
-    // The old guard returned early in that window, so the first lines of
-    // compiler output (the ones users most need) were silently discarded.
+    // The listener attaches before submission, but the job id only exists once
+    // submission resolves, and the server can stream before that. Frames in
+    // that window are held rather than dropped.
     const pendingLogFrames = [];
     let jobIdAssigned = false;
 
@@ -452,7 +445,7 @@ builtins.input = input_shim
         }
     };
 
-    // Buffers until the job id lands, then replays in arrival order.
+    // Buffers until the job id lands, then replays in order.
     const onLog = (evt) => {
       if (!evt) return;
       if (!jobIdAssigned) {
@@ -490,7 +483,7 @@ builtins.input = input_shim
           runToken = response.runToken;
           setRunStatus("QUEUED"); // Instant feedback
         } catch {
-          // Socket submission failed — fall back to HTTP.
+          // Socket submission failed - fall back to HTTP.
           const result = await submitRun({ language, code, stdin });
           jobId = result.jobId;
           runToken = result.runToken;
@@ -569,7 +562,7 @@ builtins.input = input_shim
         setBusy(false);
       }
 
-      // Listener teardown also happens in `finally` — if anything between here
+      // Listener teardown also happens in `finally` - if anything between here
       // and there throws, the handler must still come off.
 
       // 🕒 PERSISTENT GUEST HISTORY ENGINE
@@ -605,8 +598,8 @@ builtins.input = input_shim
       if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${cleanMsg}\x1b[0m\r\n`);
       setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${cleanMsg}\n\nIs this an issue with my code or the server?`);
     } finally {
-      // This used to sit inside the `try`, so any throw on the way there —
-      // including a failed poll — left a permanent exec:log handler behind,
+      // This used to sit inside the `try`, so any throw on the way there
+      // (including a failed poll) left a permanent exec:log handler behind,
       // holding a closure over the run's state. One leak per failed run.
       if (socket) {
         socket.off("exec:log", onLog);
@@ -886,12 +879,8 @@ builtins.input = input_shim
     // after reconnecting could authenticate with a stale token.
   }, [socketStatus, busy, token]);
 
-  // Pyodide (Python-in-browser) engine.
-  //
-  // Loads once on mount. Previously the effect depended on the very state it
-  // set (isPyodideLoading/pyodide) and called setState synchronously in its
-  // body, and it had no script.onerror — so a blocked CDN pinned
-  // isPyodideLoading at true forever — and never removed the injected <script>.
+  // Loads once on mount. Must not depend on the state it sets, and needs an
+  // onerror handler or a blocked CDN pins the loading flag on forever.
   const pyodideRequestedRef = useRef(false);
   useEffect(() => {
     if (pyodideRequestedRef.current || window.loadPyodide) return;
@@ -956,20 +945,16 @@ builtins.input = input_shim
     }
   }, []);
 
-  // Terminal (XTerm.js) initialization.
-  //
-  // Mounts ONCE. `theme` used to be a dependency of this effect, so toggling
-  // light/dark disposed the terminal and built a new one — destroying the
-  // entire 5000-line scrollback (every compiler error the user had just read).
-  // Theme is now applied to the live instance in the effect below.
+  // Mounts once. Keep `theme` out of the deps: it would dispose and rebuild the
+  // terminal on every toggle, losing the whole scrollback. Theme is applied to
+  // the live instance below.
   useEffect(() => {
     if (!terminalRef.current || xtermRef.current) return;
     const term = new XTerm({
       allowTransparency: true,
       theme: buildTerminalTheme(themeRef.current),
-      // xterm renders to a canvas and cannot resolve CSS custom properties, so
-      // 'var(--font-mono)' silently fell back to xterm's default monospace and
-      // the terminal never matched the rest of the app.
+      // xterm draws to canvas and cannot resolve CSS variables, so this must be
+      // a real font stack.
       fontFamily: "'JetBrains Mono', Menlo, Monaco, Consolas, monospace",
       fontSize: 12,
       lineHeight: 1.5,
@@ -998,7 +983,7 @@ builtins.input = input_shim
     fitAddonRef.current = fitAddon;
 
     // Typing into the terminal used to emit exec:input, which the server
-    // buffered and nothing ever consumed — neither executor accepts input once
+    // buffered and nothing ever consumed - neither executor accepts input once
     // a run has started. Keystrokes silently disappeared and the terminal
     // looked frozen. Say so once per run instead.
     term.onData(() => {
@@ -1031,7 +1016,7 @@ builtins.input = input_shim
     };
   }, [safeFit]);
 
-  // Recolour the existing terminal in place — no dispose, no lost scrollback.
+  // Recolour the existing terminal in place - no dispose, no lost scrollback.
   useEffect(() => {
     if (xtermRef.current) xtermRef.current.options.theme = buildTerminalTheme(theme);
   }, [theme]);
@@ -1075,7 +1060,7 @@ builtins.input = input_shim
         return;
       }
 
-      // Ctrl+L clears the terminal, a strong convention — but Monaco binds it to
+      // Ctrl+L clears the terminal, a strong convention - but Monaco binds it to
       // Expand Line Selection, so defer to the editor when it has focus.
       if (e.key.toLowerCase() === "l") {
         if (isEditorFocused()) return;
@@ -1086,7 +1071,7 @@ builtins.input = input_shim
 
       // The AI panel used to be bound to Ctrl+/ on a window listener that called
       // preventDefault unconditionally, which meant Monaco's Toggle Line Comment
-      // — the single most-used editor shortcut there is — could never fire.
+      // - the single most-used editor shortcut there is - could never fire.
       // Moved to Ctrl+Shift+A, leaving Ctrl+/ to the editor.
       if (e.shiftKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
@@ -1157,8 +1142,8 @@ builtins.input = input_shim
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             /* Was `md:hidden` (<768) while the header that opens it is
-               `lg:hidden` (<1024). Between 768–1023px the hamburger rendered
-               but the menu it toggled did not — the button did nothing. */
+               `lg:hidden` (<1024). Between 768-1023px the hamburger rendered
+               but the menu it toggled did not - the button did nothing. */
             className="absolute left-0 right-0 top-14 mt-2 mx-4 p-4 sam-glass border-sam-glass-border shadow-2xl z-[150] lg:hidden overflow-hidden"
             style={{
               borderRadius: 20,
@@ -1275,7 +1260,7 @@ builtins.input = input_shim
           
           {/* Was `xl:flex` (>=1280) inside a header that appears at `lg`
               (>=1024). Combined with the menu bug above, Settings had no
-              trigger at all anywhere in the 768–1279px range. */}
+              trigger at all anywhere in the 768-1279px range. */}
           <nav className="hidden lg:flex items-center gap-6 xl:gap-8">
             {['Editor', 'Dashboard', 'Settings'].map((tab) => {
               if (tab === 'Dashboard') {
@@ -1343,7 +1328,7 @@ builtins.input = input_shim
                 />
               </div>
             ) : authLoading ? (
-              /* useAuth exposes `loading`, which this page never read — so an
+              /* useAuth exposes `loading`, which this page never read - so an
                  authenticated user saw the "Sign In" button flash on every load
                  until fetchUser resolved. */
               <div
@@ -1467,7 +1452,7 @@ builtins.input = input_shim
       )}
 
       {/* ═══════════════════════════════════════════
-          CONTEXTUAL AI TRIGGER — Relocated to Root
+          CONTEXTUAL AI TRIGGER - Relocated to Root
           Floats opposite to the Run button
       ══════════════════════════════════════════════ */}
       {/* The run button is hidden on the AI tab. It is fixed to the bottom-right
@@ -1693,7 +1678,7 @@ builtins.input = input_shim
                   <button
                     onClick={async () => {
                        // The write was neither awaited nor caught, and the
-                       // success toast fired unconditionally — including when
+                       // success toast fired unconditionally - including when
                        // the clipboard was blocked, or when there was nothing
                        // to copy at all.
                        const logs = stdErrRef.current || "";

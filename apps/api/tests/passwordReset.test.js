@@ -64,7 +64,7 @@ describe("password reset", () => {
       .send({ token: rawToken, password: NEW_PASSWORD });
     expect(reset.status).toBe(200);
 
-    // The pre-reset JWT must no longer work — this is the whole point of a
+    // The pre-reset JWT must no longer work - this is the whole point of a
     // reset, and it previously kept working for the full 7-day expiry.
     const meAfter = await request(app)
       .get("/api/auth/me")

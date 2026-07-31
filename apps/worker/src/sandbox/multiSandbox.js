@@ -116,7 +116,7 @@ async function executeRun(opts, onLog) {
   } finally {
     // Errors deliberately propagate. This used to be a catch that returned
     // { exitCode: 1 }, which made "the sandbox is unavailable" look identical to
-    // "the user's program exited 1" — so BullMQ marked the job completed and no
+    // "the user's program exited 1" - so BullMQ marked the job completed and no
     // retry or failover ever happened.
     await fs.rm(runDir, { recursive: true, force: true });
   }

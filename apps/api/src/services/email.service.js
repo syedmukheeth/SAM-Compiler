@@ -4,7 +4,7 @@ const { logger } = require("../config/logger");
  * 📧 EMAIL SERVICE
  *
  * Sends real mail when SMTP is configured. When it is not, it logs that the
- * send was skipped — it does NOT print the reset URL. The previous version
+ * send was skipped - it does NOT print the reset URL. The previous version
  * console.logged the full reset link on every request, which wrote a working
  * account-takeover token into production stdout for anyone with log access.
  */

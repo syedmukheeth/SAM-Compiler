@@ -24,8 +24,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # NOTE: the language toolchains (g++, gcc, openjdk, python3) that used to be
-# installed here have been removed. This image no longer executes user code —
-# runs.service delegates to the worker or the cloud fallback — so they were
+# installed here have been removed. This image no longer executes user code - # runs.service delegates to the worker or the cloud fallback - so they were
 # unused attack surface and a large amount of image weight.
 
 # Copy only what the API actually needs at runtime, rather than the entire

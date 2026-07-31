@@ -52,7 +52,7 @@ function generateRunTitle(code, _runtime) { // eslint-disable-line no-unused-var
 
 /**
  * Creates and executes a run directly on this server.
- * ALL languages are executed inline — no queue/worker dependency.
+ * ALL languages are executed inline - no queue/worker dependency.
  */
 async function createRun(input) {
   const { userId } = input;
@@ -91,7 +91,7 @@ async function createRun(input) {
       
       // Must be awaited. When this was fire-and-forget, a fast run could reach
       // findByIdAndUpdate (below) before the insert landed; the update then
-      // matched nothing, returned null, and nobody checked — leaving the run
+      // matched nothing, returned null, and nobody checked - leaving the run
       // stuck in "running" with empty output forever.
       await run.save();
       useMongo = true;
@@ -161,7 +161,7 @@ async function createRun(input) {
             stderr: run.stderr
           });
         }
-        // Worker owns the "end" event for queued jobs — don't double-emit
+        // Worker owns the "end" event for queued jobs - don't double-emit
         return;
       } else {
         // 🚀 Fallback to external sandbox (Judge0/Piston)
@@ -227,9 +227,9 @@ async function createRun(input) {
 
   };
 
-  // Trigger background task — .catch() guarantees "end" reaches client even on unhandled rejection
+  // Trigger background task - .catch() guarantees "end" reaches client even on unhandled rejection
   runTask().catch((err) => {
-    logger.error({ err }, "runTask unhandled rejection — emitting fallback end");
+    logger.error({ err }, "runTask unhandled rejection - emitting fallback end");
     const socketHandler = require("./socketHandler");
     socketHandler.emitLog(run._id.toString(), "end", { status: "failed" });
 
@@ -256,7 +256,7 @@ async function getRun(runId) {
 }
 
 /**
- * Engine health — now always "online" since we execute directly.
+ * Engine health - now always "online" since we execute directly.
  */
 async function getQueueStatus() {
   const redis = getRedisClient();

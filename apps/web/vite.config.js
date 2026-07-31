@@ -15,13 +15,13 @@ export default defineConfig({
     },
   },
   build: {
-    // Raise the warning threshold — Monaco is inherently large and can't be eliminated
+    // Raise the warning threshold - Monaco is inherently large and can't be eliminated
     chunkSizeWarningLimit: 1000,
     sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
-          // Monaco Editor — 2.5MB irreducible (ships its own language workers)
+          // Monaco Editor - 2.5MB irreducible (ships its own language workers)
           // Isolated so the app shell loads independently without waiting for it
           if (id.includes('node_modules/monaco-editor') || id.includes('node_modules/@monaco-editor')) {
             return 'monaco';

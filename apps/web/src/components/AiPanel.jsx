@@ -169,7 +169,7 @@ function MessageBubble({ msg, isDark, onApplyRefactor }) {
           />
         );
       }
-      // Inline code — consistent dark pill regardless of mode for readability
+      // Inline code - consistent dark pill regardless of mode for readability
       return (
         <code
           className={`px-1.5 py-0.5 rounded-md font-mono text-[11px] ${
@@ -312,7 +312,7 @@ function AiPanel({
   const lastAutoPrompt = useRef(null);
   // Mirrors `messages` so sendMessage does not need it as a dependency. With
   // `messages` in the dep array its identity changed on every streaming chunk,
-  // which re-fired the auto-send effect after every completed response —
+  // which re-fired the auto-send effect after every completed response,
   // re-sending the same prompt forever while the panel stayed open.
   const messagesRef = useRef(messages);
   const abortRef = useRef(null);

@@ -84,7 +84,7 @@ async function main() {
             run.metrics = metrics || {};
             run.status = status || (exitCode === 0 ? "succeeded" : "failed");
           } catch (err) {
-            // Only infrastructure failures reach here now — a user program that
+            // Only infrastructure failures reach here now - a user program that
             // exits non-zero returns normally with a status. The stack used to
             // be appended to run.stderr and streamed to the user's terminal,
             // exposing worker internals and host paths; it is logged instead.
@@ -212,7 +212,7 @@ process.on("unhandledRejection", (reason) => {
   logger.error({ err: reason }, "Unhandled promise rejection");
 });
 process.on("uncaughtException", (err) => {
-  logger.fatal({ err }, "Uncaught exception — exiting");
+  logger.fatal({ err }, "Uncaught exception - exiting");
   process.exit(1);
 });
 

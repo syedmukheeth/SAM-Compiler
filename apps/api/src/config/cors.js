@@ -8,7 +8,7 @@
  *
  * This version matches allow-listed origins exactly, and only treats a request
  * as a local dev origin when the parsed hostname is exactly `localhost`,
- * `127.0.0.1` or `[::1]` — a substring can no longer widen the policy.
+ * `127.0.0.1` or `[::1]` - a substring can no longer widen the policy.
  */
 
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1", "::1"]);

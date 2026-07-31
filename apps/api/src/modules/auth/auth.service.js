@@ -55,7 +55,7 @@ async function getUserById(id) {
 /**
  * Server-side only. Returns the user document including the stored GitHub OAuth
  * token, for use by the GitHub push/list flows. Never send the result of this
- * to a client — use getUserById for anything that reaches a response body.
+ * to a client - use getUserById for anything that reaches a response body.
  */
 async function getUserWithGithubToken(id) {
   return User.findById(id).select("-password -resetPasswordToken -resetPasswordExpires");

@@ -16,7 +16,7 @@ const UserSchema = new mongoose.Schema({
   resetPasswordExpires: { type: Date },
   // Bumped on password reset so previously issued JWTs stop verifying. Without
   // it, a 7-day token kept working after the account owner reset their
-  // password — the exact scenario a reset is meant to shut down.
+  // password - the exact scenario a reset is meant to shut down.
   tokenVersion: { type: Number, default: 0 }
 }, {
   timestamps: true

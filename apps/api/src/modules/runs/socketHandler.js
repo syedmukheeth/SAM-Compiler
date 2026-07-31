@@ -20,10 +20,8 @@ const activeSubscriptions = new Set(); // jobId
 const jobTimestamps = new Map(); // jobId -> timestamp
 
 /**
- * Guest runs have no userId, so ownership cannot be derived from the document.
- * Without this, every guard that tested `job.userId && ...` short-circuited and
- * any client could attach to, feed stdin to, or tear down any anonymous run.
- * First socket to claim a guest job owns it for the life of that connection.
+ * Guest runs have no userId, so ownership cannot come from the document.
+ * First socket to claim one owns it for the life of that connection.
  */
 const guestJobOwners = new Map(); // jobId -> socket.id
 const execStartCounts = new Map(); // socket.id -> { count, windowStart }
@@ -35,11 +33,8 @@ const isValidJobId = (jobId) => typeof jobId === "string" && /^[a-f0-9]{24}$/i.t
 
 /**
  * Starter code per language, keyed by the id used in the Yjs room name.
- *
- * This was previously two separate object literals a few lines apart, and they
- * disagreed: one used the key `javascript`, the other `nodejs`. A JavaScript
- * room therefore got seeded on one code path and silently left empty on the
- * other. Both aliases are now present in one place.
+ * Both `javascript` and `nodejs` are present: the two seeding paths used
+ * different keys and one of them silently no-opped.
  */
 const TEMPLATES = {
   cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
@@ -83,7 +78,7 @@ function canAccessJob(socket, jobId, job) {
   return claimedBy === socket.id;
 }
 
-/** Per-socket execution throttle — exec:start had no rate limiting at all. */
+/** Per-socket execution throttle - exec:start had no rate limiting at all. */
 function allowExecStart(socketId) {
   const now = Date.now();
   const entry = execStartCounts.get(socketId);
@@ -177,7 +172,7 @@ function initSocket(server) {
   // Initialize Yjs Sync over Socket.io
   const ysocket = new YSocketIO(io);
   
-  // Persistence — Optimized with a 2-second debounce to prevent DB spam
+  // Persistence - Optimized with a 2-second debounce to prevent DB spam
   const persistenceTimers = new Map();
 
   ysocket.on("document-update", (doc) => {
@@ -233,8 +228,8 @@ function initSocket(server) {
         // when either:
         //   - the phrase "Welcome to SAM Compiler!" appeared more than once, or
         //   - the text contained both "Wel" and "syed" anywhere.
-        // Both are things a user can legitimately type — printing that string
-        // twice in a loop, or writing "Well, syed..." in a comment — and the
+        // Both are things a user can legitimately type - printing that string
+        // twice in a loop, or writing "Well, syed..." in a comment - and the
         // result was silent, unrecoverable loss of their work. These were
         // heuristics for CRDT duplication that was already fixed at its source
         // by moving room seeding server-side.
@@ -247,7 +242,7 @@ function initSocket(server) {
         }
       } else {
         // NEW ROOM: No persisted state found in MongoDB.
-        // The SERVER seeds the room exactly once — it has ground truth on whether this
+        // The SERVER seeds the room exactly once - it has ground truth on whether this
         // room is brand new. Client-side seeding caused a race condition: the client's
         // 150ms debounce elapsed before the server state arrived on Render's free tier
         // (~200-500ms latency), so BOTH the server state and the client seed arrived,
@@ -374,7 +369,7 @@ function initSocket(server) {
           return logger.warn({ jobId }, "Malformed exec:input rejected");
         }
         // The old guard was `job.userId && job.userId.toString() !== userId`,
-        // which short-circuits for every guest-owned run (userId == null) —
+        // which short-circuits for every guest-owned run (userId == null),
         // so any connected client could inject stdin into any guest run.
         // Requiring room membership means the caller must have passed the
         // subscribe check first.
@@ -383,7 +378,7 @@ function initSocket(server) {
         }
 
         // findById can throw a CastError on a malformed id inside an async
-        // handler — previously uncaught, taking the process down.
+        // handler - previously uncaught, taking the process down.
         const job = await RunModel.findById(jobId).select("userId").lean();
         if (!job || !canAccessJob(socket, jobId, job)) {
           return logger.warn({ userId, jobId }, "Unauthorized input attempt blocked");
@@ -392,8 +387,8 @@ function initSocket(server) {
         // Neither execution backend accepts input mid-run: the Judge0 cloud
         // path is batch-only, and the Docker worker is handed run.stdin once at
         // container start. The previous implementation dispatched to
-        // `process.emit("run:input:<id>")` — an event nothing in the codebase
-        // ever subscribed to — and otherwise appended to inputBuffers, which
+        // `process.emit("run:input:<id>")` - an event nothing in the codebase
+        // ever subscribed to - and otherwise appended to inputBuffers, which
         // was only read by getBufferedInput(), which nothing ever imported.
         // Keystrokes were collected and then dropped.
         //
@@ -438,7 +433,7 @@ function initSocket(server) {
         }
 
         // exec:start was a full unauthenticated execution pipeline with no rate
-        // limiting of any kind — neither runLimiter nor userRateLimiter apply to
+        // limiting of any kind - neither runLimiter nor userRateLimiter apply to
         // websocket events.
         if (!allowExecStart(socket.id)) {
           logger.warn({ socketId: socket.id }, "exec:start rate limit exceeded");

@@ -11,7 +11,7 @@ axios.defaults.withCredentials = true;
 //
 // This replaces a block that also cleared sessionStorage on *every* load and
 // forced window.location.reload() for every first-time visitor (gated on a
-// shipped `sam_reset_v6` localStorage flag) — a white flash and doubled load
+// shipped `sam_reset_v6` localStorage flag) - a white flash and doubled load
 // time before any UI painted. The cache-clearing logic was additionally
 // duplicated, with `window.caches` accessed behind a `'serviceWorker' in
 // navigator` check rather than its own feature detect.
