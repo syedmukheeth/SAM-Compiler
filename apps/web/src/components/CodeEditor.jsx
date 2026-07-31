@@ -236,6 +236,10 @@ const CodeEditor = ({
   useEffect(() => {
     return () => {
       if (cleanupRef.current) cleanupRef.current();
+      // window.samEditor was assigned on mount and never cleared, so after an
+      // unmount the rest of the app kept calling into a disposed editor.
+      if (window.samEditor === editorRef.current) window.samEditor = null;
+      editorRef.current = null;
     };
   }, []);
 
@@ -259,18 +263,24 @@ const CodeEditor = ({
     const handleResetEvent = (e) => {
       const template = e.detail?.template ?? "";
       if (!template || !editorRef.current) return;
-      
+
       const model = editorRef.current.getModel();
       if (model) {
         editorRef.current.executeEdits("sam-reset", [{
           range: model.getFullModelRange(),
           text: template
         }]);
-        
-        toast.success("Applied to editor ✨", {
-          style: { background: "var(--sam-surface)", color: "var(--sam-text)", border: "1px solid var(--sam-glass-border)", fontSize: "11px", fontWeight: 900 },
-          icon: "✨"
-        });
+
+        // This event is dispatched by three different actions (AI refactor,
+        // reset-to-boilerplate, load-from-history) and always announced
+        // "Applied to editor ✨" — wrong copy for two of them, and a second
+        // toast on top of the one the dispatcher already showed. The caller
+        // now says what happened; silence here unless it does not.
+        if (e.detail?.notify !== false) {
+          toast.success(e.detail?.message || "Applied to editor", {
+            style: { background: "var(--sam-surface)", color: "var(--sam-text)", border: "1px solid var(--sam-glass-border)", fontSize: "11px", fontWeight: 900 }
+          });
+        }
       }
     };
     window.addEventListener("sam-editor-reset", handleResetEvent);

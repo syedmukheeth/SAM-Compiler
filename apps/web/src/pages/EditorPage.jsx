@@ -148,6 +148,8 @@ export default function EditorPage() {
   // it as a dependency (which is what caused the terminal to be rebuilt).
   const themeRef = useRef(theme);
   useEffect(() => { themeRef.current = theme; }, [theme]);
+  // One "input is not interactive" notice per run, not per keystroke.
+  const inputHintShownRef = useRef(false);
   const [busy, setBusy] = useState(false);
   const [activeModal, setActiveModal] = useState(null); 
   const [showAiPanel, setShowAiPanel] = useState(false);
@@ -156,6 +158,11 @@ export default function EditorPage() {
   const [isEngineReady, setIsEngineReady] = useState(false);
   const [engineMode, setEngineMode] = useState("preparing");
   const [failSafeActive, setFailSafeActive] = useState(false);
+  // The health-poll effect reads this but cannot depend on it without
+  // restarting the interval every time it flips; it previously closed over a
+  // stale value instead.
+  const failSafeActiveRef = useRef(failSafeActive);
+  useEffect(() => { failSafeActiveRef.current = failSafeActive; }, [failSafeActive]);
   const [socketStatus, setSocketStatus] = useState("connecting");
   const [showStatusBanner, setShowStatusBanner] = useState(true);
   const [activeMobileTab, setActiveMobileTab] = useState('editor');
@@ -247,7 +254,7 @@ export default function EditorPage() {
     const langMap = { javascript: 'javascript', nodejs: 'javascript', python: 'python', cpp: 'cpp', c: 'c', java: 'java' };
     const langId = langMap[runtime] || 'cpp';
     setActiveLangId(langId);
-    window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: code } }));
+    window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: code, notify: false } }));
     setBuffers(prev => ({ ...prev, [langId]: code }));
     toast.success('Code loaded from history', {
       icon: '📦',
@@ -312,49 +319,37 @@ builtins.input = input_shim
   const onRun = useCallback(async () => {
     if (busy) return;
     const code = window.samEditor ? window.samEditor.getValue() : buffers[activeLangId];
-    const yjsContent = buffers[activeLangId];
-    console.assert(
-      code === yjsContent,
-      `DESYNC: Monaco and Yjs are out of sync!\nMonaco: ${code.substring(0, 20)}...\nYjs/Buffer: ${yjsContent?.substring(0, 20)}...`
-    );
     const language = languageConfigs[activeLangId].lang;
-    
-    // 🛡️ REBOOT DIAGNOSTICS: Clear previous state
+
+    // 🛡️ REBOOT DIAGNOSTICS: Clear previous state.
+    // These four assignments used to appear twice, straddling the boot banner.
     setErrorMarkers([]);
     setPendingAiPrompt(null);
     setRunStatus("Starting...");
     setBusy(true);
     hasReceivedOutputRef.current = false;
     stdErrRef.current = "";
-    
-    // 🔥 PREMIUM TERMINAL UX: Boot Sequence
-    // 🔥 GCC-STYLE TERMINAL BOOT
-    if (xtermRef.current) {
-      xtermRef.current.clear();
-      xtermRef.current.write(`📡 \x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`);
-      xtermRef.current.write(`📦 \x1b[1;36m[SAM] CONFIGURING SANDBOX [DOCKER]...\x1b[0m\r\n`);
-      xtermRef.current.write(`🚀 \x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`);
-    }
+    inputHintShownRef.current = false;
 
     if (isMobile) {
       setActiveMobileTab('terminal');
       setShowAiPanel(false);
     }
-    
-    setBusy(true);
-    hasReceivedOutputRef.current = false;
-    setErrorMarkers([]);
-    stdErrRef.current = "";
-    
+
     const socket = getSocket(token);
     if (runRef.current.jobId && socket) {
       socket.emit("unsubscribe", { jobId: runRef.current.jobId });
       socket.off("exec:log");
     }
-    
+
+    // Reset first, THEN print the banner. Previously the banner was written
+    // above and this reset ran immediately after, erasing it every time.
     if (xtermRef.current) {
       xtermRef.current.reset();
       xtermRef.current.write("\x1b[2J\x1b[0;0H");
+      xtermRef.current.write(`📡 \x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`);
+      xtermRef.current.write(`📦 \x1b[1;36m[SAM] CONFIGURING SANDBOX...\x1b[0m\r\n`);
+      xtermRef.current.write(`🚀 \x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`);
     }
     setRunStatus("Running");
 
@@ -394,10 +389,16 @@ builtins.input = input_shim
     // Declared outside the try so the finally block can always detach the
     // listener and unsubscribe, even if the run throws part-way through.
     let jobId;
-    const onLog = (evt) => {
-      const currentJobId = runRef.current.jobId;
-      if (!evt || !currentJobId) return;
+    // Frames that arrive before the job id is assigned are held, not dropped.
+    // The listener is attached before the run is submitted, but
+    // runRef.current.jobId is only set after the submission resolves — and on
+    // the socket path the server can start streaming immediately after its ack.
+    // The old guard returned early in that window, so the first lines of
+    // compiler output (the ones users most need) were silently discarded.
+    const pendingLogFrames = [];
+    let jobIdAssigned = false;
 
+    const handleLogFrame = (evt) => {
         if (evt.type === "stdout" || evt.type === "stderr") {
            const content = evt.chunk || "";
            if (content.trim()) {
@@ -451,6 +452,21 @@ builtins.input = input_shim
         }
     };
 
+    // Buffers until the job id lands, then replays in arrival order.
+    const onLog = (evt) => {
+      if (!evt) return;
+      if (!jobIdAssigned) {
+        pendingLogFrames.push(evt);
+        return;
+      }
+      handleLogFrame(evt);
+    };
+
+    const flushPendingLogFrames = () => {
+      jobIdAssigned = true;
+      while (pendingLogFrames.length) handleLogFrame(pendingLogFrames.shift());
+    };
+
     try {
       if (socket) {
         socket.off("exec:log"); // Clear any stale listeners
@@ -459,8 +475,8 @@ builtins.input = input_shim
 
 
       // 🔥 NITRO: Direct Socket Submission (Bypasses HTTP overhead)
+      let runToken;
       if (socket && socket.connected) {
-        console.log("📡 [SAM] Nitro Path: Submitting via Socket...");
         try {
           const response = await new Promise((resolve, reject) => {
             const timeout = setTimeout(() => reject(new Error("Socket submission timeout")), 5000);
@@ -471,24 +487,30 @@ builtins.input = input_shim
             });
           });
           jobId = response.jobId;
+          runToken = response.runToken;
           setRunStatus("QUEUED"); // Instant feedback
-        } catch (socketErr) {
-          console.warn("Socket submission failed, falling back to HTTP:", socketErr);
+        } catch {
+          // Socket submission failed — fall back to HTTP.
           const result = await submitRun({ language, code, stdin });
           jobId = result.jobId;
+          runToken = result.runToken;
         }
       } else {
-        console.log("📡 [SAM] Standard Path: Submitting via HTTP...");
         const result = await submitRun({ language, code, stdin });
         jobId = result.jobId;
+        runToken = result.runToken;
         if (socket) {
           socket.emit("subscribe", { jobId });
         }
       }
 
       runRef.current.jobId = jobId;
+      // Replay anything the server streamed between attaching the listener and
+      // the submission resolving.
+      flushPendingLogFrames();
 
       const finalState = await pollUntilDone(jobId, {
+        runToken,
         onUpdate: (s) => {
           if (runRef.current.jobId !== jobId) return;
           const statusMap = {
@@ -594,15 +616,15 @@ builtins.input = input_shim
     }
   }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin, user, renderDiagnosticLine]);
 
-  const onClear = () => {
+  const onClear = useCallback(() => {
     if (xtermRef.current) xtermRef.current.clear();
     setRunStatus("Ready");
-  };
+  }, []);
 
   const handleCodeReset = useCallback(() => {
     const template = languageConfigs[activeLangId]?.template || "";
     if (window.confirm(`[SYSTEM OVERRIDE]\n\nAre you sure you want to sanitize the ${activeLangId.toUpperCase()} workspace?\nAll unsaved changes will be permanently purged to restore factory templates.`)) {
-      window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template } }));
+      window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template, message: "Workspace reset to template" } }));
       setBuffers(prev => ({ ...prev, [activeLangId]: template }));
     }
   }, [activeLangId]);
@@ -731,7 +753,7 @@ builtins.input = input_shim
         if (!navigator.onLine) {
           setIsEngineReady(false);
           setEngineMode("offline");
-        } else if (!failSafeActive) {
+        } else if (!failSafeActiveRef.current) {
           // If we are online but the check fails, it might be a server-side waking state
           setIsEngineReady(false);
           setEngineMode("preparing");
@@ -742,7 +764,6 @@ builtins.input = input_shim
     // 🛡️ FAIL-SAFE: If engine isn't ready in 45s, allow sandbox anyway
     failSafeTimer = setTimeout(() => {
       if (!isEngineReady) {
-        console.warn("⚠️ [SAM-SYSTEM] Fail-safe triggered: Engine took >45s. Defaulting to Sandbox.");
         setIsEngineReady(true);
         setEngineMode("sandbox");
         setFailSafeActive(true);
@@ -756,7 +777,7 @@ builtins.input = input_shim
       clearInterval(interval);
       if (failSafeTimer) clearTimeout(failSafeTimer);
     };
-  }, [isEngineReady, token]);
+  }, [isEngineReady]);
 
   // Persist buffers to localStorage
   useEffect(() => {
@@ -861,7 +882,9 @@ builtins.input = input_shim
       }
     }
     prevSocketStatusRef.current = socketStatus;
-  }, [socketStatus, busy]);
+    // `token` was read in the body but missing from the deps, so a resubscribe
+    // after reconnecting could authenticate with a stale token.
+  }, [socketStatus, busy, token]);
 
   // Pyodide (Python-in-browser) engine.
   //
@@ -974,8 +997,17 @@ builtins.input = input_shim
     xtermRef.current = term;
     fitAddonRef.current = fitAddon;
 
-    term.onData((data) => {
-      if (runRef.current.jobId) getSocket().emit("exec:input", { jobId: runRef.current.jobId, input: data });
+    // Typing into the terminal used to emit exec:input, which the server
+    // buffered and nothing ever consumed — neither executor accepts input once
+    // a run has started. Keystrokes silently disappeared and the terminal
+    // looked frozen. Say so once per run instead.
+    term.onData(() => {
+      if (!runRef.current.jobId || inputHintShownRef.current) return;
+      inputHintShownRef.current = true;
+      term.write(
+        "\r\n\x1b[1;33m[SAM]\x1b[0m \x1b[2mThis run does not read input while running. " +
+        "Put your input in the STDIN panel before pressing Run.\x1b[0m\r\n"
+      );
     });
 
     // ⚡ ELITE RESIZE WATCHER: Ensure terminal reflows perfectly when panels shift
@@ -1020,10 +1052,43 @@ builtins.input = input_shim
 
   // Keyboard Shortcuts
   useEffect(() => {
+    const isEditorFocused = () =>
+      !!document.activeElement?.closest?.('.monaco-editor');
+
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") { e.preventDefault(); onRun(); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "l") { e.preventDefault(); onClear(); }
-      if ((e.metaKey || e.ctrlKey) && e.key === "/") {
+      const mod = e.metaKey || e.ctrlKey;
+      if (!mod) return;
+
+      if (e.key === "Enter") { e.preventDefault(); onRun(); return; }
+
+      // Ctrl+S was advertised in the shortcuts modal but never implemented, so
+      // pressing it opened the browser's "Save Page" dialog. Buffers already
+      // persist on every edit; this makes that explicit and confirms it.
+      if (e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        try {
+          localStorage.setItem("sam_code_buffers", JSON.stringify(buffers));
+          toast.success("Saved locally", { id: "sam-save" });
+        } catch {
+          toast.error("Could not save locally (storage full?)", { id: "sam-save" });
+        }
+        return;
+      }
+
+      // Ctrl+L clears the terminal, a strong convention — but Monaco binds it to
+      // Expand Line Selection, so defer to the editor when it has focus.
+      if (e.key.toLowerCase() === "l") {
+        if (isEditorFocused()) return;
+        e.preventDefault();
+        onClear();
+        return;
+      }
+
+      // The AI panel used to be bound to Ctrl+/ on a window listener that called
+      // preventDefault unconditionally, which meant Monaco's Toggle Line Comment
+      // — the single most-used editor shortcut there is — could never fire.
+      // Moved to Ctrl+Shift+A, leaving Ctrl+/ to the editor.
+      if (e.shiftKey && e.key.toLowerCase() === "a") {
         e.preventDefault();
         setShowAiPanel(prev => {
           const opening = !prev;
@@ -1039,14 +1104,14 @@ builtins.input = input_shim
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onRun]);
+  }, [onRun, onClear, isMobile, aiWidth, applyLayout, buffers]);
 
   // Settings management moved to top to satisfy hook ordering rules
 
 
 
   return (
-    <div className={`relative flex h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isMobile ? 'pb-[88px]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
+    <div className={`relative flex h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isMobile ? 'pb-[calc(var(--sam-mobile-nav-height)+8px)]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -1405,8 +1470,11 @@ builtins.input = input_shim
           CONTEXTUAL AI TRIGGER — Relocated to Root
           Floats opposite to the Run button
       ══════════════════════════════════════════════ */}
-      {/* Floating AI Button Removed - Relocated to Terminal Header */}
-      {isMobile && (
+      {/* The run button is hidden on the AI tab. It is fixed to the bottom-right
+          and the AI panel's send button and quick actions occupy exactly that
+          corner, so the two overlapped and the run button intercepted taps
+          meant for Send. */}
+      {isMobile && activeMobileTab !== 'ai' && (
         <motion.button
           id="mobile-run-fab"
           onClick={onRun}
@@ -1432,9 +1500,12 @@ builtins.input = input_shim
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           style={{
             position: 'fixed',
-            bottom: 160, // Increased to clear MobileTabNav (88px) + StatusBar (44px) + Gap
+            // Positioned against the tab bar's measured height plus the
+            // 44px status bar, rather than a hardcoded 160px that did not
+            // account for the safe-area inset.
+            bottom: 'calc(var(--sam-mobile-nav-height) + 56px)',
             right: 20,
-            zIndex: 200, // Higher than footer and everything else
+            zIndex: 110, // above content, below the tab bar (120) and modals
             display: 'flex',
             alignItems: 'center',
             gap: 8,
@@ -1620,12 +1691,23 @@ builtins.input = input_shim
                 <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
                   <button
-                    onClick={() => {
+                    onClick={async () => {
+                       // The write was neither awaited nor caught, and the
+                       // success toast fired unconditionally — including when
+                       // the clipboard was blocked, or when there was nothing
+                       // to copy at all.
                        const logs = stdErrRef.current || "";
-                       navigator.clipboard.writeText(logs);
-                       toast.success("Logs copied to clipboard", {
-                         style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '10px', fontWeight: 900 }
-                       });
+                       const toastStyle = { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '10px', fontWeight: 900 };
+                       if (!logs.trim()) {
+                         toast("No logs to copy", { style: toastStyle });
+                         return;
+                       }
+                       try {
+                         await navigator.clipboard.writeText(logs);
+                         toast.success("Logs copied to clipboard", { style: toastStyle });
+                       } catch {
+                         toast.error("Clipboard access was blocked", { style: toastStyle });
+                       }
                     }}
                     title="Copy Logs"
                     style={{ padding: '5px', background: 'none', border: 'none', color: 'rgba(221,226,241,0.25)', cursor: 'pointer', borderRadius: 6, transition: 'all 0.2s' }}
@@ -1850,21 +1932,14 @@ builtins.input = input_shim
                   language={activeLangId}
                   onApplyRefactor={(refactoredCode) => {
                     setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
-                    window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: refactoredCode } }));
-                    if (isMobile) {
-                      setActiveMobileTab('editor');
-                      toast.success("Refactor Applied!", {
-                        style: {
-                          background: theme === 'dark' ? '#0A0A0A' : '#FFFFFF',
-                          color: theme === 'dark' ? '#FFFFFF' : '#000000',
-                          border: '1px solid var(--sam-glass-border)',
-                          fontSize: '9px',
-                          fontWeight: '900',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.1em'
-                        }
-                      });
-                    }
+                    // The confirmation toast used to be inside `if (isMobile)`,
+                    // so desktop users got no feedback that a refactor had been
+                    // applied. It also hardcoded its colours instead of using
+                    // the theme tokens.
+                    window.dispatchEvent(new CustomEvent('sam-editor-reset', {
+                      detail: { template: refactoredCode, message: "Refactor applied ✨" }
+                    }));
+                    if (isMobile) setActiveMobileTab('editor');
                   }}
                   theme={theme}
                   isMobile={isMobile}
@@ -1909,7 +1984,7 @@ builtins.input = input_shim
 
       <AnimatePresence>
         {showShortcutsHelp && (
-          <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
             <motion.div 
                initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
                onClick={() => setShowShortcutsHelp(false)}
@@ -1931,7 +2006,7 @@ builtins.input = input_shim
                  <ShortcutItem keys={["CTRL", "ENTER"]} label="Run Code" theme={theme} />
                  <ShortcutItem keys={["CTRL", "S"]} label="Save Locally" theme={theme} />
                  <ShortcutItem keys={["CTRL", "L"]} label="Clear Output" theme={theme} />
-                 <ShortcutItem keys={["CTRL", "/"]} label="Toggle Sam AI" theme={theme} />
+                 <ShortcutItem keys={["CTRL", "SHIFT", "A"]} label="Toggle Sam AI" theme={theme} />
 
               </div>
               <button 

@@ -17,11 +17,16 @@ const GithubIcon = ({ className }) => (
 );
 
 export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
-  if (!isOpen) return null;
-
+  // `if (!isOpen) return null` used to sit above <AnimatePresence>, which meant
+  // the component unmounted before AnimatePresence could play anything — so the
+  // exit variants below never ran and this modal snapped away while every other
+  // overlay animated out. The gate belongs inside instead.
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+      {isOpen && (
+      /* 200 = dialog layer. Was 120, identical to the mobile tab bar, which
+         therefore painted at the same level as this modal. */
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
         <motion.div 
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -117,6 +122,7 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
           </div>
         </motion.div>
       </div>
+      )}
     </AnimatePresence>
   );
 }

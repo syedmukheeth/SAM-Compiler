@@ -27,7 +27,7 @@ export default function ConsentNotice() {
           exit={{ y: 50, opacity: 0 }}
           style={{
             zIndex: 130,
-            bottom: 'calc(env(safe-area-inset-bottom) + 110px)' // Position above mobile nav tabs (~96px)
+            bottom: 'calc(var(--sam-mobile-nav-height) + 16px)'
           }}
           className="fixed left-4 right-4 mx-auto max-w-xl md:bottom-8 md:left-8 md:right-8 lg:left-auto lg:right-12"
         >

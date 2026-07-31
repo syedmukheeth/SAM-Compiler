@@ -42,7 +42,11 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
   const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [expanded, setExpanded] = useState(null);
+  // Keyed by run id, not list index. With an index, refreshing history
+  // reordered/replaced the array while `expanded` still pointed at a position,
+  // so a different run silently expanded and showed someone else's code and
+  // output under the heading the user had clicked.
+  const [expandedId, setExpandedId] = useState(null);
 
   const isDark = theme === "dark";
 
@@ -243,14 +247,15 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
               {runs.map((run, idx) => {
                 const lang = run.runtime || "cpp";
                 const langMeta = LANG_COLORS[lang] || LANG_COLORS.cpp;
-                const isOpen_ = expanded === idx;
+                const runKey = run._id || `idx-${idx}`;
+                const isOpen_ = expandedId === runKey;
                 const code = run.files?.[0]?.content || "";
                 const preview = code.split("\n").slice(0, 4).join("\n");
                 const hasOutput = run.stdout || run.stderr;
 
                 return (
                   <motion.div
-                    key={run._id || idx}
+                    key={runKey}
                     initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: idx * 0.04 }}
@@ -268,7 +273,7 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
                     {/* Run Header Row */}
                     <div
                       style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", cursor: "pointer" }}
-                      onClick={() => setExpanded(isOpen_ ? null : idx)}
+                      onClick={() => setExpandedId(isOpen_ ? null : runKey)}
                     >
                       {/* Lang Badge */}
                       <div style={{

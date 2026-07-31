@@ -20,7 +20,9 @@ export default function Modal({ isOpen, onClose, title, children, theme }) {
       style={{
         position: "fixed",
         inset: 0,
-        zIndex: 100,
+        // 200 = dialog layer. Was 100, the same as the footer/status bar, so
+        // this only rendered above it by accident of DOM order.
+        zIndex: 200,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",

@@ -1,9 +1,36 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Code2, Terminal, Sparkles } from 'lucide-react';
 
 const MobileTabNav = ({ activeTab, onTabChange, theme }) => {
   const isDark = theme === 'dark';
+  const barRef = useRef(null);
+
+  // Publish the bar's real rendered height (safe-area inset included) so the
+  // layout root, the run button and the cookie banner can all position against
+  // one measured value instead of four hardcoded guesses.
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+
+    const publish = () => {
+      document.documentElement.style.setProperty(
+        '--sam-mobile-nav-height',
+        `${Math.round(el.getBoundingClientRect().height)}px`
+      );
+    };
+
+    publish();
+    const observer = new ResizeObserver(publish);
+    observer.observe(el);
+    window.addEventListener('orientationchange', publish);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('orientationchange', publish);
+      document.documentElement.style.setProperty('--sam-mobile-nav-height', '0px');
+    };
+  }, []);
 
   const tabs = [
     { id: 'editor', label: 'Editor', icon: <Code2 size={18} /> },
@@ -12,7 +39,7 @@ const MobileTabNav = ({ activeTab, onTabChange, theme }) => {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-[120] lg:hidden safe-bottom">
+    <div ref={barRef} className="fixed bottom-0 left-0 right-0 z-[120] lg:hidden safe-bottom">
       <div 
         className="mx-4 mb-4 flex items-center justify-around p-2 rounded-[24px] border backdrop-blur-2xl shadow-2xl transition-all duration-500"
         style={{
