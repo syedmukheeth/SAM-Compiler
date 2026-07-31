@@ -1,8 +1,32 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
 
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "tailwindcss/utilities";
+@import "tailwindcss";
+
+/* ============================================================
+   TAILWIND 4 THEME BRIDGE
+   `inline` is required: these slots point at the --sam-* custom
+   properties below, which :root.light re-points at runtime. A
+   non-inline @theme would snapshot the dark values at build time
+   and break the light/dark toggle.
+   ============================================================ */
+@theme inline {
+  --color-sam-bg: var(--sam-bg);
+  --color-sam-surface: var(--sam-surface);
+  --color-sam-surface-low: var(--sam-surface-low);
+  --color-sam-surface-high: var(--sam-surface-high);
+  --color-sam-surface-top: var(--sam-surface-top);
+  --color-sam-bright: var(--sam-bright);
+  --color-sam-accent: var(--sam-accent);
+  --color-sam-accent-dim: var(--sam-accent-dim);
+  --color-sam-accent-muted: var(--sam-accent-muted);
+  --color-sam-text: var(--sam-text);
+  --color-sam-text-muted: var(--sam-text-muted);
+  --color-sam-text-dim: var(--sam-text-dim);
+  --color-sam-text-muted-alt: var(--sam-text-muted-alt);
+  --color-sam-glass-border: var(--sam-glass-border);
+
+  --shadow-glass: 0 10px 30px rgba(0, 0, 0, 0.45);
+}
 
 /* ============================================================
    SAM COMPILER — MONOLITH DESIGN SYSTEM
@@ -35,6 +59,9 @@
   --sam-text:          #FFFFFF;
   --sam-text-muted:    #A3A3A3;
   --sam-text-dim:      rgba(255,255,255,0.6);
+  /* Was previously only defined under .light, so every dark-mode use
+     resolved to nothing. */
+  --sam-text-muted-alt: rgba(255,255,255,0.4);
 
   /* === Elevation & Bloom === */
   --sam-glow-bloom:    0 2px 10px rgba(0,0,0,0.1), 0 10px 40px rgba(0,0,0,0.4);
