@@ -4,6 +4,7 @@ const { createRun, getRun, getQueueStatus, getUserHistory } = require("./runs.se
 const { authMiddleware, optionalAuth } = require("../../middleware/auth.middleware");
 const { userRateLimiter } = require("../../middleware/rateLimiter.middleware");
 const { logger } = require("../../config/logger");
+const { signRunToken, verifyRunToken } = require("./runToken");
 
 const runsRouter = Router();
 
@@ -35,7 +36,12 @@ runsRouter.post("/", optionalAuth, userRateLimiter, async (req, res, next) => {
       }]
     });
     
-    res.status(201).json({ jobId: run._id.toString(), status: run.status });
+    const jobId = run._id.toString();
+    // Anonymous runs cannot be bound to an identity, so the creator gets a
+    // capability token to read the result back with.
+    const runToken = userId ? undefined : signRunToken(jobId);
+
+    res.status(201).json({ jobId, status: run.status, ...(runToken ? { runToken } : {}) });
   } catch (err) {
     next(err);
   }
@@ -73,10 +79,14 @@ runsRouter.get("/:runId", optionalAuth, async (req, res, next) => {
       if (requesterId !== ownerId) {
         return res.status(404).json({ message: "Run not found" });
       }
-    } else if (requesterId) {
-      // Guest-owned run being requested by an authenticated user who cannot
-      // own it — nothing legitimately links them.
-      return res.status(404).json({ message: "Run not found" });
+    } else {
+      // Anonymous run: readable only by whoever created it, proven by the
+      // capability token issued at creation. Without this, knowing or guessing
+      // an ObjectId was enough to read any guest's code output.
+      const presented = req.get("X-Run-Token") || req.query.runToken;
+      if (!verifyRunToken(req.params.runId, presented)) {
+        return res.status(404).json({ message: "Run not found" });
+      }
     }
 
     res.json({

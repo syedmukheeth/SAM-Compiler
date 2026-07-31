@@ -36,13 +36,15 @@ export async function submitRun({ language, code, stdin = "" }) {
   }
 }
 
-export async function fetchStatus(jobId, { signal } = {}) {
+export async function fetchStatus(jobId, { signal, runToken } = {}) {
   try {
     // GET /api/runs/:runId now enforces ownership, so an authenticated user
-    // must identify themselves or their own run reads back as 404.
+    // must identify themselves or their own run reads back as 404. Anonymous
+    // runs are proven instead with the capability token issued at submission.
     const token = localStorage.getItem("token");
     const headers = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
+    if (runToken) headers["X-Run-Token"] = runToken;
 
     const res = await fetch(`${API_BASE}/${encodeURIComponent(jobId)}`, { headers, signal });
 
@@ -75,20 +77,20 @@ export const TERMINAL_STATUSES = [
 const DEFAULT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 
 export async function runAndPoll({ language, code, onUpdate, pollMs = 500, signal, timeoutMs }) {
-  const { jobId } = await submitRun({ language, code });
-  return pollUntilDone(jobId, { onUpdate, pollMs, signal, timeoutMs });
+  const { jobId, runToken } = await submitRun({ language, code });
+  return pollUntilDone(jobId, { onUpdate, pollMs, signal, timeoutMs, runToken });
 }
 
 export async function pollUntilDone(
   jobId,
-  { onUpdate, pollMs = 500, signal, timeoutMs = DEFAULT_POLL_TIMEOUT_MS } = {}
+  { onUpdate, pollMs = 500, signal, timeoutMs = DEFAULT_POLL_TIMEOUT_MS, runToken } = {}
 ) {
   const deadline = Date.now() + timeoutMs;
 
   for (;;) {
     if (signal?.aborted) throw new DOMException("Polling aborted", "AbortError");
 
-    const status = await fetchStatus(jobId, { signal });
+    const status = await fetchStatus(jobId, { signal, runToken });
     onUpdate?.(status);
 
     if (TERMINAL_STATUSES.includes(status.status)) return status;

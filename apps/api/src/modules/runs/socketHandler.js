@@ -7,6 +7,7 @@ const { createAdapter } = require("@socket.io/redis-adapter");
 const { logger } = require("../../config/logger");
 const { originChecker } = require("../../config/cors");
 const { getRedisClient } = require("./runs.queue");
+const { signRunToken } = require("./runToken");
 const Y = require("yjs");
 const { YSocketIO } = require("y-socket.io/dist/server");
 // createRun is required inside the handler to avoid circular dependency issues
@@ -14,7 +15,6 @@ const { YSocketIO } = require("y-socket.io/dist/server");
 
 let io = null;
 let redisSubscriber = null;
-const inputBuffers = new Map(); // jobId -> string[]
 const logBuffers = new Map(); // jobId -> { type, chunk }[]
 const activeSubscriptions = new Set(); // jobId
 const jobTimestamps = new Map(); // jobId -> timestamp
@@ -32,6 +32,23 @@ const EXEC_START_LIMIT = 20;         // executions per socket per window
 const EXEC_START_WINDOW_MS = 60000;
 
 const isValidJobId = (jobId) => typeof jobId === "string" && /^[a-f0-9]{24}$/i.test(jobId);
+
+/**
+ * Starter code per language, keyed by the id used in the Yjs room name.
+ *
+ * This was previously two separate object literals a few lines apart, and they
+ * disagreed: one used the key `javascript`, the other `nodejs`. A JavaScript
+ * room therefore got seeded on one code path and silently left empty on the
+ * other. Both aliases are now present in one place.
+ */
+const TEMPLATES = {
+  cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
+  c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}\n',
+  python: 'print("Welcome to SAM Compiler!")\n',
+  javascript: 'console.log("Welcome to SAM Compiler!");\n',
+  nodejs: 'console.log("Welcome to SAM Compiler!");\n',
+  java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}\n'
+};
 
 // Mirrors CreateRunSchema on the HTTP route so both entry points agree.
 const ExecStartSchema = z.object({
@@ -84,7 +101,6 @@ setInterval(() => {
   for (const [jobId, timestamp] of jobTimestamps.entries()) {
     if (timestamp < cutoff) {
       logBuffers.delete(jobId);
-      inputBuffers.delete(jobId);
       jobTimestamps.delete(jobId);
       if (redisSubscriber && activeSubscriptions.has(jobId)) {
         redisSubscriber.unsubscribe(`run:logs:${jobId}`).catch(() => {});
@@ -207,37 +223,27 @@ function initSocket(server) {
       
       if (state && state.binaryState) {
         Y.applyUpdate(doc, state.binaryState);
-        logger.info({ sessionId }, "Yjs document loaded from MongoDB");
-        
-        // SERVER-SIDE HEALER: Detects and cures 'Code Soup'
-        const langId = sessionId.split('::').pop(); // Updated to high-fidelity separator
-        const templates = {
-          cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
-          c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}\n',
-          python: 'print("Welcome to SAM Compiler!")\n',
-          javascript: 'console.log("Welcome to SAM Compiler!");\n',
-          java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}\n'
-        };
+        logger.debug({ sessionId }, "Yjs document loaded from MongoDB");
 
-        const ytext = doc.getText(langId); // Strict isolated node targeting
-        const text = ytext.toString();
-        const identifier = "Welcome to SAM Compiler!";
-        const occurrences = (text.match(new RegExp(identifier, "g")) || []).length;
-        
-        // If we find repeating templates in the DB, nuke them and restore balance.
-        if (occurrences > 1 && templates[langId]) {
-          ytext.delete(0, ytext.length);
-          ytext.insert(0, templates[langId]);
-          logger.info({ sessionId, occurrences }, "Server-side healer fixed corrupted room in MongoDB");
-        } else if (text.includes('Wel') && text.includes('syed') && templates[langId]) {
-          // Detect garbled content from previous CRDT desyncs
-          ytext.delete(0, ytext.length);
-          ytext.insert(0, templates[langId]);
-          logger.info({ sessionId }, "Server-side healer fixed garbled 'Welsyed' corruption in MongoDB");
-        } else if (ytext.length === 0 && templates[langId]) {
-          // If the room existed but the specific language node was empty (e.g. migration)
-          ytext.insert(0, templates[langId]);
-          logger.info({ sessionId, langId }, "Server-side healer populated empty legacy room");
+        const langId = sessionId.split('::').pop();
+        const ytext = doc.getText(langId);
+
+        // The "server-side healer" that used to live here has been removed. It
+        // deleted the user's entire document and replaced it with the boilerplate
+        // when either:
+        //   - the phrase "Welcome to SAM Compiler!" appeared more than once, or
+        //   - the text contained both "Wel" and "syed" anywhere.
+        // Both are things a user can legitimately type — printing that string
+        // twice in a loop, or writing "Well, syed..." in a comment — and the
+        // result was silent, unrecoverable loss of their work. These were
+        // heuristics for CRDT duplication that was already fixed at its source
+        // by moving room seeding server-side.
+        //
+        // The one safe case is kept: a room that exists but whose node for this
+        // language is genuinely empty gets its template.
+        if (ytext.length === 0 && TEMPLATES[langId]) {
+          ytext.insert(0, TEMPLATES[langId]);
+          logger.debug({ sessionId, langId }, "Seeded empty language node in existing room");
         }
       } else {
         // NEW ROOM: No persisted state found in MongoDB.
@@ -247,21 +253,14 @@ function initSocket(server) {
         // (~200-500ms latency), so BOTH the server state and the client seed arrived,
         // causing duplicate template insertion (Code Soup on reload).
         const langId = sessionId.split('::').pop();
-        const templates = {
-          cpp: '#include <iostream>\n\nint main() {\n    std::cout << "Welcome to SAM Compiler!" << std::endl;\n    return 0;\n}\n',
-          c: '#include <stdio.h>\n\nint main() {\n    printf("Welcome to SAM Compiler!\\n");\n    return 0;\n}\n',
-          python: 'print("Welcome to SAM Compiler!")\n',
-          nodejs: 'console.log("Welcome to SAM Compiler!");\n',
-          java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Welcome to SAM Compiler!");\n    }\n}\n'
-        };
-        if (templates[langId]) {
+        if (TEMPLATES[langId]) {
           const ytext = doc.getText(langId);
           if (ytext.length === 0) {
-            ytext.insert(0, templates[langId]);
-            logger.info({ sessionId, langId }, "Server seeded new Yjs room with default template.");
+            ytext.insert(0, TEMPLATES[langId]);
+            logger.debug({ sessionId, langId }, "Server seeded new Yjs room with default template.");
           }
         } else {
-          logger.info({ sessionId, langId }, "New Yjs room created (no template for langId).");
+          logger.debug({ sessionId, langId }, "New Yjs room created (no template for langId).");
         }
       }
     } catch (err) {
@@ -390,13 +389,19 @@ function initSocket(server) {
           return logger.warn({ userId, jobId }, "Unauthorized input attempt blocked");
         }
 
-        const listenerCount = process.listenerCount(`run:input:${jobId}`);
-        if (listenerCount > 0) {
-          process.emit(`run:input:${jobId}`, input);
-        } else {
-          if (!inputBuffers.has(jobId)) inputBuffers.set(jobId, []);
-          inputBuffers.get(jobId).push(input);
-        }
+        // Neither execution backend accepts input mid-run: the Judge0 cloud
+        // path is batch-only, and the Docker worker is handed run.stdin once at
+        // container start. The previous implementation dispatched to
+        // `process.emit("run:input:<id>")` — an event nothing in the codebase
+        // ever subscribed to — and otherwise appended to inputBuffers, which
+        // was only read by getBufferedInput(), which nothing ever imported.
+        // Keystrokes were collected and then dropped.
+        //
+        // The client is told so explicitly rather than left waiting.
+        socket.emit("exec:input:unsupported", {
+          jobId,
+          message: "This run does not accept input while it is running. Provide input in the STDIN panel before running."
+        });
       } catch (err) {
         logger.error({ err, jobId }, "exec:input handler failed");
       }
@@ -409,7 +414,6 @@ function initSocket(server) {
       if (!isValidJobId(jobId) || !socket.rooms.has(`run:${jobId}`)) {
         return logger.warn({ userId, jobId, socketId: socket.id }, "Unauthorized exec:log:end blocked");
       }
-      inputBuffers.delete(jobId);
       logBuffers.delete(jobId);
       jobTimestamps.delete(jobId);
       releaseJobOwner(jobId);
@@ -475,7 +479,15 @@ function initSocket(server) {
           activeSubscriptions.add(jobId);
         }
 
-        if (callback) callback({ jobId, status: run.status });
+        // Guest runs get the same capability token the HTTP route issues, so
+        // the polling fallback can still read the result back.
+        if (callback) {
+          callback({
+            jobId,
+            status: run.status,
+            ...(userId ? {} : { runToken: signRunToken(jobId) })
+          });
+        }
         logger.debug({ socketId: socket.id, jobId, runtime }, "Direct execution started");
       } catch (err) {
         logger.error({ err }, "Direct socket execution failed");
@@ -508,7 +520,6 @@ function emitLog(jobId, type, chunk) {
   jobTimestamps.set(jobId, Date.now());
   
   if (type === "end") {
-    inputBuffers.delete(jobId);
     setTimeout(() => {
       logBuffers.delete(jobId);
       jobTimestamps.delete(jobId);
@@ -531,10 +542,7 @@ function emitLog(jobId, type, chunk) {
   io.to(`run:${jobId}`).emit("exec:log", { type, chunk });
 }
 
-function getBufferedInput(jobId) {
-  const buffered = inputBuffers.get(jobId) || [];
-  inputBuffers.delete(jobId);
-  return buffered;
-}
+// getBufferedInput() removed along with inputBuffers: it was exported but never
+// imported, and the buffer it drained was never consumed by either executor.
 
-module.exports = { initSocket, getIO, emitLog, getBufferedInput };
+module.exports = { initSocket, getIO, emitLog };

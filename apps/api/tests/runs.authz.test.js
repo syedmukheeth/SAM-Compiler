@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
 import { MongoMemoryServer } from "mongodb-memory-server";
 import { createApp } from "../src/app.js";
+import { signRunToken, verifyRunToken } from "../src/modules/runs/runToken.js";
 
 const SECRET = process.env.JWT_SECRET;
 const tokenFor = (id) => jwt.sign({ id, email: `${id}@example.com`, role: "user" }, SECRET);
@@ -88,9 +89,59 @@ describe("GET /api/runs/:runId authorization", () => {
     expect(res.status).toBe(400);
   });
 
-  it("still allows the anonymous polling flow to read a guest run", async () => {
+  // Guest runs have no owner to check a reader against, so they used to be
+  // readable by anyone who knew the id — and ObjectIds are partially
+  // time-ordered, so they are guessable. The creator now holds a capability
+  // token derived from the run id.
+  it("does not leak a guest run to a caller without the run token", async () => {
     const res = await request(app).get(`/api/runs/${guestRunId}`);
+    expect(res.status).toBe(404);
+    expect(res.body.stdout).toBeUndefined();
+  });
+
+  it("rejects a forged run token", async () => {
+    const res = await request(app)
+      .get(`/api/runs/${guestRunId}`)
+      .set("X-Run-Token", "not-the-real-token");
+    expect(res.status).toBe(404);
+  });
+
+  it("rejects a run token minted for a different run", async () => {
+    const otherToken = signRunToken(ownedRunId);
+    const res = await request(app)
+      .get(`/api/runs/${guestRunId}`)
+      .set("X-Run-Token", otherToken);
+    expect(res.status).toBe(404);
+  });
+
+  it("still allows the anonymous polling flow with the issued token", async () => {
+    const res = await request(app)
+      .get(`/api/runs/${guestRunId}`)
+      .set("X-Run-Token", signRunToken(guestRunId));
     expect(res.status).toBe(200);
     expect(res.body.stdout).toBe("guest output");
+  });
+
+});
+
+describe("run capability tokens", () => {
+  // Not exercised through POST /api/runs: that route actually dispatches the
+  // run to the cloud sandbox, so it would make a real network call.
+  it("verifies only the token minted for that exact run", () => {
+    const a = new mongoose.Types.ObjectId().toString();
+    const b = new mongoose.Types.ObjectId().toString();
+
+    expect(verifyRunToken(a, signRunToken(a))).toBe(true);
+    expect(verifyRunToken(a, signRunToken(b))).toBe(false);
+  });
+
+  it("rejects malformed, empty and missing tokens instead of throwing", () => {
+    const id = new mongoose.Types.ObjectId().toString();
+    expect(verifyRunToken(id, "")).toBe(false);
+    expect(verifyRunToken(id, undefined)).toBe(false);
+    expect(verifyRunToken(id, null)).toBe(false);
+    // Differing length must not reach timingSafeEqual, which throws on it.
+    expect(verifyRunToken(id, "short")).toBe(false);
+    expect(verifyRunToken(id, signRunToken(id) + "x")).toBe(false);
   });
 });
