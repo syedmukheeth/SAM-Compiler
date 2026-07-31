@@ -1,10 +1,8 @@
 import React, { useState } from "react";
 import Modal from "./Modal";
-import { login, register } from "../services/authApi";
+import { login, register, requestPasswordReset } from "../services/authApi";
 import { Loader2 } from "lucide-react";
-
-// The Render backend URL — OAuth MUST start here directly, it cannot be proxied
-const RENDER_API = "https://sam-compiler.onrender.com";
+import ENDPOINTS from "../services/endpoints";
 
 export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin, theme }) {
   const [isLoginTab, setIsLoginTab] = useState(true);
@@ -15,7 +13,9 @@ export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin, theme 
   const [formData, setFormData] = useState({ name: "", email: "", password: "" });
 
   const handleSocialLogin = (provider) => {
-    window.location.href = `${RENDER_API}/api/auth/${provider}`;
+    // Was a second hardcoded copy of the production API host. OAuth must hit the
+    // API origin directly (it cannot be proxied), so use the shared config.
+    window.location.href = `${ENDPOINTS.WS_ENDPOINT}/api/auth/${provider}`;
   };
 
   const handleAuth = async (e) => {
@@ -25,10 +25,10 @@ export default function AuthModal({ isOpen, onClose, isDarkMode, onLogin, theme 
     setSuccess(null);
     try {
       if (isForgotTab) {
-        // Mock forgot password call
-        console.log("Simulating forgot password for:", formData.email);
-        await new Promise(r => setTimeout(r, 1000));
-        setSuccess("Check your email for instructions (Simulated).");
+        // Real call. This used to console.log and then tell the user
+        // "Check your email for instructions (Simulated)."
+        await requestPasswordReset(formData.email);
+        setSuccess("If an account exists for that address, a reset link is on its way.");
       } else if (isLoginTab) {
         const result = await login(formData.email, formData.password);
         onLogin(result.user, result.token);
