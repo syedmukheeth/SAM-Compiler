@@ -3,10 +3,7 @@ import react from "@vitejs/plugin-react";
 
 // Restarted to sync module renames: 2026-05-02
 export default defineConfig({
-  plugins: [
-    react(),
-    // VitePWA({ ... original config ... })
-  ],
+  plugins: [react()],
   server: {
     port: 5174,
     strictPort: true,
@@ -20,6 +17,7 @@ export default defineConfig({
   build: {
     // Raise the warning threshold — Monaco is inherently large and can't be eliminated
     chunkSizeWarningLimit: 1000,
+    sourcemap: true,
     rollupOptions: {
       output: {
         manualChunks: (id) => {

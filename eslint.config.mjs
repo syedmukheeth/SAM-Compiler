@@ -36,8 +36,28 @@ export default [
         CustomEvent: "readonly",
         Event: "readonly",
         TextDecoder: "readonly",
+        TextEncoder: "readonly",
         requestAnimationFrame: "readonly",
-        ResizeObserver: "readonly"
+        cancelAnimationFrame: "readonly",
+        ResizeObserver: "readonly",
+        AbortController: "readonly",
+        DOMException: "readonly",
+        Blob: "readonly",
+        File: "readonly",
+        FileReader: "readonly",
+        Headers: "readonly",
+        Request: "readonly",
+        Response: "readonly",
+        WebSocket: "readonly",
+        HTMLElement: "readonly",
+        Element: "readonly",
+        Node: "readonly",
+        MutationObserver: "readonly",
+        IntersectionObserver: "readonly",
+        performance: "readonly",
+        prompt: "readonly",
+        queueMicrotask: "readonly",
+        structuredClone: "readonly"
       }
     },
     rules: {
@@ -63,6 +83,7 @@ export default [
   // apps/api and apps/worker are CommonJS Node
   {
     files: ["apps/api/**/*.js", "apps/worker/**/*.js", "packages/shared/src/**/*.js"],
+    ignores: ["**/tests/**/*.js", "**/vitest.config.js"],
     languageOptions: {
       sourceType: "commonjs",
       globals: {
@@ -80,24 +101,21 @@ export default [
       }
     }
   },
-  // `server/` is plain CommonJS JS (no TypeScript)
+  // Vitest suites and configs are ESM even inside the CommonJS workspaces.
   {
-    files: ["server/src/**/*.js"],
+    files: ["**/tests/**/*.js", "**/*.test.js", "**/vitest.config.js"],
     languageOptions: {
-      sourceType: "commonjs",
+      sourceType: "module",
+      ecmaVersion: "latest",
       globals: {
-        module: "readonly",
-        require: "readonly",
-        __dirname: "readonly",
         process: "readonly",
         console: "readonly",
         setTimeout: "readonly",
         clearTimeout: "readonly",
-        URL: "readonly"
+        URL: "readonly",
+        Buffer: "readonly",
+        __dirname: "readonly"
       }
-    },
-    rules: {
-      // no TypeScript rules here
     }
   }
 ];
