@@ -344,7 +344,10 @@ function AiPanel({
     abortRef.current = controller;
 
     try {
-      const historyToSend = [...messagesRef.current, userMsg].slice(-10);
+      // Matches the server-side budget in ai.service. Assistant replies contain
+      // whole files, so replaying ten of them made each request grow with the
+      // length of the conversation.
+      const historyToSend = [...messagesRef.current, userMsg].slice(-6);
 
       const token = localStorage.getItem("token");
       const response = await fetch(`${ENDPOINTS.API_BASE_URL}/ai/chat`, {

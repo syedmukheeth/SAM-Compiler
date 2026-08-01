@@ -19,6 +19,61 @@ When suggesting code, always provide the FULL file content in a markdown code bl
 Be helpful, concise, and focused on helping the user learn and build.
 `;
 
+/**
+ * Token budgets.
+ *
+ * Nothing bounded what was sent per request: the whole editor buffer went into
+ * the system instruction (the route accepts up to 1MB, roughly 250k tokens),
+ * and the last 10 messages were replayed in full. Because the persona asks for
+ * complete files back, every assistant reply re-entered the history as input on
+ * the next turn, so cost grew with conversation length rather than staying flat.
+ *
+ * Sizes are in characters, roughly 4 chars per token.
+ */
+const MAX_CODE_CHARS = 48000;      // ~12k tokens of file context
+const MAX_HISTORY_MESSAGE_CHARS = 4000;
+const MAX_HISTORY_MESSAGES = 6;
+
+/**
+ * Keeps the head and tail of a file and elides the middle. Imports and the
+ * signatures near the top, plus whatever the user is currently working on near
+ * the bottom, matter more than the middle of a long file.
+ */
+function clampCode(code) {
+  const text = typeof code === "string" ? code : "";
+  if (text.length <= MAX_CODE_CHARS) return text;
+
+  const head = Math.floor(MAX_CODE_CHARS * 0.6);
+  const tail = MAX_CODE_CHARS - head;
+  const omitted = text.length - MAX_CODE_CHARS;
+  return (
+    text.slice(0, head) +
+    `\n\n/* ... ${omitted} characters omitted to stay within the context budget ... */\n\n` +
+    text.slice(-tail)
+  );
+}
+
+/**
+ * Trims replayed history. Only the most recent turn keeps its full text; older
+ * ones are capped, which is where the full-file code blocks accumulate.
+ */
+function clampHistory(messages) {
+  const list = Array.isArray(messages) ? messages : [];
+  const recent = list.slice(-MAX_HISTORY_MESSAGES);
+
+  return recent.map((m, i) => {
+    const content = typeof m.content === "string" ? m.content : "";
+    const isLast = i === recent.length - 1;
+    if (isLast || content.length <= MAX_HISTORY_MESSAGE_CHARS) return { ...m, content };
+    return { ...m, content: content.slice(0, MAX_HISTORY_MESSAGE_CHARS) + "\n... (truncated)" };
+  });
+}
+
+/** Shared system prompt, built once per request rather than per provider. */
+function buildSystemInstruction(language, code) {
+  return `${SAM_AI_PERSONA}\n\nLanguage: ${language}\nCurrent file content:\n\n${clampCode(code)}`;
+}
+
 // Client Caches (Singletons to minimize initialization overhead)
 const clientCache = {
   gemini: new Map(),
@@ -118,12 +173,12 @@ async function streamGemini(p, context, onChunk) {
   }
   const genAI = clientCache.gemini.get(p.key);
   
-  const model = genAI.getGenerativeModel({ 
+  const model = genAI.getGenerativeModel({
     model: p.model,
-    systemInstruction: `${SAM_AI_PERSONA}\n\nLanguage: ${language}\nCurrent file content:\n\n${code}`
+    systemInstruction: buildSystemInstruction(language, code)
   });
-  
-  let chatMessages = messages;
+
+  let chatMessages = clampHistory(messages);
   while (chatMessages.length > 0 && (chatMessages[0].role === "assistant" || chatMessages[0].role === "model")) {
     chatMessages = chatMessages.slice(1);
   }
@@ -136,7 +191,7 @@ async function streamGemini(p, context, onChunk) {
   const chat = model.startChat({ history: formattedHistory });
 
   const result = await withRetry(async () => {
-    const prompt = messages[messages.length - 1]?.content || "Hello!";
+    const prompt = chatMessages[chatMessages.length - 1]?.content || "Hello!";
     return await chat.sendMessageStream(prompt);
   });
 
@@ -161,10 +216,10 @@ async function streamOpenAI(p, context, onChunk) {
 
   const systemMsg = {
     role: "system",
-    content: `${SAM_AI_PERSONA}\n\nLanguage: ${language}\nCurrent file content:\n\n${code}`
+    content: buildSystemInstruction(language, code)
   };
 
-  const formattedMessages = [systemMsg, ...messages.map(m => ({
+  const formattedMessages = [systemMsg, ...clampHistory(messages).map(m => ({
     role: m.role === "assistant" ? "assistant" : "user",
     content: m.content
   }))];
@@ -200,4 +255,11 @@ async function triggerOfflineFallback(onChunk, isConfigError) {
   }
 }
 
-module.exports = { streamChat };
+module.exports = {
+  streamChat,
+  // Exported for tests.
+  clampCode,
+  clampHistory,
+  buildSystemInstruction,
+  BUDGETS: { MAX_CODE_CHARS, MAX_HISTORY_MESSAGE_CHARS, MAX_HISTORY_MESSAGES }
+};
