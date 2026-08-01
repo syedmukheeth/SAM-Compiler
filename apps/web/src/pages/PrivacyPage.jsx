@@ -32,7 +32,7 @@ export default function PrivacyPage() {
           <div>
             <h2 className="mb-4 text-xs font-black uppercase tracking-[0.2em] text-[var(--sam-accent)]">2. Code Execution & Data</h2>
             <p>
-              When you execute code via the SAM engine, your source code is temporarily transmitted to our secure execution clusters. We utilize military-grade sandboxing (gVisor) to ensure isolation. Your code is not stored permanently on execution workers and is handled in accordance with industry security standards.
+              When you execute code via the SAM engine, your source code is temporarily transmitted to our secure execution clusters. We run untrusted code in locked-down Docker containers with no network access, dropped capabilities and a read-only root filesystem. Your code is not stored permanently on execution workers and is handled in accordance with industry security standards.
             </p>
           </div>
 

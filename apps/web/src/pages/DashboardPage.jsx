@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Cell 
 } from "recharts";
+import { APP_VERSION } from "../services/version";
 import { 
   Activity, Database, Globe, Zap, Clock, ShieldCheck, ArrowLeft, RefreshCw, AlertTriangle
 } from "lucide-react";
@@ -10,7 +11,16 @@ import { Link } from "react-router-dom";
 
 import ENDPOINTS from "../services/endpoints";
 
-const COLORS = ["#FFFFFF", "#D4D4D4", "#A3A3A3", "#737373", "#525252", "#404040"];
+// Chart series shades. Derived from the theme accent so the bars stay legible
+// in light mode, where a literal white bar on a white card was invisible.
+const COLORS = [
+  "var(--sam-accent)",
+  "var(--sam-text-muted)",
+  "var(--sam-text-dim)",
+  "var(--sam-surface-top)",
+  "var(--sam-surface-high)",
+  "var(--sam-surface-low)"
+];
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
@@ -76,8 +86,8 @@ export default function DashboardPage() {
             <ArrowLeft className="h-5 w-5 text-sam-text-muted transition-colors group-hover:text-sam-text" />
           </Link>
           <div>
-              <h1 className="text-2xl font-black tracking-tight" style={{ fontFamily: 'var(--font-display)', color: '#dde2f1' }}>System Observability</h1>
-              <div className="flex items-center gap-2" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(221,226,241,0.25)' }}>
+              <h1 className="text-2xl font-black tracking-tight" style={{ fontFamily: 'var(--font-display)', color: 'var(--sam-text)' }}>System Observability</h1>
+              <div className="flex items-center gap-2" style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)' }}>
                 <span className="flex h-1.5 w-1.5 rounded-full animate-pulse" style={{ background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
                 SAM Metrics · Last updated {lastUpdated.toLocaleTimeString()}
               </div>
@@ -85,9 +95,9 @@ export default function DashboardPage() {
         </div>
         
         <div className="flex items-center gap-3">
-           <div className="flex h-10 items-center gap-2 rounded-xl px-4" style={{ border: '1px solid var(--sam-glass-border)', background: 'rgba(255,255,255,0.05)' }}>
+           <div className="flex h-10 items-center gap-2 rounded-xl px-4" style={{ border: '1px solid var(--sam-glass-border)', background: 'var(--sam-accent-muted)' }}>
              <ShieldCheck className="h-4 w-4 text-[var(--sam-accent)]" />
-             <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'rgba(255,255,255,0.7)', fontFamily: 'var(--font-body)' }}>SAM Engine v1.0</span>
+             <span style={{ fontSize: 10, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text-dim)', fontFamily: 'var(--font-body)' }}>SAM Engine v{APP_VERSION}</span>
            </div>
         </div>
       </header>
@@ -130,25 +140,25 @@ export default function DashboardPage() {
           <section className="glass-card flex flex-col p-6 h-[400px]">
              <div className="mb-6 flex items-center justify-between">
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Platform Throughput</h3>
-                <span className="text-[10px] text-white/30">Last 7 Days</span>
+                <span className="text-[10px] text-sam-text-dim">Last 7 Days</span>
              </div>
              <div className="flex-1">
                 <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                   <AreaChart data={stats?.throughput}>
                     <defs>
                       <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#FFFFFF" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#FFFFFF" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="var(--sam-accent)" stopOpacity={0.2}/>
+                        <stop offset="95%" stopColor="var(--sam-accent)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
-                    <XAxis dataKey="date" stroke="#ffffff20" fontSize={10} tickMargin={10} axisLine={false} tickLine={false} />
-                    <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--sam-glass-border)" vertical={false} />
+                    <XAxis dataKey="date" stroke="var(--sam-glass-border)" fontSize={10} tickMargin={10} axisLine={false} tickLine={false} />
+                    <YAxis stroke="var(--sam-glass-border)" fontSize={10} axisLine={false} tickLine={false} />
                     <Tooltip 
-                      contentStyle={{ backgroundColor: "#111", border: "1px solid #ffffff10", borderRadius: "12px", fontSize: "12px" }} 
+                      contentStyle={{ backgroundColor: "var(--sam-surface)", border: "1px solid #ffffff10", borderRadius: "12px", fontSize: "12px" }} 
                       itemStyle={{ color: "#fff" }}
                     />
-                    <Area type="monotone" dataKey="count" stroke="#FFFFFF" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
+                    <Area type="monotone" dataKey="count" stroke="var(--sam-accent)" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" />
                   </AreaChart>
                 </ResponsiveContainer>
              </div>
@@ -159,7 +169,7 @@ export default function DashboardPage() {
                 <h3 className="text-xs font-black uppercase tracking-[0.2em] text-sam-text-dim">Global Cluster Availability</h3>
                 <div className="flex items-center gap-2">
                    <Globe className="h-3 w-3 text-blue-400" />
-                   <span className="text-[10px] text-white/30 uppercase tracking-widest font-bold">Multi-Region Failover Active</span>
+                   <span className="text-[10px] text-sam-text-dim uppercase tracking-widest font-bold">Multi-Region Failover Active</span>
                 </div>
              </div>
              
@@ -167,11 +177,11 @@ export default function DashboardPage() {
                 {queueStatus?.regions?.map((reg) => (
                   <div key={reg.id} className="group relative overflow-hidden rounded-2xl border border-sam-glass-border bg-sam-text/[0.02] p-4 transition-all hover:bg-sam-text/[0.05] hover:border-sam-glass-border">
                      <div className="mb-3 flex items-center justify-between">
-                        <span className={`h-1.5 w-1.5 rounded-full ${reg.status === "online" ? "bg-sam-text shadow-[0_0_8px_white]" : "bg-sam-text/20 animate-pulse"}`} />
+                        <span className={`h-1.5 w-1.5 rounded-full ${reg.status === "online" ? "bg-sam-text shadow-[0_0_8px_var(--sam-accent)]" : "bg-sam-text/20 animate-pulse"}`} />
                         <span className="text-[10px] font-black tabular-nums text-sam-text-muted uppercase tracking-widest">{reg.latency}</span>
                      </div>
                      <div className="text-[10px] font-black text-sam-text uppercase tracking-widest mb-1">{reg.name}</div>
-                     <div className="text-[8px] text-white/30 uppercase tracking-widest">{reg.id}</div>
+                     <div className="text-[8px] text-sam-text-dim uppercase tracking-widest">{reg.id}</div>
                   </div>
                 ))}
              </div>
@@ -183,12 +193,12 @@ export default function DashboardPage() {
                <div className="flex-1">
                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={stats?.executionStats}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" vertical={false} />
-                      <XAxis dataKey="language" stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} />
-                      <YAxis stroke="#ffffff20" fontSize={10} axisLine={false} tickLine={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--sam-glass-border)" vertical={false} />
+                      <XAxis dataKey="language" stroke="var(--sam-glass-border)" fontSize={10} axisLine={false} tickLine={false} />
+                      <YAxis stroke="var(--sam-glass-border)" fontSize={10} axisLine={false} tickLine={false} />
                       <Tooltip 
                          cursor={{fill: '#ffffff05'}}
-                         contentStyle={{ backgroundColor: "#111", border: "1px solid #ffffff10", borderRadius: "12px" }}
+                         contentStyle={{ backgroundColor: "var(--sam-surface)", border: "1px solid #ffffff10", borderRadius: "12px" }}
                       />
                       <Bar dataKey="avgDurationMs" radius={[4, 4, 0, 0]}>
                         {stats?.executionStats?.map((entry, index) => (
@@ -205,12 +215,12 @@ export default function DashboardPage() {
                <div className="flex-1">
                   <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
                     <BarChart data={stats?.executionStats} layout="vertical">
-                      <CartesianGrid strokeDasharray="3 3" stroke="#ffffff08" horizontal={false} />
+                      <CartesianGrid strokeDasharray="3 3" stroke="var(--sam-glass-border)" horizontal={false} />
                       <XAxis type="number" hide />
-                      <YAxis dataKey="language" type="category" stroke="#ffffff40" fontSize={10} width={80} axisLine={false} tickLine={false} />
+                      <YAxis dataKey="language" type="category" stroke="var(--sam-text-dim)" fontSize={10} width={80} axisLine={false} tickLine={false} />
                       <Tooltip 
                          cursor={{fill: '#ffffff05'}}
-                         contentStyle={{ backgroundColor: "#111", border: "1px solid #ffffff10", borderRadius: "12px" }}
+                         contentStyle={{ backgroundColor: "var(--sam-surface)", border: "1px solid #ffffff10", borderRadius: "12px" }}
                       />
                       <Bar dataKey="successRate" radius={[0, 4, 4, 0]}>
                         {stats?.executionStats?.map((entry, index) => (
@@ -338,13 +348,13 @@ function KpiCard({ icon, title, value, subtext, color }) {
 
 function LoadMeter({ label, value, max, formattedValue, sub }) {
   const percentage = Math.min(100, (value / (max || 1)) * 100);
-  const colorClass = percentage > 80 ? "bg-sam-text shadow-[0_0_10px_white]" : percentage > 50 ? "bg-sam-text/60 shadow-[0_0_10px_rgba(255,255,255,0.3)]" : "bg-sam-text/30";
+  const colorClass = percentage > 80 ? "bg-sam-text shadow-[0_0_10px_var(--sam-accent)]" : percentage > 50 ? "bg-sam-text/60 shadow-[0_0_10px_var(--sam-accent)]" : "bg-sam-text/30";
 
   return (
     <div className="flex flex-col gap-2">
        <div className="flex items-center justify-between text-[10px] font-bold uppercase tracking-widest">
           <span className="text-sam-text-muted">{label}</span>
-          <span className="text-white/80">{formattedValue} <span className="text-sam-text-muted ml-1 font-normal lowercase">{sub}</span></span>
+          <span className="text-sam-text">{formattedValue} <span className="text-sam-text-muted ml-1 font-normal lowercase">{sub}</span></span>
        </div>
        <div className="h-1.5 w-full rounded-full bg-sam-text/5 overflow-hidden">
           <motion.div 
@@ -368,8 +378,8 @@ function HealthItem({ status, label, desc }) {
     <div className="flex gap-3">
        <div className="mt-0.5 shrink-0">{icons[status]}</div>
        <div>
-         <div className="text-[10px] font-black uppercase tracking-widest text-white/80">{label}</div>
-         <div className="text-[9px] text-white/30 uppercase tracking-widest mt-0.5">{desc}</div>
+         <div className="text-[10px] font-black uppercase tracking-widest text-sam-text">{label}</div>
+         <div className="text-[9px] text-sam-text-dim uppercase tracking-widest mt-0.5">{desc}</div>
        </div>
     </div>
   );

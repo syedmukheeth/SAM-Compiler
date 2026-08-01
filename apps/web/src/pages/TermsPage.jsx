@@ -36,7 +36,7 @@ export default function TermsPage() {
             </p>
             <ul className="mt-4 list-inside list-disc space-y-2 text-sam-text-muted">
               <li>Using the platform for malware distribution or illegal activities.</li>
-              <li>Attempting to breach the gVisor sandbox or backend clusters.</li>
+              <li>Attempting to breach the execution sandbox or backend clusters.</li>
               <li>Automated scraping or resource abuse.</li>
             </ul>
           </div>

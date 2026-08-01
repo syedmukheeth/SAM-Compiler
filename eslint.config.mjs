@@ -57,7 +57,9 @@ export default [
         performance: "readonly",
         prompt: "readonly",
         queueMicrotask: "readonly",
-        structuredClone: "readonly"
+        structuredClone: "readonly",
+        // Injected by vite.config define()
+        __APP_VERSION__: "readonly"
       }
     },
     rules: {

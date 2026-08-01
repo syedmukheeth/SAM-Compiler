@@ -1,5 +1,6 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { APP_VERSION } from "../services/version";
 import { X, ExternalLink, ShieldCheck } from "lucide-react";
 import OfficialLogo from "./OfficialLogo";
 
@@ -61,7 +62,7 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
               SAM COMPILER
             </h2>
             <p className={`mt-2 text-[10px] font-bold uppercase tracking-[0.2em] opacity-40 ${theme === 'dark' ? 'text-sam-text' : 'text-slate-500'}`}>
-              Syntax Analysis Machine v2.4
+              Syntax Analysis Machine v{APP_VERSION}
             </p>
 
             <div className="my-8 h-[1px] w-full bg-sam-text/5" />

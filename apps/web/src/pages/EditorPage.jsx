@@ -16,6 +16,7 @@ const AiPanel       = React.lazy(() => import("../components/AiPanel"));
 const AboutModal    = React.lazy(() => import("../components/AboutModal"));
 
 import StatusBar from "../components/StatusBar";
+import ConfirmDialog from "../components/ConfirmDialog";
 import { useAuth } from "../hooks/useAuth";
 import { Link, useSearchParams } from "react-router-dom";
 
@@ -67,6 +68,43 @@ const languageConfigs = {
   }
 };
 
+const PYODIDE_BASE = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
+
+/**
+ * Loads Pyodide exactly once per page, no matter how many times the component
+ * mounts. Kept at module scope so React StrictMode's double-invoked effects
+ * share a single in-flight promise instead of racing or cancelling each other.
+ */
+let pyodidePromise = null;
+function loadPyodideOnce() {
+  if (pyodidePromise) return pyodidePromise;
+
+  pyodidePromise = new Promise((resolve, reject) => {
+    const start = () =>
+      window
+        .loadPyodide({ indexURL: PYODIDE_BASE })
+        .then(resolve)
+        .catch((err) => {
+          pyodidePromise = null; // allow a later retry
+          reject(err);
+        });
+
+    if (window.loadPyodide) return start();
+
+    const script = document.createElement("script");
+    script.src = `${PYODIDE_BASE}pyodide.js`;
+    script.onload = start;
+    script.onerror = () => {
+      pyodidePromise = null;
+      script.remove();
+      reject(new Error("Could not download the Python engine. Check your connection."));
+    };
+    document.head.appendChild(script);
+  });
+
+  return pyodidePromise;
+}
+
 /** xterm colour scheme, applied on mount and updated in place on theme change. */
 function buildTerminalTheme(theme) {
   const isDark = theme === "dark";
@@ -90,6 +128,8 @@ export default function EditorPage() {
   // --- 1. Framework Hooks (High Priority) ---
   const [searchParams, setSearchParams] = useSearchParams();
   const { user, token, loginUser, logoutUser, loading: authLoading } = useAuth();
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
   const [guestFlag, setGuestFlag] = useState(() => localStorage.getItem('sam_is_guest') === '1');
 
   // Derived, not synced. Previously an effect called setIsGuest(false) in its
@@ -292,25 +332,89 @@ export default function EditorPage() {
     return `${line}\r\n`;
   }, []);
 
-  const runPythonInBrowser = useCallback(async (code) => {
+  /**
+   * Runs Python in the browser via Pyodide and reports the same way the server
+   * paths do: it returns a result rather than quietly setting status itself.
+   *
+   * stdin now comes from the STDIN panel. The previous implementation replaced
+   * builtins.input with window.prompt(), so the panel was rendered and editable
+   * for Python but its contents were ignored, and each input() call blocked the
+   * page on a native dialog.
+   */
+  const runPythonInBrowser = useCallback(async (code, stdinText) => {
     if (!pyodide) throw new Error("Python engine is still booting...");
-    pyodide.setStdout({ batched: (str) => { xtermRef.current.write(str); } });
-    pyodide.setStderr({ batched: (str) => { xtermRef.current.write(str); } });
-    try {
-      await pyodide.runPythonAsync(`
+
+    let captured = "";
+    const write = (str) => {
+      captured += str;
+      if (xtermRef.current) xtermRef.current.write(str.replace(/\n/g, "\r\n"));
+    };
+    pyodide.setStdout({ batched: write });
+    pyodide.setStderr({ batched: write });
+
+    // Feed the STDIN panel line by line, the way a piped stdin behaves.
+    pyodide.globals.set("__sam_stdin_lines", (stdinText || "").split("\n"));
+    await pyodide.runPythonAsync(`
 import builtins
-from js import window
-def input_shim(prompt=""):
-    return window.prompt(prompt) or ""
-builtins.input = input_shim
-      `);
+_sam_lines = list(__sam_stdin_lines)
+def _sam_input(prompt=""):
+    if prompt:
+        print(prompt, end="")
+    if not _sam_lines:
+        raise EOFError("EOF when reading a line")
+    return _sam_lines.pop(0)
+builtins.input = _sam_input
+    `);
+
+    try {
       await pyodide.runPythonAsync(code);
-      setRunStatus("Succeeded");
+      return { status: "succeeded", stdout: captured, stderr: "" };
     } catch (err) {
-      xtermRef.current.write(err.message + "\r\n");
-      setRunStatus("Failed");
+      const message = err?.message || String(err);
+      if (xtermRef.current) xtermRef.current.write(`\x1b[1;31m${message}\x1b[0m\r\n`);
+      return { status: "failed", stdout: captured, stderr: message };
     }
   }, [pyodide]);
+
+  /**
+   * Everything that must happen once a run reaches a terminal state, no matter
+   * which executor produced it: Monaco squiggles, revealing the offending line,
+   * arming Explain Error, and persisting guest history.
+   *
+   * This was inlined separately in the socket path and the polling path, and
+   * omitted altogether from the Python path.
+   */
+  const finishRun = useCallback(({ success, stderr, stdout, language, code, jobId }) => {
+    const { markers: diags, primaryLine, summary } = parseErrors(stderr || "", language);
+    if (diags.length > 0) {
+      setErrorMarkers(diags);
+      if (window.samEditor && primaryLine) window.samEditor.revealLineInCenter(primaryLine);
+    }
+    if (!success && summary) {
+      setPendingAiPrompt(`Explain and fix this error in my ${language} code:\n\n\`\`\`\n${summary}\n\`\`\``);
+    }
+
+    // 🕒 PERSISTENT GUEST HISTORY ENGINE
+    if (!userRef.current) {
+      try {
+        const raw = localStorage.getItem("sam_guest_history");
+        const history = raw ? JSON.parse(raw) : [];
+        const entry = {
+          _id: jobId,
+          runtime: language,
+          status: success ? "succeeded" : "failed",
+          createdAt: new Date().toISOString(),
+          files: [{ content: code }],
+          stdout: stdout || "",
+          stderr: stderr || "",
+          metrics: {}
+        };
+        localStorage.setItem("sam_guest_history", JSON.stringify([entry, ...history].slice(0, 20)));
+      } catch {
+        // A corrupt or full localStorage must not fail the run.
+      }
+    }
+  }, []);
 
   const onRun = useCallback(async () => {
     if (busy) return;
@@ -371,16 +475,44 @@ builtins.input = input_shim
     }
 
     if (activeLangId === "python") {
+      // Python runs locally, but everything after the run is shared with the
+      // server paths. Previously this branch returned early and therefore
+      // skipped Monaco diagnostics, guest history, the Explain Error affordance
+      // and the success/failure banner, so a Python error behaved unlike every
+      // other language.
       try {
-        await runPythonInBrowser(code);
-        setBusy(false);
-        return;
+        const result = await runPythonInBrowser(code, stdin);
+        const success = result.status === "succeeded";
+
+        if (xtermRef.current) {
+          if (!result.stdout.trim() && success) {
+            xtermRef.current.write("\r\n\x1b[1;33m[SYSTEM] Program finished with no output.\x1b[0m\r\n");
+          }
+          xtermRef.current.write(
+            success
+              ? "\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n"
+              : "\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n"
+          );
+        }
+
+        setRunStatus(success ? "Succeeded" : "Failed");
+        finishRun({
+          success,
+          stderr: result.stderr,
+          stdout: result.stdout,
+          language: activeLangId,
+          code,
+          jobId: `local-${Date.now()}`
+        });
       } catch (err) {
-        xtermRef.current.write("\x1b[1;31m" + err.message + "\x1b[0m\r\n");
+        const message = err?.message || String(err);
+        if (xtermRef.current) xtermRef.current.write(`\x1b[1;31m${message}\x1b[0m\r\n`);
         setRunStatus("Failed");
+        setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${message}\n\nIs this an issue with my code or the server?`);
+      } finally {
         setBusy(false);
-        return;
       }
+      return;
     }
     // Declared outside the try so the finally block can always detach the
     // listener and unsubscribe, even if the run throws part-way through.
@@ -547,45 +679,21 @@ builtins.input = input_shim
           xtermRef.current.write(`\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n`);
         }
         setRunStatus(finalState.status === 'succeeded' ? 'Succeeded' : (finalState.status.toUpperCase()));
-
-        // 🛰️ FALLBACK DIAGNOSTIC ENGINE
-        const { markers: diags, primaryLine, summary } = parseErrors(stdErrRef.current || "", activeLangId);
-        if (diags.length > 0) {
-          setErrorMarkers(diags);
-          if (window.samEditor && primaryLine) {
-            window.samEditor.revealLineInCenter(primaryLine);
-          }
-          if (finalState.status !== 'succeeded' && summary) {
-            setPendingAiPrompt(`Explain and fix this error in my ${activeLangId} code:\n\n\`\`\`\n${summary}\n\`\`\``);
-          }
-        }
         setBusy(false);
       }
 
       // Listener teardown also happens in `finally` - if anything between here
       // and there throws, the handler must still come off.
 
-      // 🕒 PERSISTENT GUEST HISTORY ENGINE
-      if (!user && finalState) {
-        try {
-          const guestHistoryRaw = localStorage.getItem("sam_guest_history");
-          const guestHistory = guestHistoryRaw ? JSON.parse(guestHistoryRaw) : [];
-          const newRun = {
-            _id: jobId,
-            runtime: language,
-            status: finalState.status,
-            createdAt: new Date().toISOString(),
-            files: [{ content: code }],
-            stdout: finalState.stdout,
-            stderr: finalState.stderr,
-            metrics: { duration: finalState.duration || 0 }
-          };
-          // Preserve last 20 sessions for guests
-          const updatedHistory = [newRun, ...guestHistory].slice(0, 20);
-          localStorage.setItem("sam_guest_history", JSON.stringify(updatedHistory));
-        } catch (e) {
-          console.warn("Failed to save guest history", e);
-        }
+      if (finalState) {
+        finishRun({
+          success: finalState.status === 'succeeded',
+          stderr: stdErrRef.current || finalState.stderr || "",
+          stdout: finalState.stdout || "",
+          language: activeLangId,
+          code,
+          jobId
+        });
       }
     } catch (e) {
       setRunStatus("Failed");
@@ -607,19 +715,30 @@ builtins.input = input_shim
       }
       setBusy(false);
     }
-  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin, user, renderDiagnosticLine]);
+  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin, renderDiagnosticLine, finishRun]);
 
   const onClear = useCallback(() => {
     if (xtermRef.current) xtermRef.current.clear();
     setRunStatus("Ready");
   }, []);
 
+  // Confirmations go through ConfirmDialog rather than window.confirm, which
+  // ignores the theme, cannot be styled and is suppressible by the browser.
+  const [confirmState, setConfirmState] = useState(null);
+
   const handleCodeReset = useCallback(() => {
-    const template = languageConfigs[activeLangId]?.template || "";
-    if (window.confirm(`[SYSTEM OVERRIDE]\n\nAre you sure you want to sanitize the ${activeLangId.toUpperCase()} workspace?\nAll unsaved changes will be permanently purged to restore factory templates.`)) {
-      window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template, message: "Workspace reset to template" } }));
-      setBuffers(prev => ({ ...prev, [activeLangId]: template }));
-    }
+    setConfirmState({
+      title: "Reset workspace",
+      message: `This replaces your ${activeLangId.toUpperCase()} code with the starter template. Unsaved changes cannot be recovered.`,
+      confirmLabel: "Reset",
+      destructive: true,
+      onConfirm: () => {
+        const template = languageConfigs[activeLangId]?.template || "";
+        window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template, message: "Workspace reset to template" } }));
+        setBuffers(prev => ({ ...prev, [activeLangId]: template }));
+        setConfirmState(null);
+      }
+    });
   }, [activeLangId]);
 
   const startResizingEditor = useCallback((e) => {
@@ -879,45 +998,25 @@ builtins.input = input_shim
     // after reconnecting could authenticate with a stale token.
   }, [socketStatus, busy, token]);
 
-  // Loads once on mount. Must not depend on the state it sets, and needs an
-  // onerror handler or a blocked CDN pins the loading flag on forever.
-  const pyodideRequestedRef = useRef(false);
+  // Subscribes to the module-level loader (see loadPyodideOnce). The loader is a
+  // singleton promise rather than an effect-local guard: StrictMode invokes
+  // effects twice in development, and a ref guard combined with a cancel flag
+  // meant the first attempt was cancelled and the second returned early, so the
+  // engine never finished loading and Run stayed disabled forever.
   useEffect(() => {
-    if (pyodideRequestedRef.current || window.loadPyodide) return;
-    pyodideRequestedRef.current = true;
-
-    let cancelled = false;
-    const script = document.createElement("script");
-    script.src = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/pyodide.js";
-
-    script.onload = async () => {
-      try {
-        const py = await window.loadPyodide({
-          indexURL: "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/"
-        });
-        if (cancelled) return;
-        setPyodide(py);
-      } catch {
-        if (!cancelled) setPyodideError("The Python engine failed to initialise.");
-      } finally {
-        if (!cancelled) setIsPyodideLoading(false);
-      }
-    };
-
-    script.onerror = () => {
-      if (cancelled) return;
-      pyodideRequestedRef.current = false;
-      setIsPyodideLoading(false);
-      setPyodideError("Could not download the Python engine. Check your connection and retry.");
-    };
-
+    let active = true;
+    // Subscribing to an external async resource is what effects are for.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setIsPyodideLoading(true);
-    document.body.appendChild(script);
 
-    return () => {
-      cancelled = true;
-      script.remove();
-    };
+    loadPyodideOnce()
+      .then((py) => { if (active) setPyodide(py); })
+      .catch((err) => {
+        if (active) setPyodideError(err?.message || "Could not load the Python engine.");
+      })
+      .finally(() => { if (active) setIsPyodideLoading(false); });
+
+    return () => { active = false; };
   }, []);
 
   // High-fidelity branding & Title sync
@@ -2022,10 +2121,16 @@ builtins.input = input_shim
           onSettingsChange={onSettingsUpdate}
           user={user}
           onLogout={() => {
-            if (window.confirm("Sign out of SAM Compiler?")) {
-              logoutUser();
-              setActiveModal(null);
-            }
+            setConfirmState({
+              title: "Sign out",
+              message: "You will be signed out of SAM Compiler on this device.",
+              confirmLabel: "Sign out",
+              onConfirm: () => {
+                logoutUser();
+                setActiveModal(null);
+                setConfirmState(null);
+              }
+            });
           }}
         />
         <HistoryPanel
@@ -2038,6 +2143,16 @@ builtins.input = input_shim
         <AboutModal isOpen={activeModal === 'about'} onClose={() => setActiveModal(null)} theme={theme} />
       </React.Suspense>
       
+      <ConfirmDialog
+        isOpen={!!confirmState}
+        title={confirmState?.title}
+        message={confirmState?.message}
+        confirmLabel={confirmState?.confirmLabel}
+        destructive={confirmState?.destructive}
+        onConfirm={confirmState?.onConfirm}
+        onCancel={() => setConfirmState(null)}
+      />
+
       <Toaster position="bottom-right" reverseOrder={false} />
     </div>
   );

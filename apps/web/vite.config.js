@@ -1,9 +1,14 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { readFileSync } from "node:fs";
 
-// Restarted to sync module renames: 2026-05-02
+const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+
 export default defineConfig({
   plugins: [react()],
+  // Inlined so the UI cannot drift from the manifest the way the four
+  // hardcoded version strings did.
+  define: { __APP_VERSION__: JSON.stringify(version) },
   server: {
     port: 5174,
     strictPort: true,

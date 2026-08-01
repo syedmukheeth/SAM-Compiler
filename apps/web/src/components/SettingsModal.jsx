@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Modal from "./Modal";
 import { Cpu, Settings, User } from "lucide-react";
+import { APP_VERSION } from "../services/version";
 
 export default function SettingsModal({ isOpen, onClose, settings, onSettingsChange, user, onLogout }) {
   const [activeTab, setActiveTab] = useState("editor");
@@ -245,11 +246,11 @@ export default function SettingsModal({ isOpen, onClose, settings, onSettingsCha
                   animation: "sam-pulse 2s infinite" 
                 }} />
                 <span style={{ fontSize: 11, fontWeight: 900, color: "var(--sam-text)", textTransform: "uppercase", letterSpacing: "0.25em", fontFamily: "var(--font-body)" }}>
-                  SAM Node v1.2 Engine
+                  SAM Node v{APP_VERSION} Engine
                 </span>
               </div>
               {[
-                ["Cloud Grid", "SAM-Global-Vercel"],
+                ["Cloud Grid", "SAM-Global-Render"],
                 ["Resource Max", "2 Core • 2GB RAM"],
                 ["Sandbox Iso", "Docker Runtime"],
                 ["Engine Status", "OPTIMIZED"],
