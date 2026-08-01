@@ -2,7 +2,7 @@ import React from "react";
 import { Bug, RefreshCw, Info } from "lucide-react";
 import { reconnect } from "../services/socketClient";
 
-const ISSUES_URL = "https://github.com/syedmukheeth/Liquid-IDE/issues/new";
+const ISSUES_URL = "https://github.com/syedmukheeth/SAM-Compiler/issues/new";
 
 const StatusBar = ({
   language = "JavaScript",
