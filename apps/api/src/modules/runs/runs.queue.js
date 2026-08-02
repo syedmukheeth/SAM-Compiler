@@ -1,4 +1,4 @@
-const { env } = require("../../config/env");
+const { env, isProduction } = require("../../config/env");
 const { logger } = require("../../config/logger");
 
 const RUNS_QUEUE_NAME = "sam-runs";
@@ -6,6 +6,7 @@ const WORKER_HEARTBEAT_KEY = "sam:worker:heartbeat";
 
 let _runsQueue = null;
 let _redisClient = null;
+let _lastRedisError = null;
 
 /**
  * Retention and retry policy. Previously `queue.add("execute", { runId })` was
@@ -22,10 +23,12 @@ const DEFAULT_JOB_OPTIONS = {
 
 function getRunsQueue() {
   if (!_runsQueue) {
+    const connection = redisConnectionFromUrl(env.REDIS_URL);
+    if (!connection) return null;
     try {
       const { Queue } = require("bullmq");
       _runsQueue = new Queue(RUNS_QUEUE_NAME, {
-        connection: redisConnectionFromUrl(env.REDIS_URL),
+        connection,
         defaultJobOptions: DEFAULT_JOB_OPTIONS
       });
       _runsQueue.on("error", (err) => {
@@ -58,13 +61,25 @@ async function closeQueue() {
 
 function getRedisClient() {
   if (!_redisClient) {
+    const connection = redisConnectionFromUrl(env.REDIS_URL);
+    if (!connection) return null;
     try {
       const Redis = require("ioredis");
-      _redisClient = new Redis(redisConnectionFromUrl(env.REDIS_URL));
+      // The standalone client only serves short reads (the worker heartbeat).
+      // Unlike the BullMQ connection it must NOT buffer commands while the
+      // socket is down - a buffered command never settles, which is what froze
+      // every run when Redis was unreachable.
+      _redisClient = new Redis({ ...connection, enableOfflineQueue: false });
       _redisClient.on("error", (err) => {
-        logger.error({ err }, "Redis Client Error");
+        _lastRedisError = err.message;
+        logger.error({ err, host: connection.host, port: connection.port }, "Redis Client Error");
+      });
+      _redisClient.on("ready", () => {
+        _lastRedisError = null;
+        logger.info({ host: connection.host, port: connection.port }, "Redis connected");
       });
     } catch (err) {
+      _lastRedisError = err.message;
       logger.error({ err }, "Failed to initialize Redis Client");
       return null;
     }
@@ -72,42 +87,73 @@ function getRedisClient() {
   return _redisClient;
 }
 
-function redisConnectionFromUrl(redisUrl) {
-  try {
-    const u = new URL(redisUrl);
-    const port = u.port ? Number(u.port) : 6379;
-    const password = u.password ? decodeURIComponent(u.password) : undefined;
-    return { 
-      host: u.hostname, 
-      port, 
-      password, 
-      tls: (u.protocol === "rediss:" || u.hostname.includes("upstash.io")) ? { rejectUnauthorized: false } : undefined,
-      maxRetriesPerRequest: null,
-      enableOfflineQueue: true,
-      family: 0, // Auto IPv4/IPv6 resolution (Recommended for Upstash)
-      reconnectOnError: (err) => {
-        const targetError = "READONLY";
-        if (err.message.includes(targetError) || err.message.includes("ECONNRESET")) {
-          return true; // Reconnect
-        }
-        return false;
-      }
-    };
-
-
-
-
-  } catch (err) {
-    logger.error({ err, redisUrl }, "Invalid Redis URL");
-    return { 
-      host: "localhost", 
-      port: 6379, 
-      maxRetriesPerRequest: null,
-      enableOfflineQueue: true,
-      connectTimeout: 10000
-    };
-  }
+/** Surfaced on the health endpoint so a broken Redis says why, not just false. */
+function getRedisDiagnostics() {
+  return {
+    configured: Boolean(env.REDIS_URL && env.REDIS_URL.trim()),
+    status: _redisClient ? _redisClient.status : "not-initialized",
+    lastError: _lastRedisError
+  };
 }
+
+/**
+ * Returns null when Redis is not configured, rather than quietly pointing a
+ * production process at localhost:6379. That fallback is why a missing
+ * REDIS_URL on Render looked identical to a misconfigured one: the client sat
+ * in an endless reconnect loop against a port nothing listens on, and the only
+ * symptom anywhere was `redisConnected: false`.
+ */
+function redisConnectionFromUrl(redisUrl) {
+  const raw = (redisUrl || "").trim();
+  if (!raw) {
+    if (isProduction) {
+      logger.error("REDIS_URL is not set. Worker delegation and log streaming are disabled; runs use the cloud sandbox only.");
+      return null;
+    }
+    logger.warn("REDIS_URL is not set. Falling back to localhost for local development.");
+    return { host: "127.0.0.1", port: 6379, ...COMMON_REDIS_OPTIONS };
+  }
+
+  let u;
+  try {
+    u = new URL(raw);
+  } catch {
+    // Do not log the URL itself - it carries the password.
+    logger.error("REDIS_URL is not a valid URL (expected redis://... or rediss://...)");
+    return null;
+  }
+
+  if (u.protocol !== "redis:" && u.protocol !== "rediss:") {
+    logger.error({ protocol: u.protocol }, "REDIS_URL must use the redis:// or rediss:// scheme");
+    return null;
+  }
+
+  // Managed providers terminate TLS and reject plaintext, so a `redis://` URL
+  // copied from their dashboard would otherwise fail to connect.
+  const managedTls = /\.(upstash\.io|redns\.redis-cloud\.com|redislabs\.com)$/i.test(u.hostname);
+  const useTls = u.protocol === "rediss:" || managedTls;
+  if (managedTls && u.protocol === "redis:") {
+    logger.warn({ host: u.hostname }, "Managed Redis host detected; upgrading the connection to TLS. Prefer a rediss:// URL.");
+  }
+
+  return {
+    host: u.hostname,
+    port: u.port ? Number(u.port) : 6379,
+    username: u.username ? decodeURIComponent(u.username) : undefined,
+    password: u.password ? decodeURIComponent(u.password) : undefined,
+    tls: useTls ? { servername: u.hostname } : undefined,
+    ...COMMON_REDIS_OPTIONS
+  };
+}
+
+const COMMON_REDIS_OPTIONS = {
+  maxRetriesPerRequest: null,
+  enableOfflineQueue: true,
+  connectTimeout: 10000,
+  family: 0, // Auto IPv4/IPv6 resolution (recommended for Upstash)
+  reconnectOnError: (err) =>
+    err.message.includes("READONLY") || err.message.includes("ECONNRESET")
+};
 
 module.exports = {
   RUNS_QUEUE_NAME,
@@ -115,6 +161,8 @@ module.exports = {
   DEFAULT_JOB_OPTIONS,
   getRunsQueue,
   getRedisClient,
+  getRedisDiagnostics,
+  redisConnectionFromUrl,
   closeQueue
 };
 

@@ -5,7 +5,7 @@ const { logger } = require("../../config/logger");
 // socketHandler is required lazily inside functions to avoid circular dependency issues
 
 const { isVercel } = require("../../config/env");
-const { getRunsQueue, getRedisClient, WORKER_HEARTBEAT_KEY } = require("./runs.queue");
+const { getRunsQueue, getRedisClient, getRedisDiagnostics, WORKER_HEARTBEAT_KEY } = require("./runs.queue");
 
 module.exports = {
   createRun,
@@ -317,6 +317,10 @@ async function getQueueStatus() {
     canExecute,
     mongoConnected,
     redisConnected,
+    // `redisConnected: false` on its own gave no way to tell "not configured"
+    // from "configured but refusing connections", which is exactly the question
+    // to answer when the worker never shows up.
+    redis: getRedisDiagnostics(),
     mode: workerOnline ? "primary-worker" : "cloud-sandbox",
     workerStats: workerStats || { status: isSandbox ? "cloud-sandbox" : "idle", activeJobs: 0 },
     version: require("../../../package.json").version,

@@ -453,24 +453,13 @@ builtins.input = _sam_input
     setRunStatus("Running");
 
     if (socket && !socket.connected && activeLangId !== "python") {
-      try {
-        await new Promise((resolve) => {
-          // AGGRESSIVE WAKEUP: Increase timeout to 10s for cold starts
-          const timeout = setTimeout(() => {
-            if (socket) socket.off("connect", onConnect);
-            console.warn("[SAM] Socket connection timed out during cold start, falling back to polling.");
-            resolve(); 
-          }, 10000);
-          const onConnect = () => {
-             clearTimeout(timeout);
-             resolve();
-          };
-          socket.once("connect", onConnect);
-          socket.connect();
-        });
-      } catch {
-        // Socket unavailable - the polling fallback below still applies.
-      }
+      // Kick the socket awake but do NOT wait for it. This used to block the
+      // submission for up to 10 seconds on every run where the socket was not
+      // already up - and it is not up on a cold start, which is exactly when
+      // the run already feels slow. The HTTP submit plus polling below produces
+      // the same output without the stall; the socket just streams it sooner
+      // when it does connect.
+      try { socket.connect(); } catch { /* polling covers this */ }
     }
 
     if (activeLangId === "python") {

@@ -21,6 +21,11 @@ const RANDOM_NAMES = [
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
+// How long after "sync" to wait before concluding a document is genuinely
+// empty. The server's state arrives within milliseconds of the sync event; this
+// only has to outlast that gap.
+const EMPTY_DOC_GRACE_MS = 2000;
+
 /**
  * CodeEditor - Collaborative Monaco editor powered by Yjs + y-socket.io.
  *
@@ -51,6 +56,32 @@ const CodeEditor = ({
   const ytextRef = useRef(null); // live ref to current Yjs text node
   const hasInitializedRef = useRef(false);
   const cleanupRef = useRef(null); // holds the current session cleanup fn
+  const pendingResetRef = useRef(null); // reset requested before the doc synced
+  const emptyDocTimerRef = useRef(null); // deferred "still empty?" seed check
+
+  /**
+   * Replace the whole document in ONE Yjs transaction.
+   *
+   * This used to go through Monaco's executeEdits over the full model range.
+   * That produced a delete and an insert as separate operations against a
+   * document that might not have synced yet, so the server's own copy of the
+   * template was not covered by the delete and survived the merge - the user
+   * pressed Reset and got the template twice. Operating on ytext directly also
+   * sidesteps the \r\n vs \n length mismatch that motivated executeEdits, since
+   * ytext always holds \n.
+   */
+  const replaceDocument = useCallback((template) => {
+    const ytext = ytextRef.current;
+    const ydoc = ydocRef.current;
+    if (!ytext || !ydoc) return false;
+    if (ytext.toString() === template) return true; // already there; nothing to merge
+
+    ydoc.transact(() => {
+      ytext.delete(0, ytext.length);
+      ytext.insert(0, template);
+    });
+    return true;
+  }, []);
 
   // Keep value in a ref for localStorage sync (not for seeding - server seeds new rooms)
   const seedValueRef = useRef(value);
@@ -135,14 +166,44 @@ const CodeEditor = ({
     };
     ytext.observe(onYtextChange);
 
-    // SYNC GUARD: Mark as initialized once the server has sent us the full document state.
-    // The server seeds new rooms before the sync event fires, so ytext already has the
-    // template content at this point. We never seed from the client - server owns seeding.
+    // SYNC GUARD: Mark as initialized once the server has sent us the full
+    // document state. Nothing may write to the document before this point: an
+    // edit made against an unsynced doc is concurrent with whatever the server
+    // is about to deliver, and Yjs merges both rather than replacing one with
+    // the other - which is how a reset produced two copies of the template.
     const handleSync = (isSynced) => {
       if (!isSynced) return;
-      if (!hasInitializedRef.current) {
-        hasInitializedRef.current = true;
-      }
+      hasInitializedRef.current = true;
+
+      // The server seeds new rooms (socketHandler document-loaded), but a room
+      // whose language node arrives empty - a persisted doc created before this
+      // language existed, or a seed that did not run - left the user staring at
+      // a blank editor with no way to get the template back except Reset.
+      //
+      // The check is deliberately NOT made here: y-socket.io reports sync
+      // before the document content has necessarily been applied, so an
+      // immediate seed lands concurrently with the server's own state and Yjs
+      // keeps both - the editor then shows every line twice. Re-check once the
+      // state has certainly arrived, and only ever seed an empty document.
+      if (emptyDocTimerRef.current) clearTimeout(emptyDocTimerRef.current);
+      emptyDocTimerRef.current = setTimeout(() => {
+        emptyDocTimerRef.current = null;
+        if (ytextRef.current !== ytext) return; // session changed underneath us
+
+        // A reset issued before the document was whole waits here too: a
+        // delete over a range the server has not delivered yet removes nothing.
+        if (pendingResetRef.current !== null) {
+          const template = pendingResetRef.current;
+          pendingResetRef.current = null;
+          replaceDocument(template);
+          return;
+        }
+
+        if (ytext.length !== 0) return;
+        const template = seedValueRef.current;
+        if (!template) return;
+        ydoc.transact(() => ytext.insert(0, template));
+      }, EMPTY_DOC_GRACE_MS);
     };
 
     provider.on("sync", handleSync);
@@ -154,8 +215,13 @@ const CodeEditor = ({
       try { binding.destroy(); } catch { /* already torn down */ }
       try { provider.destroy(); } catch { /* already torn down */ }
       hasInitializedRef.current = false;
+      pendingResetRef.current = null;
+      if (emptyDocTimerRef.current) {
+        clearTimeout(emptyDocTimerRef.current);
+        emptyDocTimerRef.current = null;
+      }
     };
-  }, []); // no deps - always reads from refs
+  }, [replaceDocument]); // otherwise reads only from refs
 
   // ─── Monaco Mount Handler ────────────────────────────────────────────────────
   const handleMount = useCallback((editor, monaco) => {
@@ -255,37 +321,33 @@ const CodeEditor = ({
   }, [markers]);
 
   // ─── Reset event (AI panel + Reset button) ──────────────────────────────────
-  // We use Monaco's executeEdits to replace the entire document.
-  // This is safely captured by MonacoBinding (which translates it into correct
-  // Yjs delete/insert operations) and avoids \r\n vs \n length mismatch bugs
-  // that occur when calling ytext.delete(0, ytext.length) directly.
   useEffect(() => {
     const handleResetEvent = (e) => {
       const template = e.detail?.template ?? "";
       if (!template || !editorRef.current) return;
 
-      const model = editorRef.current.getModel();
-      if (model) {
-        editorRef.current.executeEdits("sam-reset", [{
-          range: model.getFullModelRange(),
-          text: template
-        }]);
+      if (hasInitializedRef.current) {
+        if (!replaceDocument(template)) return;
+      } else {
+        // Applying this now would race the server's initial state; handleSync
+        // performs it as soon as the document is whole.
+        pendingResetRef.current = template;
+      }
 
-        // This event is dispatched by three different actions (AI refactor,
-        // reset-to-boilerplate, load-from-history) and always announced
-        // "Applied to editor" - wrong copy for two of them, and a second
-        // toast on top of the one the dispatcher already showed. The caller
-        // now says what happened; silence here unless it does not.
-        if (e.detail?.notify !== false) {
-          toast.success(e.detail?.message || "Applied to editor", {
-            style: { background: "var(--sam-surface)", color: "var(--sam-text)", border: "1px solid var(--sam-glass-border)", fontSize: "11px", fontWeight: 900 }
-          });
-        }
+      // This event is dispatched by three different actions (AI refactor,
+      // reset-to-boilerplate, load-from-history) and always announced
+      // "Applied to editor" - wrong copy for two of them, and a second
+      // toast on top of the one the dispatcher already showed. The caller
+      // now says what happened; silence here unless it does not.
+      if (e.detail?.notify !== false) {
+        toast.success(e.detail?.message || "Applied to editor", {
+          style: { background: "var(--sam-surface)", color: "var(--sam-text)", border: "1px solid var(--sam-glass-border)", fontSize: "11px", fontWeight: 900 }
+        });
       }
     };
     window.addEventListener("sam-editor-reset", handleResetEvent);
     return () => window.removeEventListener("sam-editor-reset", handleResetEvent);
-  }, []);
+  }, [replaceDocument]);
 
   // onChange is now driven by ytext.observe inside initYjs - no Monaco onChange needed.
 
