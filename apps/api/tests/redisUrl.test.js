@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { createRequire } from "node:module";
 
 const require = createRequire(import.meta.url);
-const { redisConnectionFromUrl } = require("../src/modules/runs/runs.queue.js");
+const { redisConnectionFromUrl, getRedisDiagnostics } = require("../src/modules/runs/runs.queue.js");
 
 // A misconfigured REDIS_URL used to be indistinguishable from a missing one:
 // both fell back to localhost:6379, so a production process reconnected
@@ -48,5 +48,31 @@ describe("redisConnectionFromUrl", () => {
     // enableOfflineQueue is overridden to false where the client is built; the
     // queue connection keeps buffering because BullMQ relies on it.
     expect(redisConnectionFromUrl("redis://10.0.0.5").maxRetriesPerRequest).toBeNull();
+  });
+});
+
+describe("rejection reasons", () => {
+  it("names the offending scheme", () => {
+    expect(redisConnectionFromUrl("https://eu1.upstash.io")).toBeNull();
+    expect(getRedisDiagnostics().configError).toMatch(/https:/);
+  });
+
+  it("explains an unparseable value", () => {
+    expect(redisConnectionFromUrl("not a url at all")).toBeNull();
+    expect(getRedisDiagnostics().configError).toMatch(/must look like/);
+  });
+
+  it("never echoes the password back", () => {
+    // A URL pasted without its scheme parses as scheme "default:", so it is
+    // rejected on the scheme branch - which must still not leak the secret.
+    expect(redisConnectionFromUrl("default:hunter2@eu1.upstash.io:6379")).toBeNull();
+    expect(getRedisDiagnostics().configError).not.toContain("hunter2");
+  });
+
+  it("clears the reason once a good value parses", () => {
+    redisConnectionFromUrl("nope");
+    expect(getRedisDiagnostics().configError).toBeTruthy();
+    redisConnectionFromUrl("rediss://default:tok@eu1.upstash.io:6379");
+    expect(getRedisDiagnostics().configError).toBeNull();
   });
 });

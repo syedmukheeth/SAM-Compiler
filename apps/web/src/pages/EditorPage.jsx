@@ -441,14 +441,14 @@ builtins.input = _sam_input
       socket.off("exec:log");
     }
 
-    // Reset first, THEN print the banner. Previously the banner was written
-    // above and this reset ran immediately after, erasing it every time.
+    // The terminal opens empty. The three-line "requesting cloud runtime /
+    // configuring sandbox / execution start" banner that used to print here
+    // described infrastructure the user did not ask about and pushed their
+    // actual output down the panel; the status chip already says a run is in
+    // flight.
     if (xtermRef.current) {
       xtermRef.current.reset();
       xtermRef.current.write("\x1b[2J\x1b[0;0H");
-      xtermRef.current.write(`\x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`);
-      xtermRef.current.write(`\x1b[1;36m[SAM] CONFIGURING SANDBOX...\x1b[0m\r\n`);
-      xtermRef.current.write(`\x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`);
     }
     setRunStatus("Running");
 

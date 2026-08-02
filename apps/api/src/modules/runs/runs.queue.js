@@ -7,6 +7,7 @@ const WORKER_HEARTBEAT_KEY = "sam:worker:heartbeat";
 let _runsQueue = null;
 let _redisClient = null;
 let _lastRedisError = null;
+let _configError = null; // why REDIS_URL was rejected, if it was
 
 /**
  * Retention and retry policy. Previously `queue.add("execute", { runId })` was
@@ -91,7 +92,10 @@ function getRedisClient() {
 function getRedisDiagnostics() {
   return {
     configured: Boolean(env.REDIS_URL && env.REDIS_URL.trim()),
-    status: _redisClient ? _redisClient.status : "not-initialized",
+    // "rejected" means REDIS_URL was set but unusable, which is otherwise
+    // indistinguishable from a client that simply has not been created yet.
+    status: _redisClient ? _redisClient.status : (_configError ? "rejected" : "not-initialized"),
+    configError: _configError,
     lastError: _lastRedisError
   };
 }
@@ -104,13 +108,19 @@ function getRedisDiagnostics() {
  * symptom anywhere was `redisConnected: false`.
  */
 function redisConnectionFromUrl(redisUrl) {
+  const reject = (message, details) => {
+    _configError = message;
+    logger.error(details || {}, message);
+    return null;
+  };
+
   const raw = (redisUrl || "").trim();
   if (!raw) {
     if (isProduction) {
-      logger.error("REDIS_URL is not set. Worker delegation and log streaming are disabled; runs use the cloud sandbox only.");
-      return null;
+      return reject("REDIS_URL is not set. Worker delegation and log streaming are disabled; runs use the cloud sandbox only.");
     }
     logger.warn("REDIS_URL is not set. Falling back to localhost for local development.");
+    _configError = null;
     return { host: "127.0.0.1", port: 6379, ...COMMON_REDIS_OPTIONS };
   }
 
@@ -118,15 +128,19 @@ function redisConnectionFromUrl(redisUrl) {
   try {
     u = new URL(raw);
   } catch {
-    // Do not log the URL itself - it carries the password.
-    logger.error("REDIS_URL is not a valid URL (expected redis://... or rediss://...)");
-    return null;
+    // Never log or return the URL itself - it carries the password.
+    return reject("REDIS_URL is not a valid URL. It must look like rediss://default:PASSWORD@host:6379");
   }
 
   if (u.protocol !== "redis:" && u.protocol !== "rediss:") {
-    logger.error({ protocol: u.protocol }, "REDIS_URL must use the redis:// or rediss:// scheme");
-    return null;
+    return reject(`REDIS_URL uses the "${u.protocol}" scheme; it must be redis:// or rediss://`);
   }
+
+  if (!u.hostname) {
+    return reject("REDIS_URL has no host");
+  }
+
+  _configError = null;
 
   // Managed providers terminate TLS and reject plaintext, so a `redis://` URL
   // copied from their dashboard would otherwise fail to connect.
