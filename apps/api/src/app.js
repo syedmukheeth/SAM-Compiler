@@ -20,7 +20,7 @@ function createApp() {
   // Enable trust proxy for correct IP detection behind Vercel/Render
   app.set("trust proxy", 1);
 
-  // 🛡️ SECURITY: Exact-match CORS policy (see config/cors.js for rationale).
+  // SECURITY: Exact-match CORS policy (see config/cors.js for rationale).
   app.use(cors({
     origin: originChecker,
     credentials: true,

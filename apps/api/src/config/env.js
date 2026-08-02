@@ -27,7 +27,7 @@ let env;
 const result = EnvSchema.safeParse(process.env);
 
 if (!result.success) {
-  console.error("⚠️ Environment validation failed:", JSON.stringify(result.error.format(), null, 2));
+  console.error("Environment validation failed:", JSON.stringify(result.error.format(), null, 2));
   // Provide bare minimums for startup if on Vercel
   if (process.env.VERCEL) {
     env = {

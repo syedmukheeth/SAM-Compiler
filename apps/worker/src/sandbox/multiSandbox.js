@@ -95,7 +95,7 @@ async function executeRun(opts, onLog) {
       const result = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 5000, { onLog, stdin });
       const duration = Date.now() - start;
 
-      // 🛡️ High-Fidelity Status Mapping
+      // High-Fidelity Status Mapping
       let status = "runtime_error";
       if (result.limitExceeded) status = "output_limit";
       else if (result.exitCode === 0) status = "succeeded";
@@ -108,7 +108,7 @@ async function executeRun(opts, onLog) {
         metrics: { durationMs: duration, sandbox: "docker-hardened" } 
       };
     } catch (dockerErr) {
-      // 🚨 Host execution is strictly forbidden in SAM Compiler by design.
+      // Host execution is strictly forbidden in SAM Compiler by design.
       // If Docker is unavailable, we explicitly reject local execution so the task 
       // fails securely, allowing the upstream service to fallback to Judge0 Cloud API.
       throw new Error(`Security Error: Docker is required for executing untrusted code. Host fallback disabled.\nDetails: ${dockerErr.message}`);
@@ -148,7 +148,7 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
   return new Promise((resolve, reject) => {
     let stdout = "";
     let stderr = "";
-    console.log(`📡 [SAM-AUDIT] [SANDBOX] Spawning command: ${cmd}`);
+    console.log(`[SAM-AUDIT] [SANDBOX] Spawning command: ${cmd}`);
     try {
       const child = spawn(cmd, args, { ...spawnOpts, windowsHide: true });
       const MAX_OUTPUT_BYTES = 5 * 1024 * 1024; // 5MB guard rail
@@ -186,7 +186,7 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
         try { child.kill("SIGKILL"); } catch (e) { /* ignore kill error */ void e; }
       }, timeoutMs);
 
-      // 🔑 STDIN PIPE: Write user input then close stdin so the process can proceed
+      // STDIN PIPE: Write user input then close stdin so the process can proceed
       if (child.stdin) {
         try {
           if (stdin) child.stdin.write(stdin);

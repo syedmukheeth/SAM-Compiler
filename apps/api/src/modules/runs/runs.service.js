@@ -11,8 +11,54 @@ module.exports = {
   createRun,
   getRun,
   getQueueStatus,
-  getUserHistory
+  getUserHistory,
+  // Exported for tests: the timeout below is the only thing standing between a
+  // dead Redis and a permanently stuck run.
+  readWorkerHeartbeat
 };
+
+// The Redis client is built with `maxRetriesPerRequest: null` and an offline
+// queue (see runs.queue.js), which means a command issued while the connection
+// is down is buffered and its promise NEVER settles. `createRun` awaited such a
+// GET with no timeout, so on any deployment without a reachable Redis the
+// background run task hung forever: the run stayed "running", no output was
+// ever written, and no "end" event was emitted. Every heartbeat read now goes
+// through here, which refuses to issue the command unless the socket is ready
+// and still caps how long it may take.
+const WORKER_HEARTBEAT_TIMEOUT_MS = 2000;
+
+async function readWorkerHeartbeat(client) {
+  const redis = client === undefined ? getRedisClient() : client;
+  if (!redis || redis.status !== "ready") return null;
+
+  let timer;
+  try {
+    return await Promise.race([
+      redis.get(WORKER_HEARTBEAT_KEY),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("Redis heartbeat timed out")),
+          WORKER_HEARTBEAT_TIMEOUT_MS
+        );
+      })
+    ]);
+  } catch (err) {
+    logger.warn({ err }, "Worker heartbeat read failed");
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+/** A worker only counts as online if it reported a usable Docker sandbox. */
+function parseWorkerStats(heartbeatRaw) {
+  if (!heartbeatRaw) return null;
+  try {
+    return JSON.parse(heartbeatRaw);
+  } catch {
+    return null;
+  }
+}
 
 
 /**
@@ -33,7 +79,7 @@ function generateRunTitle(code, _runtime) { // eslint-disable-line no-unused-var
   for (const line of lines) {
     const trimmed = line.trim();
     if (trimmed.length > 0 && !skipPatterns.some(p => p.test(line))) {
-      // 🚀 ANALYSIS: Try to find a descriptive string literal in output statements
+      // ANALYSIS: Try to find a descriptive string literal in output statements
       const outputMatch = line.match(/(?:cout\s*<<\s*|print\s*\(|System\.out\.println\s*\(|console\.log\s*\()(?:"|')([^"']+)(?:"|')/i);
       if (outputMatch && outputMatch[1].trim().length > 3) {
         return outputMatch[1].trim().substring(0, 47) + (outputMatch[1].length > 47 ? "..." : "");
@@ -72,7 +118,7 @@ async function createRun(input) {
 
   if (isConnected) {
     try {
-      // 🚀 NITRO: Instantiate model and save in background to avoid blocking the execution request
+      // NITRO: Instantiate model and save in background to avoid blocking the execution request
       run = new RunModel({
         projectId: input.projectId,
         userId: userId,
@@ -122,33 +168,19 @@ async function createRun(input) {
   const runTask = async () => {
     try {
       const runData = (run && typeof run.toObject === "function") ? run.toObject() : run;
-      // 🛡️ SECURITY AUDIT FIX: Direct execution on host is forbidden.
-      // Delegation Flow: Worker Pool (Primary) -> Judge0/Piston API (Fallback)
-      const queue = getRunsQueue();
-      const redis = getRedisClient();
-      let workerOnline = false;
-      try {
-        const heartbeatRaw = redis ? await redis.get(WORKER_HEARTBEAT_KEY) : null;
-        if (heartbeatRaw) {
-          try {
-            const stats = JSON.parse(heartbeatRaw);
-            // Worker must explicitly report Docker availability to take local jobs
-            workerOnline = stats.hasDocker === true;
-            if (!workerOnline) {
-              logger.warn({ runId: run._id.toString() }, "Worker online but lacks Docker. Forcing cloud fallback.");
-            }
-          } catch {
-            // If we can't parse or it's old format, assume NOT capable for safety
-            workerOnline = false;
-          }
-        }
-      } catch (e) {
-        logger.warn({ e }, "Worker heartbeat check failed");
+      // Direct execution on the API host is forbidden.
+      // Delegation flow: worker pool (primary) -> Judge0/Piston API (fallback).
+      const stats = parseWorkerStats(await readWorkerHeartbeat());
+      // A worker must explicitly report Docker availability to take local jobs.
+      const workerOnline = stats?.hasDocker === true;
+      if (stats && !workerOnline) {
+        logger.warn({ runId: run._id.toString() }, "Worker online but lacks Docker. Forcing cloud fallback.");
       }
+      const queue = workerOnline ? getRunsQueue() : null;
 
       if (queue && workerOnline) {
         const socketHandler = require("./socketHandler");
-        if (socketHandler.emitLog) socketHandler.emitLog(run._id.toString(), "stdout", `📡 \x1b[1;33mDelegating to Hardened Worker...\x1b[0m\n\r\n`);
+        if (socketHandler.emitLog) socketHandler.emitLog(run._id.toString(), "stdout", `\x1b[1;33m[SAM] Delegating to hardened worker...\x1b[0m\n\r\n`);
 
 
         // Retry/backoff/retention come from DEFAULT_JOB_OPTIONS on the Queue.
@@ -164,7 +196,7 @@ async function createRun(input) {
         // Worker owns the "end" event for queued jobs - don't double-emit
         return;
       } else {
-        // 🚀 Fallback to external sandbox (Judge0/Piston)
+        // Fallback to the external sandbox (Judge0/Piston).
         try {
           logger.debug({ runId: run._id.toString() }, "Worker offline. Invoking cloud fallback.");
           const socketHandler = require("./socketHandler");
@@ -177,14 +209,14 @@ async function createRun(input) {
           run.exitCode = result.exitCode;
           run.status = result.status;
         } catch (pistonErr) {
-          let errMsg = `❌ \x1b[1;31mError: Execution environment unavailable.\x1b[0m\n`;
-          
+          let errMsg = `\x1b[1;31m[SAM] Error: execution environment unavailable.\x1b[0m\n`;
+
           if (isVercel) {
-            errMsg += `💡 \x1b[1;36mCloud Sandbox: Fallback execution failed.\x1b[0m\n` +
-                      `💡 \x1b[1;36mPlease start your SAM worker locally for high-performance runs.\x1b[0m\n\r\n`;
+            errMsg += `\x1b[1;36m[SAM] Cloud sandbox: fallback execution failed.\x1b[0m\n` +
+                      `\x1b[1;36m[SAM] Start your SAM worker locally for high-performance runs.\x1b[0m\n\r\n`;
           } else {
-            errMsg += `💡 \x1b[1;36mPrimary worker is offline and Cloud Fallback failed.\x1b[0m\n` +
-                      `💡 \x1b[1;36mEnsure your SAM worker is running or check your internet connection.\x1b[0m\n\r\n`;
+            errMsg += `\x1b[1;36m[SAM] Primary worker is offline and the cloud fallback failed.\x1b[0m\n` +
+                      `\x1b[1;36m[SAM] Ensure your SAM worker is running or check your internet connection.\x1b[0m\n\r\n`;
           }
 
           const socketHandler = require("./socketHandler");
@@ -260,36 +292,15 @@ async function getRun(runId) {
  */
 async function getQueueStatus() {
   const redis = getRedisClient();
-  let workerOnline = false;
-  let workerStats = null;
-  
-  if (redis) {
-    try {
-      // 🛡️ TIMEOUT: Don't let a hanging Redis block the health check
-      const heartbeat = await Promise.race([
-        redis.get(WORKER_HEARTBEAT_KEY),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("Redis Timeout")), 3000))
-      ]);
-
-      if (heartbeat) {
-        try {
-          workerStats = JSON.parse(heartbeat);
-          // Worker must explicitly report Docker availability to be considered "Live" for primary execution
-          workerOnline = workerStats.hasDocker === true;
-        } catch {
-          workerOnline = false;
-          workerStats = { timestamp: heartbeat };
-        }
-      }
-    } catch (err) {
-      logger.error({ err }, "Failed to get worker heartbeat from Redis");
-    }
-  }
-
+  const heartbeat = await readWorkerHeartbeat();
+  let workerStats = parseWorkerStats(heartbeat);
+  if (!workerStats && heartbeat) workerStats = { timestamp: heartbeat };
+  // A worker must explicitly report Docker availability to be considered live
+  // for primary execution.
+  // Without Redis there is no heartbeat to trust, so the worker is never live
+  // (the API node itself is not allowed to execute code).
   const isSandbox = !redis;
-  if (isSandbox) {
-    workerOnline = false; // Forced false as the API node can no longer execute code
-  }
+  const workerOnline = !isSandbox && workerStats?.hasDocker === true;
 
   // The Judge0/Piston cloud fallback is always reachable, so execution is
   // available whether or not a Docker worker has checked in. (This was

@@ -1,7 +1,7 @@
 const { logger } = require("../config/logger");
 
 /**
- * 📧 EMAIL SERVICE
+ * EMAIL SERVICE
  *
  * Sends real mail when SMTP is configured. When it is not, it logs that the
  * send was skipped - it does NOT print the reset URL. The previous version

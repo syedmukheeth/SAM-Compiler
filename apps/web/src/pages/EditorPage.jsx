@@ -8,7 +8,7 @@ import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
 import { getSocket } from "../services/socketClient";
 import { parseErrors } from "../services/errorParser";
 
-// ⚡ LAZY LOAD PERFORMANCE HYDRATION (Code-Splitting)
+// LAZY LOAD PERFORMANCE HYDRATION (Code-Splitting)
 const SettingsModal = React.lazy(() => import("../components/SettingsModal"));
 const AuthModal     = React.lazy(() => import("../components/AuthModal"));
 const HistoryPanel  = React.lazy(() => import("../components/HistoryPanel"));
@@ -163,7 +163,7 @@ export default function EditorPage() {
         const saved = localStorage.getItem("sam_code_buffers");
         if (saved) {
           const parsed = JSON.parse(saved);
-          // 🧹 SANITIZE: Detect and clear Code Soup from localStorage.
+          // SANITIZE: Detect and clear Code Soup from localStorage.
           // If a buffer contains duplicate template phrases from a past race condition,
           // reset it to the canonical template rather than poisoning new Yjs rooms.
           const SOUP_MARKER = "Welcome to SAM Compiler!";
@@ -293,12 +293,11 @@ export default function EditorPage() {
     window.dispatchEvent(new CustomEvent('sam-editor-reset', { detail: { template: code, notify: false } }));
     setBuffers(prev => ({ ...prev, [langId]: code }));
     toast.success('Code loaded from history', {
-      icon: '📦',
       style: { background: 'var(--sam-surface)', color: 'var(--sam-text)', border: '1px solid var(--sam-glass-border)', fontSize: '11px', fontWeight: 700 }
     });
   }, []);
 
-  // 🛰️ DIAGNOSTIC ENGINE: Render line with high-fidelity colorization
+  // DIAGNOSTIC ENGINE: Render line with high-fidelity colorization
   const renderDiagnosticLine = useCallback((line, hasError) => {
     if (!line) return "";
     const dim = "\x1b[2m";
@@ -394,7 +393,7 @@ builtins.input = _sam_input
       setPendingAiPrompt(`Explain and fix this error in my ${language} code:\n\n\`\`\`\n${summary}\n\`\`\``);
     }
 
-    // 🕒 PERSISTENT GUEST HISTORY ENGINE
+    // PERSISTENT GUEST HISTORY ENGINE
     if (!userRef.current) {
       try {
         const raw = localStorage.getItem("sam_guest_history");
@@ -421,7 +420,7 @@ builtins.input = _sam_input
     const code = window.samEditor ? window.samEditor.getValue() : buffers[activeLangId];
     const language = languageConfigs[activeLangId].lang;
 
-    // 🛡️ REBOOT DIAGNOSTICS: Clear previous state.
+    // REBOOT DIAGNOSTICS: Clear previous state.
     // These four assignments used to appear twice, straddling the boot banner.
     setErrorMarkers([]);
     setPendingAiPrompt(null);
@@ -447,16 +446,16 @@ builtins.input = _sam_input
     if (xtermRef.current) {
       xtermRef.current.reset();
       xtermRef.current.write("\x1b[2J\x1b[0;0H");
-      xtermRef.current.write(`📡 \x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`);
-      xtermRef.current.write(`📦 \x1b[1;36m[SAM] CONFIGURING SANDBOX...\x1b[0m\r\n`);
-      xtermRef.current.write(`🚀 \x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`);
+      xtermRef.current.write(`\x1b[1;36m[SAM] REQUESTING CLOUD RUNTIME...\x1b[0m\r\n`);
+      xtermRef.current.write(`\x1b[1;36m[SAM] CONFIGURING SANDBOX...\x1b[0m\r\n`);
+      xtermRef.current.write(`\x1b[1;36m[SAM] EXECUTION START.\x1b[0m\r\n\r\n`);
     }
     setRunStatus("Running");
 
     if (socket && !socket.connected && activeLangId !== "python") {
       try {
         await new Promise((resolve) => {
-          // 🕒 AGGRESSIVE WAKEUP: Increase timeout to 10s for cold starts
+          // AGGRESSIVE WAKEUP: Increase timeout to 10s for cold starts
           const timeout = setTimeout(() => {
             if (socket) socket.off("connect", onConnect);
             console.warn("[SAM] Socket connection timed out during cold start, falling back to polling.");
@@ -599,7 +598,7 @@ builtins.input = _sam_input
       }
 
 
-      // 🔥 NITRO: Direct Socket Submission (Bypasses HTTP overhead)
+      // NITRO: Direct Socket Submission (Bypasses HTTP overhead)
       let runToken;
       if (socket && socket.connected) {
         try {
@@ -649,7 +648,7 @@ builtins.input = _sam_input
         }
       });
 
-      // 🛡️ FALLBACK: If socket was silent (no output received), render from poll result
+      // FALLBACK: If socket was silent (no output received), render from poll result
       if (!hasReceivedOutputRef.current && finalState && xtermRef.current) {
         const stdout = finalState.stdout || "";
         const stderr = finalState.stderr || "";
@@ -845,7 +844,7 @@ builtins.input = _sam_input
         return; 
       }
       try {
-        // 🔥 WAKE UP PING: Proactively trigger Render cold-start wakeup
+        // WAKE UP PING: Proactively trigger Render cold-start wakeup
         // We ping the root and the health check as early as possible
         const API_BASE = ENDPOINTS.WS_ENDPOINT;
         fetch(API_BASE).catch(() => {}); // Fire and forget root ping
@@ -873,7 +872,7 @@ builtins.input = _sam_input
       }
     };
 
-    // 🛡️ FAIL-SAFE: If engine isn't ready in 45s, allow sandbox anyway
+    // FAIL-SAFE: If engine isn't ready in 45s, allow sandbox anyway
     failSafeTimer = setTimeout(() => {
       if (!isEngineReady) {
         setIsEngineReady(true);
@@ -966,7 +965,7 @@ builtins.input = _sam_input
 
     window.addEventListener("sam:socket:status", handleStatusUpdate);
     
-    // 🔥 VIEWPORT & ORIENTATION SYNC: Force Monaco resize on orientation/tab changes
+    // VIEWPORT & ORIENTATION SYNC: Force Monaco resize on orientation/tab changes
     const handleViewportSync = () => {
       window.dispatchEvent(new Event('resize'));
     };
@@ -1036,7 +1035,7 @@ builtins.input = _sam_input
         const termElement = terminalRef.current;
         if (termElement && termElement.offsetParent !== null) {
           fitAddonRef.current.fit();
-          xtermRef.current.refresh(0, xtermRef.current.rows - 1); // 🔥 FORCE RENDER
+          xtermRef.current.refresh(0, xtermRef.current.rows - 1); // FORCE RENDER
         }
       } catch {
         // Silent catch for transient dimension errors during layout transitions
@@ -1067,7 +1066,7 @@ builtins.input = _sam_input
     term.loadAddon(fitAddon);
     term.open(terminalRef.current);
     
-    // 🛠️ DEFENSE: Delayed fit to allow browser layout calculation
+    // DEFENSE: Delayed fit to allow browser layout calculation
     setTimeout(() => {
       try {
         if (terminalRef.current && terminalRef.current.offsetParent !== null) {
@@ -1094,7 +1093,7 @@ builtins.input = _sam_input
       );
     });
 
-    // ⚡ ELITE RESIZE WATCHER: Ensure terminal reflows perfectly when panels shift
+    // ELITE RESIZE WATCHER: Ensure terminal reflows perfectly when panels shift
     const resizeObserver = new ResizeObserver(() => {
       if (term && fitAddon) {
         try {
@@ -1122,10 +1121,10 @@ builtins.input = _sam_input
 
   // Consolidate layout fit on change
   useEffect(() => {
-    const delay = isMobile ? 300 : 100; // 🕒 LONGER DELAY for mobile tab transitions
+    const delay = isMobile ? 300 : 100; // LONGER DELAY for mobile tab transitions
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
-      // ⚡ EXPLICIT MONACO LAYOUT: Force editor to re-calculate dimensions
+      // EXPLICIT MONACO LAYOUT: Force editor to re-calculate dimensions
       if (window.samEditor && (!isMobile || activeMobileTab === 'editor')) {
         window.samEditor.layout();
       }
@@ -1823,7 +1822,7 @@ builtins.input = _sam_input
                     CLOUD ENGINE
                   </span>
 
-                  {/* 🤖 INTEGRATED AI DIAGNOSTIC TRIGGER */}
+                  {/* INTEGRATED AI DIAGNOSTIC TRIGGER */}
                   <AnimatePresence>
                     {pendingAiPrompt && !showAiPanel && (
                       <motion.button
@@ -2021,7 +2020,7 @@ builtins.input = _sam_input
                     // applied. It also hardcoded its colours instead of using
                     // the theme tokens.
                     window.dispatchEvent(new CustomEvent('sam-editor-reset', {
-                      detail: { template: refactoredCode, message: "Refactor applied ✨" }
+                      detail: { template: refactoredCode, message: "Refactor applied" }
                     }));
                     if (isMobile) setActiveMobileTab('editor');
                   }}
@@ -2077,7 +2076,7 @@ builtins.input = _sam_input
             <motion.div 
               initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className={`relative w-full max-w-sm rounded-[32px] border p-8 shadow-2xl backdrop-blur-2xl sam-modal-mobile-center ${
-                theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-text/95'
+                theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-bg/95'
               }`}
             >
               <h3 className={`mb-8 flex items-center gap-3 text-sm font-black uppercase tracking-[0.25em] opacity-90 ${

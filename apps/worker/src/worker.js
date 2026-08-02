@@ -31,9 +31,9 @@ async function main() {
   try {
     execSync("docker --version", { stdio: "ignore" });
     hasDocker = true;
-    logger.info("🐳 Docker detected on host. Hardened sandbox enabled.");
+    logger.info("Docker detected on host. Hardened sandbox enabled.");
   } catch {
-    logger.warn("⚠️ Docker NOT detected on host. Worker will report capability to API for intelligent fallback.");
+    logger.warn("Docker NOT detected on host. Worker will report capability to API for intelligent fallback.");
   }
 
   startHealthServer();
@@ -57,7 +57,7 @@ async function main() {
             return;
           }
 
-          logger.info({ runId: job.data.runId }, "📡 [SAM-AUDIT] [WORKER] Job picked up from queue");
+          logger.info({ runId: job.data.runId }, "[SAM-AUDIT] [WORKER] Job picked up from queue");
           run.status = "running";
           run.startedAt = new Date();
           await run.save();
@@ -119,7 +119,7 @@ async function main() {
       logger.error({ job: job?.id, err }, "Job failed permanently");
     });
   } else {
-    logger.warn("⚠️ Execution Worker NOT started. This instance will only report health status.");
+    logger.warn("Execution Worker NOT started. This instance will only report health status.");
   }
 
   // Use a unique heartbeat key per worker instance to support distributed scaling
@@ -158,7 +158,7 @@ async function main() {
 
   await startHeartbeatLocal();
 
-  // 🔥 INTERVIEW DEMO MODE: Keep-alive self-ping to prevent platform sleep
+  // INTERVIEW DEMO MODE: Keep-alive self-ping to prevent platform sleep
   setInterval(async () => {
     try {
       await new Promise((resolve, reject) => {

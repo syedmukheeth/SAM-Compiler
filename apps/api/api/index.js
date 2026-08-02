@@ -8,7 +8,7 @@ let app;
 let initializationError = null;
 
 module.exports = async (req, res) => {
-  // 🚀 FAST HEALTH CHECK (Zero dependencies)
+  // FAST HEALTH CHECK (Zero dependencies)
 
   if (req.url === "/health" || req.url === "/api/health") {
     return res.status(200).json({ 
@@ -18,10 +18,10 @@ module.exports = async (req, res) => {
     });
   }
 
-  // 🛡️ INITIALIZATION
+  // INITIALIZATION
   if (!app && !initializationError) {
     try {
-      console.log("☁️ Initializing SAM Compiler API on Vercel...");
+      console.log("Initializing SAM Compiler API on Vercel...");
       
       // Lazy load core modules
       const { connectMongo } = require("../src/config/mongo");
@@ -29,19 +29,19 @@ module.exports = async (req, res) => {
       
       // Deferred MongoDB connection
       await connectMongo().catch(err => {
-        console.warn("⚠️ MongoDB connection failure (will retry on next request):", err.message);
+        console.warn("MongoDB connection failure (will retry on next request):", err.message);
       });
 
       // Initialize App
       app = createApp();
-      console.log("✅ App initialized successfully");
+      console.log("App initialized successfully");
     } catch (err) {
       initializationError = err;
-      console.error("❌ CRITICAL: Initialization Failure:", err);
+      console.error("CRITICAL: Initialization Failure:", err);
     }
   }
 
-  // 🚨 ERROR HANDLING
+  // ERROR HANDLING
   if (initializationError) {
     return res.status(500).json({ 
       error: "Initialization Failure", 
@@ -50,11 +50,11 @@ module.exports = async (req, res) => {
     });
   }
 
-  // ⚡ HANDLE REQUEST
+  // HANDLE REQUEST
   try {
     return app(req, res);
   } catch (err) {
-    console.error("❌ Request Error:", err);
+    console.error("Request Error:", err);
     return res.status(500).json({ 
       error: "Request Execution Failure", 
       message: err.message,

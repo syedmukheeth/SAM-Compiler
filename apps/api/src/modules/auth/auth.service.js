@@ -62,7 +62,7 @@ async function getUserWithGithubToken(id) {
 }
 
 /**
- * 🔐 FORGOT PASSWORD: Generate reset token
+ * FORGOT PASSWORD: Generate reset token
  */
 async function generateResetToken(email) {
   const user = await User.findOne({ email, provider: 'email' });
@@ -85,7 +85,7 @@ async function generateResetToken(email) {
 }
 
 /**
- * 🔓 RESET PASSWORD: Verify token and update password
+ * RESET PASSWORD: Verify token and update password
  */
 async function resetPassword(token, newPassword) {
   const hashedToken = crypto

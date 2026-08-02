@@ -1,8 +1,8 @@
-# 🚀 SAM Compiler - Official Guide & Contribution Handbook
+# SAM Compiler - Official Guide & Contribution Handbook
 
 Welcome to the **SAM Compiler**! Whether you are a user looking to maximize your productivity or a developer wanting to contribute to this cutting-edge IDE, this guide contains absolutely everything you need.
 
-## 📖 Table of Contents
+## Table of Contents
 1. [How to Use the SAM Compiler](#-how-to-use-the-sam-compiler)
 2. [Developer Setup & Architecture](#-developer-setup--architecture)
 3. [How to Contribute](#-how-to-contribute)
@@ -10,14 +10,14 @@ Welcome to the **SAM Compiler**! Whether you are a user looking to maximize your
 
 ---
 
-## 🛠 How to Use the SAM Compiler
+## How to Use the SAM Compiler
 
 SAM Compiler is designed to be a frictionless, zero-setup collaborative coding environment with deep AI integration.
 
 ### Core Features
 - **Multi-Language Support**: Drop down the language selector in the top left to instantly switch between JavaScript, Python, C++, Java, and more.
-- **The AI Panel**: Click the **✨ Sparkles** icon in the header to awaken Sam AI. Sam can explain complex bugs, optimize your current logic, or write entirely new functions directly into your editor context.
-- **Global Execution History**: Click the **🕒 History** icon to view past code runs. If you accidentally delete a working iteration of your script, you can easily load it back from the cloud.
+- **The AI Panel**: Click the **Sparkles** icon in the header to awaken Sam AI. Sam can explain complex bugs, optimize your current logic, or write entirely new functions directly into your editor context.
+- **Global Execution History**: Click the **History** icon to view past code runs. If you accidentally delete a working iteration of your script, you can easily load it back from the cloud.
 - **Keyboard Shortcuts**: Power users should leverage our custom keybindings. Press `Ctrl + /` to instantly toggle the AI. Press `Ctrl + Enter` to compile.
 
 ### Authentication
@@ -25,7 +25,7 @@ To save your code history or increase your execution rate limits, sign in via yo
 
 ---
 
-## 💻 Developer Setup & Architecture
+## Developer Setup & Architecture
 
 ### The Zenith Stack
 - **Frontend**: React 18, Vite, TailwindCSS, Framer Motion, Monaco Editor.
@@ -70,7 +70,7 @@ To get a local instance of the SAM Compiler running on your machine:
 
 ---
 
-## 🤝 How to Contribute
+## How to Contribute
 
 We actively welcome pull requests from the community! From bug fixes to feature additions, we want SAM to be built by developers, for developers.
 
@@ -100,5 +100,5 @@ If you are contributing to the frontend, please adhere strictly to our **Digital
 
 ---
 
-## 🛡 Code of Conduct
+## Code of Conduct
 We expect all community members to interact with respect and professionalism. Constructive feedback in issues and PRs is encouraged, but toxic behavior will not be tolerated. Keep the code clean and the discussions highly technical.

@@ -124,7 +124,7 @@ const CodeEditor = ({
       color: localColorRef.current
     });
 
-    // 📡 Observe ytext directly for localStorage sync - fires once per Yjs transaction,
+    // Observe ytext directly for localStorage sync - fires once per Yjs transaction,
     // regardless of how many Monaco model-change events that transaction generates.
     // This is safer than Monaco's onChange which fires for EVERY model delta (including
     // auto-formatting rewrites) and can cause unnecessary React re-render cycles.
@@ -135,7 +135,7 @@ const CodeEditor = ({
     };
     ytext.observe(onYtextChange);
 
-    // 🔑 SYNC GUARD: Mark as initialized once the server has sent us the full document state.
+    // SYNC GUARD: Mark as initialized once the server has sent us the full document state.
     // The server seeds new rooms before the sync event fires, so ytext already has the
     // template content at this point. We never seed from the client - server owns seeding.
     const handleSync = (isSynced) => {
@@ -220,7 +220,7 @@ const CodeEditor = ({
       onCursorChange?.({ lineNumber: pos.lineNumber, column: pos.column });
     });
 
-    // ⚡ Initialize Yjs immediately after Monaco is ready.
+    // Initialize Yjs immediately after Monaco is ready.
     // This is the correct place - editorRef.current is guaranteed to be set here.
     initYjs(editor);
   }, [onCursorChange, initYjs]);
@@ -273,7 +273,7 @@ const CodeEditor = ({
 
         // This event is dispatched by three different actions (AI refactor,
         // reset-to-boilerplate, load-from-history) and always announced
-        // "Applied to editor ✨" - wrong copy for two of them, and a second
+        // "Applied to editor" - wrong copy for two of them, and a second
         // toast on top of the one the dispatcher already showed. The caller
         // now says what happened; silence here unless it does not.
         if (e.detail?.notify !== false) {

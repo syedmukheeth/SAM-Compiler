@@ -1,5 +1,5 @@
 /**
- * 🛰️ TELEMETRY SERVICE
+ * TELEMETRY SERVICE
  * System events and health monitoring.
  * Neutralized to bypass heuristic ad-blockers.
  */

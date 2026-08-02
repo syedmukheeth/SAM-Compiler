@@ -92,7 +92,7 @@ async function executeViaPiston(run, onLog) { // Keeping name for compatibility
              stderr = compile_output;
           }
 
-          // 🛡️ High-Fidelity Capture: If it's a compile error, usually stderr is in compile_output
+          // High-Fidelity Capture: If it's a compile error, usually stderr is in compile_output
           if (result.status?.id === 6 && compile_output) {
              stderr = compile_output;
           }

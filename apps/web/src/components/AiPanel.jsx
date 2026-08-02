@@ -412,7 +412,7 @@ function AiPanel({
       setMessages(prev => {
         const next = [...prev];
         const idx = next.findIndex(m => m._id === placeholderId);
-        if (idx !== -1) next[idx] = { role: "model", content: accumulated || "✅ Done.", _id: undefined };
+        if (idx !== -1) next[idx] = { role: "model", content: accumulated || "Done.", _id: undefined };
         return next;
       });
 

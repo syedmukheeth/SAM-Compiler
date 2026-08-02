@@ -58,9 +58,11 @@ const StatusBar = ({
 
   return (
     <div className={`relative flex w-full h-11 sm:h-12 items-center justify-between px-3 sm:px-6 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-700 backdrop-blur-xl overflow-hidden select-none ${
-      theme === 'dark' 
-        ? 'bg-sam-bg/95 text-white/70 border-t border-sam-glass-border' 
-        : 'bg-sam-text/95 text-slate-600 border-t border-slate-100 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)]'
+      theme === 'dark'
+        ? 'bg-sam-bg/95 text-white/70 border-t border-sam-glass-border'
+        // Was `bg-sam-text/95`: --sam-text is the foreground token, which is
+        // #000 in the light theme, so the light-mode footer rendered black.
+        : 'bg-sam-bg/95 text-slate-600 border-t border-slate-200 shadow-[0_-4px_24px_-10px_rgba(0,0,0,0.08)]'
     }`}>
       {/* Top Accent Bar replaced by parent footer neon box-shadow */}
 
@@ -78,8 +80,8 @@ const StatusBar = ({
             onClick={() => reconnect()}
             className={`flex items-center gap-2 px-3 py-1 rounded-full transition-all text-[9px] font-black shadow-lg ${
               isSmallMobile 
-                ? "bg-rose-500 text-sam-text animate-pulse px-4 py-2" 
-                : "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-sam-text"
+                ? "bg-rose-500 text-white animate-pulse px-4 py-2"
+                : "bg-rose-500/10 border border-rose-500/20 text-rose-500 hover:bg-rose-500 hover:text-white"
             }`}
           >
             <RefreshCw className={`h-3 w-3 ${isSmallMobile ? 'animate-spin-slow' : ''}`} />
@@ -94,7 +96,7 @@ const StatusBar = ({
           <span className={`text-[9.5px] font-mono tracking-widest uppercase ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-600'}`}>
             {language}
           </span>
-          <span className={`text-[8px] opacity-40 font-black tracking-widest hidden md:inline ${theme === 'dark' ? 'text-sam-text' : 'text-sam-bg'}`}>
+          <span className={`text-[8px] opacity-40 font-black tracking-widest hidden md:inline ${theme === 'dark' ? 'text-sam-text' : 'text-slate-600'}`}>
             Ln {localPos.lineNumber}, Col {localPos.column}
           </span>
 
@@ -142,9 +144,9 @@ const StatusBar = ({
               BUILT BY
             </span>
             <div className={`flex items-center gap-2 rounded-md py-1 px-2 border transition-all duration-300 ${
-               theme === 'dark' 
-                 ? 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] group-hover:bg-[#0077b5] group-hover:text-sam-text' 
-                 : 'bg-slate-50 border-slate-200 text-slate-700 group-hover:bg-[#0077b5] group-hover:text-sam-text'
+               theme === 'dark'
+                 ? 'bg-[#0077b5]/10 border-[#0077b5]/30 text-[#0077b5] group-hover:bg-[#0077b5] group-hover:text-white'
+                 : 'bg-slate-50 border-slate-200 text-slate-700 group-hover:bg-[#0077b5] group-hover:text-white'
             }`}>
               <span className={`text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap`}>
                 syed mukheeth

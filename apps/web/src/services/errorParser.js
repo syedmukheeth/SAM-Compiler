@@ -1,5 +1,5 @@
 /**
- * 🛰️ SAM Error Analysis Engine (High-Fidelity)
+ * SAM Error Analysis Engine (High-Fidelity)
  * Parses raw compiler/runtime output into structured Monaco markers.
  * Standardized for V2 Diagnostics.
  */
@@ -22,7 +22,7 @@ export const parseErrors = (output, language) => {
   const lines = output.split('\n');
   let primaryLine = null;
 
-  // 🛡️ C/C++ Parser (GCC/Clang)
+  // C/C++ Parser (GCC/Clang)
   // Format: "main.cpp:5:10: error: message" or "main.cpp:5: error: message"
   if (language === 'cpp' || language === 'c') {
     const regex = /:(\d+):(?:(\d+):)?\s*(error|warning|fatal error):\s*(.*)/i;
@@ -48,7 +48,7 @@ export const parseErrors = (output, language) => {
     });
   }
 
-  // ☕ Java Parser (javac)
+  // Java Parser (javac)
   // Format: "Solution.java:5: error: message"
   else if (language === 'java') {
     const regex = /:(\d+):\s+error:\s+(.*)/i;
@@ -69,7 +69,7 @@ export const parseErrors = (output, language) => {
     });
   }
 
-  // 🐍 Python Parser (Tracebacks)
+  // Python Parser (Tracebacks)
   // Format: File "main.py", line 4, in <module>\n SyntaxError: message
   else if (language === 'python') {
     const tracebackRegex = /line\s+(\d+)/i;
@@ -95,7 +95,7 @@ export const parseErrors = (output, language) => {
     });
   }
 
-  // 📜 JavaScript / Node.js
+  // JavaScript / Node.js
   // Format: app.js:10:15 or stack trace
   else if (language === 'javascript' || language === 'nodejs') {
     const stackRegex = /:(\d+):(\d+)(?:\)|$)/;
@@ -126,7 +126,7 @@ export const parseErrors = (output, language) => {
     });
   }
 
-  // 🐹 Go Parser
+  // Go Parser
   // Format: main.go:5:2: message
   else if (language === 'go') {
     const regex = /:(\d+):(\d+):\s+(.*)/i;
@@ -147,7 +147,7 @@ export const parseErrors = (output, language) => {
     });
   }
 
-  // 🦀 Rust Parser
+  // Rust Parser
   // Format: --> src/main.rs:5:9
   else if (language === 'rust') {
     const locRegex = /-->\s+.*:(\d+):(\d+)/i;

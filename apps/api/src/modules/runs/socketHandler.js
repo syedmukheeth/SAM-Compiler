@@ -121,9 +121,9 @@ function initSocket(server) {
     pingInterval: 10000 // Send heartbeat more frequently (from 30s to 10s)
   });
   
-  // 🚀 HORIZONTAL SCALING: Sync events across multiple API instances via Redis
+  // HORIZONTAL SCALING: Sync events across multiple API instances via Redis
   const redis = getRedisClient();
-  // 🛡️ NITRO: Only enable adapter if explicitly requested or if scaling is needed.
+  // NITRO: Only enable adapter if explicitly requested or if scaling is needed.
   // This saves ~60% of Redis request quota on single-instance deployments like Render.
   const enableAdapter = env.ENABLE_REDIS_ADAPTER === "true";
   
@@ -132,7 +132,7 @@ function initSocket(server) {
       const pubClient = redis.duplicate();
       const subClient = redis.duplicate();
       
-      // 🔥 CRITICAL: Prevent process crash on Redis errors (e.g. Rate Limits)
+      // CRITICAL: Prevent process crash on Redis errors (e.g. Rate Limits)
       pubClient.on("error", (err) => logger.error({ err }, "Socket.IO Redis PubClient Error"));
       subClient.on("error", (err) => logger.error({ err }, "Socket.IO Redis SubClient Error"));
       
@@ -145,7 +145,7 @@ function initSocket(server) {
     logger.info("Socket.IO using Memory adapter (Single-Node mode)");
   }
 
-  // 🛡️ SECURITY: JWT Authentication with Guest Support
+  // SECURITY: JWT Authentication with Guest Support
   io.use((socket, next) => {
     const token = socket.handshake.auth?.token || socket.handshake.query?.token;
 
@@ -188,7 +188,7 @@ function initSocket(server) {
       try {
         const binaryState = Buffer.from(Y.encodeStateAsUpdate(doc));
         
-        // 🛡️ SECURITY Audit Fix: Preventive check - Guard against MongoDB 16MB BSON limit
+        // SECURITY Audit Fix: Preventive check - Guard against MongoDB 16MB BSON limit
         const MAX_YJS_SIZE = 10 * 1024 * 1024; // 10MB Safety Ceiling
         if (binaryState.length > MAX_YJS_SIZE) {
           logger.error({ sessionId, size: binaryState.length }, "Yjs document exceeds 10MB limit. Persistence rejected to protect MongoDB.");
@@ -269,7 +269,7 @@ function initSocket(server) {
   if (redis) {
     try {
       redisSubscriber = redis.duplicate();
-      // 🔥 CRITICAL: Prevent process crash if subscriber fails (e.g. Rate Limit)
+      // CRITICAL: Prevent process crash if subscriber fails (e.g. Rate Limit)
       redisSubscriber.on("error", (err) => logger.error({ err }, "Redis Subscriber Error"));
       
       redisSubscriber.on("message", (channel, message) => {
@@ -304,14 +304,14 @@ function initSocket(server) {
           return socket.emit("error", { message: "Invalid job id" });
         }
 
-        // 🛡️ SECURITY Audit Fix: Preventive DoS check - Limit concurrent subscriptions per socket
+        // SECURITY Audit Fix: Preventive DoS check - Limit concurrent subscriptions per socket
         const activeRooms = Array.from(socket.rooms).filter(r => r.startsWith("run:"));
         if (activeRooms.length >= 10) {
           logger.warn({ socketId: socket.id, count: activeRooms.length }, "Subscription cap reached for socket");
           return socket.emit("error", { message: "Subscription limit reached (Max 10). Please close some runs." });
         }
 
-        // 🔒 SECURITY Audit Fix: Validate job ownership before joining room
+        // SECURITY Audit Fix: Validate job ownership before joining room
         const job = await RunModel.findById(jobId).select("userId").lean();
         if (!job) {
           return socket.emit("error", { message: "Job not found" });
@@ -446,7 +446,7 @@ function initSocket(server) {
         const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
         const filename = language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js";
 
-        // 🔥 NITRO: Direct execution pipeline invocation
+        // NITRO: Direct execution pipeline invocation
         const run = await createRun({
           projectId: "playground",
           userId,
@@ -464,7 +464,7 @@ function initSocket(server) {
         // The creating socket owns this run for authorization purposes.
         if (!userId) guestJobOwners.set(jobId, socket.id);
 
-        // 🚀 NITRO: Auto-subscribe to save 1 RTT.
+        // NITRO: Auto-subscribe to save 1 RTT.
         // No need for client to send a separate 'subscribe' event.
         socket.join(`run:${jobId}`);
         if (redisSubscriber) {

@@ -3,27 +3,27 @@
 
 ---
 
-## 🧠 PART 0 — What Is SAM Compiler? (The 30-Second Pitch)
+## PART 0 — What Is SAM Compiler? (The 30-Second Pitch)
 
 SAM (Syntax Analysis Machine) is a **distributed, browser-based code execution IDE**.
 
 Think of it like a lite version of Replit or CodeSandbox, but you built the *entire execution engine* from scratch.
 
 **What it does in plain English:**
-1. User opens the browser → types code in Monaco Editor (same as VS Code)
-2. Clicks "Run" → code goes to your API server
+1. User opens the browser -> types code in Monaco Editor (same as VS Code)
+2. Clicks "Run" -> code goes to your API server
 3. API pushes the job into a **queue** (BullMQ/Redis)
 4. A **Worker** picks it up, spins up an **isolated Docker container**, runs the code safely
 5. Logs stream back in real-time through **WebSockets**
 6. Multiple users editing the same session are synced via **Yjs CRDT**
-7. If they want AI help → it tries **Gemini first, then OpenAI** (multi-provider failover)
+7. If they want AI help -> it tries **Gemini first, then OpenAI** (multi-provider failover)
 
 **The one-line interview answer:**
 > "SAM Compiler is a distributed cloud IDE with a decoupled control/data plane — the API never executes code directly; it delegates to hardened Docker sandboxes via a persistent BullMQ queue, syncs collaborative state via Yjs CRDTs, and has a multi-provider AI failover so it never goes offline."
 
 ---
 
-## 🏗️ PART 1 — System Architecture (The Big Picture)
+## PART 1 — System Architecture (The Big Picture)
 
 ```
 Browser (React + Monaco)
@@ -53,7 +53,7 @@ If the Worker crashes, the API doesn't crash. If the API restarts, jobs already 
 
 ---
 
-## 🔄 PART 2 — CRDT / Yjs (Collaborative Code Editing)
+## PART 2 — CRDT / Yjs (Collaborative Code Editing)
 
 ### What file handles this?
 `apps/api/src/modules/runs/socketHandler.js` — lines 103–201
@@ -79,8 +79,8 @@ User B types: "world"  at position 0 (simultaneously)
 |---|---|---|
 | **Encoding** | Binary (compact BSON-friendly) | JSON (verbose) |
 | **Performance** | Sub-10ms sync for large docs | Slower for large history |
-| **y-socket.io** | ✅ Native adapter exists | ❌ Would need custom transport |
-| **Persistence** | Binary state → store in MongoDB as `Buffer` | JSON → much larger MongoDB docs |
+| **y-socket.io** | Native adapter exists | Would need custom transport |
+| **Persistence** | Binary state -> store in MongoDB as `Buffer` | JSON -> much larger MongoDB docs |
 | **"Code Soup" healing** | Server can detect and repair corrupted Y.Text | Harder to inspect binary state |
 
 **The real killer:** `y-socket.io` package. This is a drop-in adapter that connects Yjs to Socket.IO. If you switched to Automerge, you'd have to write the entire WebSocket sync protocol yourself.
@@ -89,13 +89,13 @@ User B types: "world"  at position 0 (simultaneously)
 ```js
 const ysocket = new YSocketIO(io);
 
-// When doc is loaded → pull from MongoDB
+// When doc is loaded -> pull from MongoDB
 ysocket.on("document-loaded", async (doc) => {
   const state = await ProjectStateModel.findOne({ sessionId });
   if (state) Y.applyUpdate(doc, state.binaryState);
 });
 
-// When doc changes → debounce + save to MongoDB
+// When doc changes -> debounce + save to MongoDB
 ysocket.on("document-update", (doc) => {
   // 2-second debounce so we're not spamming the DB on every keystroke
   setTimeout(() => {
@@ -119,7 +119,7 @@ When two users joined the same room, Yjs would merge their edits and cause dupli
 
 ---
 
-## 📡 PART 3 — BullMQ Queue (The Execution Pipeline)
+## PART 3 — BullMQ Queue (The Execution Pipeline)
 
 ### What files handle this?
 - `apps/api/src/modules/runs/runs.queue.js` — Queue definition
@@ -144,17 +144,17 @@ Worker: (subscribed) runs the code
 **BullMQ is a persistent job queue built on Redis.**
 
 ```
-API: queue.add("execute", { runId: "abc123" }) → stored in Redis
-Worker: picks up job → if crash → job goes back to queue → retried
+API: queue.add("execute", { runId: "abc123" }) -> stored in Redis
+Worker: picks up job -> if crash -> job goes back to queue -> retried
 ```
 
 | Concern | Raw Pub/Sub | BullMQ |
 |---|---|---|
-| **Persistence** | ❌ Lost if worker is offline | ✅ Job stays in Redis until consumed |
-| **Retry on crash** | ❌ Manual logic needed | ✅ Built-in retry/backoff |
-| **Concurrency control** | ❌ All workers get every message | ✅ `concurrency: 3` — max 3 parallel jobs per worker |
-| **Job status** | ❌ No native tracking | ✅ `waiting/active/completed/failed` states |
-| **Deduplication** | ❌ None | ✅ Can deduplicate by jobId |
+| **Persistence** | Lost if worker is offline | Job stays in Redis until consumed |
+| **Retry on crash** | Manual logic needed | Built-in retry/backoff |
+| **Concurrency control** | All workers get every message | `concurrency: 3` — max 3 parallel jobs per worker |
+| **Job status** | No native tracking | `waiting/active/completed/failed` states |
+| **Deduplication** | None | Can deduplicate by jobId |
 
 **Your actual queue setup in `runs.service.js`:**
 ```js
@@ -163,7 +163,7 @@ const heartbeatRaw = await redis.get("sam:worker:heartbeat");
 const workerOnline = JSON.parse(heartbeatRaw).hasDocker === true;
 
 if (queue && workerOnline) {
-  // PRIMARY: Push to BullMQ → Worker picks up
+  // PRIMARY: Push to BullMQ -> Worker picks up
   await queue.add("execute", { runId: run._id.toString() });
 } else {
   // FALLBACK: Use Piston (external cloud executor) directly
@@ -173,8 +173,8 @@ if (queue && workerOnline) {
 
 **The heartbeat pattern** (elegant):
 Worker writes to `sam:worker:heartbeat` every 5 seconds with `SETEX` (TTL: 15s).
-If the API reads that key and it exists AND `hasDocker === true` → worker is alive and capable.
-If the key is expired → worker is dead → fall back to Piston.
+If the API reads that key and it exists AND `hasDocker === true` -> worker is alive and capable.
+If the key is expired -> worker is dead -> fall back to Piston.
 This is a **dead man's switch**.
 
 > **Out-loud test:** Close this. Now explain: *"What happens if I press Run and the Worker crashes mid-execution?"*
@@ -182,7 +182,7 @@ This is a **dead man's switch**.
 
 ---
 
-## 🐳 PART 4 — Docker Sandbox (The Security Fortress)
+## PART 4 — Docker Sandbox (The Security Fortress)
 
 ### What file handles this?
 `apps/worker/src/sandbox/executeNodeRun.js`
@@ -250,7 +250,7 @@ Without this, a user could name their file `../../etc/passwd` and your code woul
 
 ---
 
-## 🧠 PART 5 — AI Multi-Provider Failover (The "Never Goes Offline" Engine)
+## PART 5 — AI Multi-Provider Failover (The "Never Goes Offline" Engine)
 
 ### What file handles this?
 `apps/api/src/modules/ai/ai.service.js`
@@ -260,15 +260,15 @@ Without this, a user could name their file `../../etc/passwd` and your code woul
 Single AI provider = single point of failure.
 
 If you only use OpenAI:
-- OpenAI 429 (rate limit) → AI is dead for your user
-- OpenAI 503 (overloaded) → AI is dead
-- API key expired → AI is dead
+- OpenAI 429 (rate limit) -> AI is dead for your user
+- OpenAI 503 (overloaded) -> AI is dead
+- API key expired -> AI is dead
 
 **Your solution: Provider Rotation with Waterfall Fallback**
 
 ```
-Phase 1 (Fastest): All OpenAI gpt-4o-mini keys → All Gemini gemini-1.5-flash keys
-Phase 2 (Fallback): All OpenAI gpt-4o keys → All Gemini gemini-1.5-pro keys
+Phase 1 (Fastest): All OpenAI gpt-4o-mini keys -> All Gemini gemini-1.5-flash keys
+Phase 2 (Fallback): All OpenAI gpt-4o keys -> All Gemini gemini-1.5-pro keys
 Phase 3 (Last resort): Offline mode (simulated streaming message)
 ```
 
@@ -281,7 +281,7 @@ geminiKeys.forEach(key => providers.push({ type: "gemini", key, model: "gemini-1
 for (let i = 0; i < Math.min(providers.length, 4); i++) {
   try {
     await streamGemini/streamOpenAI(providers[i], context, onChunk);
-    return; // ✅ SUCCESS — stop trying
+    return; // SUCCESS — stop trying
   } catch (err) {
     logger.warn(`Provider ${i+1} failed: ${err.message}`);
     // Continue to next provider
@@ -299,33 +299,33 @@ Both providers use `stream: true`. This means the AI response starts appearing l
 
 ---
 
-## 🔒 PART 6 — Authentication (JWT + GitHub OAuth + Password Reset)
+## PART 6 — Authentication (JWT + GitHub OAuth + Password Reset)
 
 ### What files handle this?
 - `apps/api/src/modules/auth/auth.service.js`
 - `apps/api/src/config/passport.js` (GitHub OAuth)
 
 ### The JWT flow:
-1. User registers with email/password → password is `bcrypt`-hashed (never stored raw)
-2. On login → `jwt.sign({ id, email, role }, JWT_SECRET, { expiresIn: "7d" })`
+1. User registers with email/password -> password is `bcrypt`-hashed (never stored raw)
+2. On login -> `jwt.sign({ id, email, role }, JWT_SECRET, { expiresIn: "7d" })`
 3. Token is sent back to browser, stored in `localStorage`
 4. Every WebSocket connection sends `token` in `handshake.auth`
-5. Server does `jwt.verify(token, JWT_SECRET)` → extracts `{ id, email, role }`
+5. Server does `jwt.verify(token, JWT_SECRET)` -> extracts `{ id, email, role }`
 
 **Why both JWT and sessions for GitHub OAuth?**
 GitHub OAuth uses Passport.js which is session-based. After the GitHub callback, you generate a JWT and redirect to the frontend with it in the URL query string. The frontend reads it, stores it, and drops the session. Stateless from that point on.
 
 **Password reset (SHA-256 pattern):**
 ```js
-const resetToken = crypto.randomBytes(32).toString("hex"); // Raw token → emailed
+const resetToken = crypto.randomBytes(32).toString("hex"); // Raw token -> emailed
 const hashedToken = crypto.createHash("sha256").update(resetToken).digest("hex");
-user.resetPasswordToken = hashedToken; // Hashed version → stored in DB
+user.resetPasswordToken = hashedToken; // Hashed version -> stored in DB
 ```
 Why hash it? If your MongoDB is compromised, the attacker can't use the hashed token directly — they'd need to find its SHA-256 preimage. The raw token is only ever in the email link, never in the DB.
 
 ---
 
-## 🌐 PART 7 — WebSocket Architecture (Real-Time Log Streaming)
+## PART 7 — WebSocket Architecture (Real-Time Log Streaming)
 
 ### The flow from "Run" click to terminal output:
 
@@ -333,11 +333,11 @@ Why hash it? If your MongoDB is compromised, the attacker can't use the hashed t
 1. Browser emits: socket.emit("exec:start", { language, code, stdin })
 2. API auto-subscribes socket to room: socket.join(`run:${jobId}`)
 3. API subscribes to Redis channel: redisSubscriber.subscribe(`run:logs:${jobId}`)
-4. BullMQ Worker picks job → docker runs → logs come out
+4. BullMQ Worker picks job -> docker runs -> logs come out
 5. Worker publishes: redis.publish(`run:logs:${jobId}`, JSON.stringify({type:"stdout", chunk:"Hello!"}))
-6. API's redisSubscriber receives → calls emitLog()
+6. API's redisSubscriber receives -> calls emitLog()
 7. emitLog() calls: io.to(`run:${jobId}`).emit("exec:log", { type, chunk })
-8. Browser receives → appends to terminal
+8. Browser receives -> appends to terminal
 ```
 
 **The "late joiner" problem — Log Buffering:**
@@ -368,16 +368,16 @@ setInterval(() => {
 
 ---
 
-## 📐 PART 8 — The Monorepo Architecture
+## PART 8 — The Monorepo Architecture
 
 ```
 SAM-Compiler/
 ├── apps/
-│   ├── api/     → Express server (Control Plane)
-│   ├── worker/  → BullMQ worker + Docker orchestration (Data Plane)  
-│   └── web/     → React + Vite + Monaco (Frontend)
+│   ├── api/     -> Express server (Control Plane)
+│   ├── worker/  -> BullMQ worker + Docker orchestration (Data Plane)  
+│   └── web/     -> React + Vite + Monaco (Frontend)
 ├── packages/
-│   └── shared/  → Shared constants, types (used by both api and web)
+│   └── shared/  -> Shared constants, types (used by both api and web)
 └── docker-compose.yml
 ```
 
@@ -410,13 +410,13 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 
 ---
 
-## 🚧 PART 9 — Problems Faced & How You Solved Them
+## PART 9 — Problems Faced & How You Solved Them
 
 | # | Problem | Root Cause | Solution |
 |---|---|---|---|
 | 1 | **"Code Soup"** — template code duplicated | Premature `editor.setValue()` called before `MonacoBinding` sync injected local storage buffers, which merged with server state. | Established binding first; wait for Yjs `'sync'` event and only seed if `ytext.length === 0` after sync. |
 | 2 | **Logs lost if client connects after job completes** | Fire-and-forget publish, socket not ready in time | `logBuffers` Map — replay buffered logs on subscription |
-| 3 | **Worker offline → UI hangs forever** | No fallback if BullMQ worker is down | Piston (external executor) as cloud fallback; heartbeat dead-man's switch |
+| 3 | **Worker offline -> UI hangs forever** | No fallback if BullMQ worker is down | Piston (external executor) as cloud fallback; heartbeat dead-man's switch |
 | 4 | **Memory leak** from abandoned log buffers | Jobs finish but nobody unsubscribes | 60-second TTL GC loop cleaning buffers older than 5min |
 | 5 | **"Code Soup" from path traversal** | User names file `../../etc/passwd` | `sanitizeRelPath()` strips all `..` and `:` characters |
 | 6 | **MongoDB 16MB BSON limit** for large Yjs docs | Yjs binary state grows with edit history | Hard check: reject persistence if > 10MB |
@@ -427,7 +427,7 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 
 ---
 
-## ⚖️ PART 10 — Key Tradeoffs You Made
+## PART 10 — Key Tradeoffs You Made
 
 ### 1. Yjs binary state in MongoDB vs. Operational Transform (OT)
 - **Chose:** Yjs CRDT binary blobs in MongoDB
@@ -456,7 +456,7 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 
 ---
 
-## 📅 PART 11 — Study Plan (How Many Days?)
+## PART 11 — Study Plan (How Many Days?)
 
 ### Total: **12–15 Days** of focused study
 
@@ -475,7 +475,7 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 ### **Days 3–4: Real-Time & WebSockets**
 - What is Socket.IO vs raw WebSocket?
 - What is a Room in Socket.IO? (`socket.join`, `io.to(room).emit`)
-- How does the log streaming pipeline work? (Worker → Redis Pub/Sub → Socket → Browser)
+- How does the log streaming pipeline work? (Worker -> Redis Pub/Sub -> Socket -> Browser)
 - The log buffer and replay pattern
 
 **Goal:** Trace a single "Run" button click through all 8 steps in Part 7.
@@ -497,7 +497,7 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 - What is a job queue? Why does it solve the Node.js blocking problem?
 - How does BullMQ store jobs in Redis?
 - What is the worker heartbeat (dead man's switch) pattern?
-- Worker → Primary; Piston → Fallback flow
+- Worker -> Primary; Piston -> Fallback flow
 - Concurrency: `concurrency: 3` means what?
 
 **Goal:** Explain what happens if the Worker crashes mid-execution with a job already picked up.
@@ -517,7 +517,7 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 
 ### **Days 11–12: AI & Multi-Provider**
 - What is streaming vs batch in AI APIs?
-- The provider rotation waterfall: Phase 1 → Phase 2 → Offline
+- The provider rotation waterfall: Phase 1 -> Phase 2 -> Offline
 - `withRetry()` — which HTTP codes are retryable and why?
 - Client caching with Maps (why not create `new OpenAI()` on every request?)
 - The `maxAttempts = 4` tradeoff
@@ -531,7 +531,7 @@ This is the **Docker-in-Docker** pattern. The worker container has access to the
 - `depends_on` with `condition: service_healthy` — why is this critical?
 - The `healthcheck` for MongoDB and Redis — what does `mongosh --eval "db.adminCommand('ping')"` actually test?
 - Horizontal scaling with Redis adapter for Socket.IO
-- Graceful shutdown: SIGTERM → stop accepting → drain → close DB → exit
+- Graceful shutdown: SIGTERM -> stop accepting -> drain -> close DB -> exit
 
 **Goal:** Draw the architecture from memory including data flows.
 
@@ -549,7 +549,7 @@ Have someone ask you these questions cold:
 
 ---
 
-## 🎯 The One Thing To Remember
+## The One Thing To Remember
 
 Every decision in SAM Compiler follows one principle:
 
@@ -563,7 +563,7 @@ That's distributed systems thinking. That's what makes this project impressive.
 
 ---
 
-## 🛠️ PART 12 — Case Study: Debugging CRDT Desyncs Like a Senior Engineer
+## PART 12 — Case Study: Debugging CRDT Desyncs Like a Senior Engineer
 
 *The following is a breakdown of how to approach complex synchronization bugs, specifically the "Code Soup" race condition and the `\r\n` ghost character bug.*
 
@@ -574,9 +574,9 @@ A junior dev sees an error and immediately starts changing things. A senior dev 
 **Draw the Data Flow:**
 ```
 Browser (Monaco Editor)
-        ↕  [Yjs CRDT]
+ [Yjs CRDT]
 WebSocket Server (Render)
-        ↕  [Persistence]
+ [Persistence]
 Database / Room State
 ```
 
@@ -610,11 +610,11 @@ Yjs is a **Conflict-free Replicated Data Type**. It will never *crash* from conf
 At the millisecond level:
 ```
 T=0ms    Page loads
-T=1ms    Monaco mounts → client code injects "Welcome to SAM Compiler"
+T=1ms    Monaco mounts -> client code injects "Welcome to SAM Compiler"
 T=2ms    Yjs connects to server WebSocket
 T=3ms    Server sends saved state: "syed"
 T=3ms    Yjs merges T=1ms state + T=3ms state simultaneously
-T=3ms    Result: "Welsyed<" ← CRDT merge of two concurrent inserts
+T=3ms    Result: "Welsyed<" <- CRDT merge of two concurrent inserts
 ```
 The root issue is **you had two writers with no coordination protocol.**
 
@@ -637,8 +637,8 @@ A senior dev doesn't write a fix. They write a **policy**.
 #### Policy 1: Single Source of Truth (Server Wins)
 - **Rule:** The server is the ONLY entity allowed to initialize document content.
 - **Rule:** The client NEVER writes boilerplate. It only writes user input.
-- **Rule:** On new room → server inserts template exactly once.
-- **Rule:** On existing room → server sends saved state, client renders it.
+- **Rule:** On new room -> server inserts template exactly once.
+- **Rule:** On existing room -> server sends saved state, client renders it.
 
 #### Policy 2: Monaco Owns Its Own Document Mutations
 - **Rule:** Never calculate Monaco document length yourself.
@@ -647,7 +647,7 @@ A senior dev doesn't write a fix. They write a **policy**.
 - **Rule:** Yjs binding listens to Monaco changes — not the other way around.
 
 ```javascript
-// ✅ RIGHT — Monaco calculates its own length, Yjs listens
+// RIGHT — Monaco calculates its own length, Yjs listens
 const fullRange = editor.getModel().getFullModelRange()
 editor.executeEdits('reset', [{
   range: fullRange,      
@@ -663,7 +663,7 @@ Write **test cases** for every failure scenario:
 - **Existing room, returning user:** Saved code appears (Save code, close tab, reopen)
 - **Two users open same room:** Both see identical content (Two browsers, same URL)
 - **User hits Reset:** Clean template, no ghosts (Paste garbage, hit reset)
-- **Network drops mid-session:** Reconnect, no corruption (DevTools → offline → online)
+- **Network drops mid-session:** Reconnect, no corruption (DevTools -> offline -> online)
 
 ### Phase 6: Add Observability (Don't Be Blind)
 

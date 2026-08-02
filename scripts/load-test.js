@@ -39,7 +39,7 @@ async function runJob(index) {
 }
 
 async function main() {
-  console.log(`🚀 Starting Load Test: ${TOTAL_RUNS} total runs, ${CONCURRENCY} concurrent`);
+  console.log(`Starting Load Test: ${TOTAL_RUNS} total runs, ${CONCURRENCY} concurrent`);
   const startsAt = Date.now();
   
   let completed = 0;

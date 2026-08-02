@@ -26,7 +26,7 @@ async function main() {
 
   const io = initSocket(server);
 
-  // 💓 HEARTBEAT: Prevent Render/Railway from sleeping (Self-Warming)
+  // HEARTBEAT: Prevent Render/Railway from sleeping (Self-Warming)
   const publicBaseUrl = env.CALLBACK_URL_BASE ? env.CALLBACK_URL_BASE.split('/api/auth')[0] : null;
 
   // Timeouts added: these were previously unbounded, so a hung heartbeat

@@ -241,7 +241,7 @@ async function streamOpenAI(p, context, onChunk) {
 async function triggerOfflineFallback(onChunk, isConfigError) {
   logger.error("All AI Provider keys failed. Activating Offline Sandbox fallback.");
   
-  let offlineMsg = "⚠️ **SAM AI is currently in Sandbox Mode (Offline).**\n\n";
+  let offlineMsg = "**SAM AI is currently in Sandbox Mode (Offline).**\n\n";
   if (isConfigError) {
     offlineMsg += "The AI engine configuration is outdated (e.g. legacy model versions) or all provided API keys have failed. Please check your Render environment variables. In the meantime, you can still compile and run your code natively!";
   } else {

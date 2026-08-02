@@ -39,7 +39,7 @@ export function getSocket(tokenArg) {
   if (wakingTimer) clearTimeout(wakingTimer);
   wakingTimer = setTimeout(() => {
     if (currentStatus === SOCKET_STATES.CONNECTING || currentStatus === SOCKET_STATES.RECONNECTING) {
-      console.warn("⚠️ [SAM] Connection taking longer than expected. Engine might be waking up (Cold Start).");
+      console.warn("[SAM] Connection taking longer than expected. Engine might be waking up (Cold Start).");
       emitStatus(SOCKET_STATES.WAKING);
     }
   }, 25000); // Increased to 25s for better cold-start detection
@@ -47,7 +47,7 @@ export function getSocket(tokenArg) {
   socket = io(endpoint, {
     auth: { token },
     withCredentials: true,
-    transports: ["websocket"], // 🚀 NITRO: Bypass polling upgrade to save 150-300ms
+    transports: ["websocket"], // NITRO: Bypass polling upgrade to save 150-300ms
     reconnectionDelay: 1000,
     reconnectionDelayMax: 10000, // Increased to avoid spamming while server wakes
     reconnectionAttempts: Infinity,
@@ -71,7 +71,7 @@ export function getSocket(tokenArg) {
   socket.on("connect_error", (err) => {
     if (!navigator.onLine) return;
 
-    // 🔥 FIX: Only report as RECONNECTING if we were previously stable
+    // FIX: Only report as RECONNECTING if we were previously stable
     if (hasConnectedOnce) {
       emitStatus(SOCKET_STATES.RECONNECTING, { error: err.message });
     } else {

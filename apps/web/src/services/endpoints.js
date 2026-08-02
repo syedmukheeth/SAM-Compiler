@@ -1,5 +1,5 @@
 /**
- * 🌑 Centralized endpoint configuration for SAM Compiler
+ * Centralized endpoint configuration for SAM Compiler
  * Ensures that API and WebSocket traffic are routed correctly
  * to the monolithic Render backend.
  */
@@ -34,7 +34,7 @@ export const ENDPOINTS = {
   // SOCKET_OPTIONS: Optimized for Render's container handshake
   SOCKET_OPTIONS: {
      transports: ["websocket"],
-     withCredentials: true, // 🛡️ Required for cross-origin handshaking
+     withCredentials: true, // Required for cross-origin handshaking
      reconnection: true,
      reconnectionAttempts: 50,
      timeout: 30000

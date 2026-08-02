@@ -4,7 +4,7 @@ import App from "./App";
 import "./styles.css";
 import axios from "axios";
 
-// 🛡️ SECURITY Fix: Ensure credentials are sent with all API requests
+// SECURITY Fix: Ensure credentials are sent with all API requests
 axios.defaults.withCredentials = true;
 
 // Clean up any service worker left behind by the removed PWA plugin.

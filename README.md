@@ -30,26 +30,26 @@
 
 ---
 
-## ⚡ THE EVOLUTION OF THE CLOUD IDE
+## THE EVOLUTION OF THE CLOUD IDE
 
 **SAM Compiler** is not just a code runner—it is a **High-Fidelity Distributed Environment** designed to mirror the workflow of Principal Engineers. Borne from the necessity of total execution safety and real-time collaboration, SAM utilizes a **Decoupled Control Plane** to manage safe, containerized code execution across isolated compute nodes.
 
-### 🏆 THE COMPETITIVE EDGE: WHY SAM REIGNS SUPREME
+### THE COMPETITIVE EDGE: WHY SAM REIGNS SUPREME
 
 SAM is engineered to exceed the limitations of standard web-based compilers through deep-system hardening and distributed orchestration.
 
-| Dimension | ⚡ SAM Compiler (Elite) | 🐌 Industry Average (Generic) |
+| Dimension | SAM Compiler (Elite) | Industry Average (Generic) |
 |---|---|---|
-| 🏗️ **Architecture** | **Decoupled Control Plane**: Segregated API & Hardened Worker nodes. | **Monolithic**: Code runs on the API process (ACE risks). |
-| 🔄 **State Sync** | **CRDT (Yjs) + Server-Side Healing**: Conflict-free binary state sync with automated DB corruption purging. | **Naive JSON**: Prone to permanent race conditions and "Code Soup". |
-| 🛡️ **Isolation** | **Dockerized Sandboxing**: Cgroup-restricted ephemeral containers. | **Process-based**: Vulnerable to system-level resource exhaustion. |
-| 📡 **Connectivity** | **Fail-Secure Topology**: Multi-layered WebSocket heartbeats with proactive cold-start keepalives. | **Brittle Channels**: Disconnects result in total state loss. |
-| 🧠 **Intelligence** | **High-Availability Engine**: Multi-provider failover (OpenAI + Gemini) with automated fallback queue. | **Single-Point Failure**: Simple wrappers that crash if a single API key or model is deprecated. |
-| 🎨 **UX/UI** | **Digital Obsidian**: 60FPS glassmorphism with optimized mobile reflex. | **Bootstrap/Generic**: Cluttered interfaces with high perceived lag. |
+| **Architecture** | **Decoupled Control Plane**: Segregated API & Hardened Worker nodes. | **Monolithic**: Code runs on the API process (ACE risks). |
+| **State Sync** | **CRDT (Yjs) + Server-Side Healing**: Conflict-free binary state sync with automated DB corruption purging. | **Naive JSON**: Prone to permanent race conditions and "Code Soup". |
+| **Isolation** | **Dockerized Sandboxing**: Cgroup-restricted ephemeral containers. | **Process-based**: Vulnerable to system-level resource exhaustion. |
+| **Connectivity** | **Fail-Secure Topology**: Multi-layered WebSocket heartbeats with proactive cold-start keepalives. | **Brittle Channels**: Disconnects result in total state loss. |
+| **Intelligence** | **High-Availability Engine**: Multi-provider failover (OpenAI + Gemini) with automated fallback queue. | **Single-Point Failure**: Simple wrappers that crash if a single API key or model is deprecated. |
+| **UX/UI** | **Digital Obsidian**: 60FPS glassmorphism with optimized mobile reflex. | **Bootstrap/Generic**: Cluttered interfaces with high perceived lag. |
 
 ---
 
-## 🌊 SYSTEM ARCHITECTURE (V6.0 - ZENITH)
+## SYSTEM ARCHITECTURE (V6.0 - ZENITH)
 
 The SAM architecture is a masterpiece of distributed systems engineering, split between a **Vercel Edge-Optimized Frontend**, a **Node.js Control Plane**, and a **Dockerized Data Plane**.
 
@@ -78,14 +78,14 @@ graph TD
     Redis -.->|Cross-Instance Broadcast| Sock
 ```
 
-### 🛰️ KEY ARCHITECTURAL TENETS
+### KEY ARCHITECTURAL TENETS
 - **Asynchronous Execution Pipeline**: Utilizing BullMQ and Redis to handle high-concurrency compilation without blocking the main event loop.
 - **Strict Source of Truth Engine**: Compilations pull straight from the Monaco model's RAM state, bypassing React rendering cycle lag completely.
 - **Heartbeat Resilience**: Custom server-side dead-man's switches combined with frontend proactive 0-lag cold-start pings to ensure 100% execution uptime.
 
 ---
 
-## 🛠️ THE PRINCIPAL STACK
+## THE PRINCIPAL STACK
 
 <div align="center">
   <h3>Frontend Kernel</h3>
@@ -116,7 +116,7 @@ graph TD
 
 ---
 
-## 📂 REPOSITORY DNA (PROJECT STRUCTURE)
+## REPOSITORY DNA (PROJECT STRUCTURE)
 
 SAM follows a modern Monorepo structure, ensuring separation of concerns and maximum reusability.
 
@@ -135,7 +135,7 @@ SAM follows a modern Monorepo structure, ensuring separation of concerns and max
 
 ---
 
-## 🚀 GETTING STARTED: THE PRO FLOW
+## GETTING STARTED: THE PRO FLOW
 
 Follow these steps to spin up your own instance of SAM Compiler.
 
@@ -181,7 +181,7 @@ npm run dev
 
 ---
 
-## 🎨 THE "DIGITAL OBSIDIAN" EXPERIENCE
+## THE "DIGITAL OBSIDIAN" EXPERIENCE
 
 SAM features an ultra-dark, borderless interface with subtle glassmorphism—designed to get out of your way and let the code breathe.
 
@@ -192,13 +192,13 @@ SAM features an ultra-dark, borderless interface with subtle glassmorphism—des
 
 ---
 
-## 🔒 SECURITY & ISOLATION SPECS
+## SECURITY & ISOLATION SPECS
 
 - **Sandboxed Execution**: Code is executed in ephemeral Docker containers with zero network access and restricted syscalls.
 - **Resource Gating**: Strict limits on CPU, Memory, and PIDs to prevent malicious code from destabilizing the host.
 - **BSON Guarded State**: All incoming data is sanitized and validated against strict schemas before persistence.
 
-## 📚 DOCUMENTATION & GUIDES
+## DOCUMENTATION & GUIDES
 
 For deeper dives into the system, refer to our specialized documentation:
 

@@ -1,10 +1,10 @@
-# SAM Compiler: Cloud-Native Deployment Guide 🚀
+# SAM Compiler: Cloud-Native Deployment Guide
 
 The SAM Compiler is architected for secure, high-scale cloud execution. To enable compiled languages (C++, C, Java) without running local workers, follow the **Docker Monolith** deployment strategy.
 
 ---
 
-## ☁️ Option 1: Render (Recommended Native Node Deployment)
+## Option 1: Render (Recommended Native Node Deployment)
 
 Render is the simplest way to host the SAM API and the built React Web App together in a single "Monolith" instance.
 
@@ -15,7 +15,7 @@ Render is the simplest way to host the SAM API and the built React Web App toget
 4.  **Build Command**: `npm install --include=dev && npm run build` (This ensures `vite` is installed and the React app is built).
 5.  **Start Command**: `npm start` (This will start the Express API which serves the built React app).
 
-### 2. Environment Variables 🔒
+### 2. Environment Variables
 | Key | Value |
 | :--- | :--- |
 | `PORT` | `8080` |
@@ -32,7 +32,7 @@ Render is the simplest way to host the SAM API and the built React Web App toget
 
 ---
 
-## 🚂 Option 2: Railway
+## Option 2: Railway
 
 1.  **New Project** -> **Deploy from GitHub**.
 2.  In **Settings**, set **Root Directory** to `apps/api`.
@@ -40,7 +40,7 @@ Render is the simplest way to host the SAM API and the built React Web App toget
 
 ---
 
-## 🔐 OAuth Redirect Configuration
+## OAuth Redirect Configuration
 
 For authentication to work, you **must** update your developer dashboards with the exact callback URLs that include the `/api` prefix:
 
@@ -56,7 +56,7 @@ https://sam-compiler-api.onrender.com/api/auth/google/callback
 
 ---
 
-## 🛠️ Local "Hybrid" Mode (Dev)
+## Local "Hybrid" Mode (Dev)
 
 If you are hosting the Frontend on Vercel but haven't deployed the API yet, you can run a local worker to handle execution:
 

@@ -25,7 +25,7 @@ const webOrigin = () => {
 };
 
 /**
- * 🛡️ SECURITY: strict body schemas.
+ * SECURITY: strict body schemas.
  *
  * These fields previously reached `User.findOne({ email })` unvalidated, so a
  * JSON body like {"email":{"$ne":null}} was passed to Mongo as an operator
@@ -67,7 +67,7 @@ function parseBody(schema, req, res) {
   return result.data;
 }
 
-// 🔐 SECURITY: Rate limiting for auth routes to prevent brute force
+// SECURITY: Rate limiting for auth routes to prevent brute force
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 10, // Limit each IP to 10 requests per window
@@ -170,7 +170,7 @@ router.post("/login", authLimiter, async (req, res) => {
   }
 });
 
-// 📬 RECOVER: Forgot Password Flow
+// RECOVER: Forgot Password Flow
 router.post("/forgot-password", authLimiter, async (req, res) => {
   const body = parseBody(ForgotPasswordSchema, req, res);
   if (!body) return;

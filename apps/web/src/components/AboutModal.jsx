@@ -4,7 +4,7 @@ import { APP_VERSION } from "../services/version";
 import { X, ExternalLink, ShieldCheck } from "lucide-react";
 import OfficialLogo from "./OfficialLogo";
 
-// 🛡️ BRAND ICON RECOVERY: Local SVG components to bypass lucide-react v1+ removal of brand icons
+// BRAND ICON RECOVERY: Local SVG components to bypass lucide-react v1+ removal of brand icons
 const LinkedinIcon = ({ className }) => (
   <svg viewBox="0 0 24 24" fill="currentColor" className={className} xmlns="http://www.w3.org/2000/svg">
     <path d="M19 0h-14c-2.761 0-5 2.239-5 5v14c0 2.761 2.239 5 5 5h14c2.762 0 5-2.239 5-5v-14c0-2.761-2.238-5-5-5zm-11 19h-3v-11h3v11zm-1.5-12.268c-.966 0-1.75-.79-1.75-1.764s.784-1.764 1.75-1.764 1.75.79 1.75 1.764-.783 1.764-1.75 1.764zm13.5 12.268h-3v-5.604c0-3.368-4-3.113-4 0v5.604h-3v-11h3v1.765c1.396-2.586 7-2.777 7 2.476v6.759z" />
@@ -41,7 +41,7 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
           animate={{ scale: 1, y: 0, opacity: 1 }}
           exit={{ scale: 0.9, y: 20, opacity: 0 }}
           className={`relative w-full max-w-sm overflow-hidden rounded-[32px] border p-8 shadow-2xl backdrop-blur-2xl ${
-            theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-text/95'
+            theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-bg/95'
           }`}
         >
           <button 
@@ -101,17 +101,17 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
                   className={`flex items-center justify-between rounded-2xl p-4 transition-all group ${
                     theme === 'dark' 
                       ? 'bg-sam-text/5 border border-sam-glass-border hover:bg-sam-text hover:text-sam-bg' 
-                      : 'bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900 hover:text-sam-text'
+                      : 'bg-slate-900/5 border border-slate-900/10 hover:bg-slate-900 hover:text-white'
                   }`}
                 >
                   <div className={`flex items-center gap-3 transition-colors ${
-                    theme === 'dark' ? 'text-sam-text group-hover:text-sam-bg' : 'text-slate-900 group-hover:text-sam-text'
+                    theme === 'dark' ? 'text-sam-text group-hover:text-sam-bg' : 'text-slate-900 group-hover:text-white'
                   }`}>
                     <GithubIcon className="h-5 w-5" />
                     <span className="text-[10px] font-black uppercase tracking-widest">Follow on GitHub</span>
                   </div>
                   <ExternalLink className={`h-4 w-4 transition-colors ${
-                    theme === 'dark' ? 'text-sam-text group-hover:text-sam-bg' : 'text-slate-900 group-hover:text-sam-text'
+                    theme === 'dark' ? 'text-sam-text group-hover:text-sam-bg' : 'text-slate-900 group-hover:text-white'
                   }`} />
                 </a>
             </div>
