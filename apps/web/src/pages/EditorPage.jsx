@@ -1958,8 +1958,15 @@ builtins.input = _sam_input
               <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
                 <div className="flex items-center gap-3">
                   <span style={{ fontSize: 8, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.2em', color: 'var(--sam-text)', opacity: 0.8, fontFamily: 'var(--font-body)' }}>SAM-RUNTIME</span>
+                  {/* The badge was `text-white/30`, which is invisible on the
+                      light theme's surface. Follows the token like its siblings. */}
                   {!user && (
-                    <span className="px-1.5 py-0.5 rounded-sm bg-sam-text/5 border border-sam-glass-border text-[7px] font-black uppercase tracking-widest text-white/30">Guest</span>
+                    <span
+                      className="px-1.5 py-0.5 rounded-sm bg-sam-text/5 border border-sam-glass-border text-[7px] font-black uppercase tracking-widest"
+                      style={{ color: 'var(--sam-text)', opacity: 0.55 }}
+                    >
+                      Guest
+                    </span>
                   )}
                 </div>
                 <span style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.15em', color: 'var(--sam-text)', fontFamily: 'var(--font-mono)' }}>{languageConfigs[activeLangId]?.name}</span>
