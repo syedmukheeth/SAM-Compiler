@@ -93,15 +93,17 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
     onClose?.();
   };
 
+  // No AnimatePresence around the panel: exited children are never removed in
+  // this app, so a closed History panel left a full-screen backdrop (zIndex 80)
+  // in the DOM that blocked every click on the editor behind it.
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
         <>
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             onClick={onClose}
             style={{
               position: "fixed", inset: 0, zIndex: 80,
@@ -114,7 +116,6 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
-            exit={{ x: "100%" }}
             transition={{ type: "spring", damping: 32, stiffness: 300 }}
             style={{
               position: "fixed", top: 0, right: 0, bottom: 0, zIndex: 90,
@@ -402,7 +403,5 @@ export default function HistoryPanel({ isOpen, onClose, theme, onLoadCode, token
 
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </>
-      )}
-    </AnimatePresence>
   );
 }

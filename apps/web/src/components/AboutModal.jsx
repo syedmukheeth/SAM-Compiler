@@ -1,5 +1,5 @@
 import React from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { APP_VERSION } from "../services/version";
 import { X, ExternalLink, ShieldCheck } from "lucide-react";
 import OfficialLogo from "./OfficialLogo";
@@ -18,20 +18,20 @@ const GithubIcon = ({ className }) => (
 );
 
 export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
-  // `if (!isOpen) return null` used to sit above <AnimatePresence>, which meant
-  // the component unmounted before AnimatePresence could play anything - so the
-  // exit variants below never ran and this modal snapped away while every other
-  // overlay animated out. The gate belongs inside instead.
+  // Deliberately NOT wrapped in AnimatePresence. Its exit-removal never
+  // completes in this app (reproduced in the production build), which left this
+  // modal in the DOM at opacity 0 after closing - a fixed inset-0 z-[200] layer
+  // that silently swallowed every click in the app. Unmounting immediately
+  // costs only a close animation nobody could see anyway.
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
       /* 200 = dialog layer. Was 120, identical to the mobile tab bar, which
          therefore painted at the same level as this modal. */
       <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
           onClick={onClose}
           className="absolute inset-0 bg-sam-bg/60 backdrop-blur-md"
         />
@@ -39,7 +39,6 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
         <motion.div
           initial={{ scale: 0.9, y: 20, opacity: 0 }}
           animate={{ scale: 1, y: 0, opacity: 1 }}
-          exit={{ scale: 0.9, y: 20, opacity: 0 }}
           className={`relative w-full max-w-sm overflow-hidden rounded-[32px] border p-8 shadow-2xl backdrop-blur-2xl ${
             theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-bg/95'
           }`}
@@ -123,7 +122,5 @@ export default function AboutModal({ isOpen, onClose, theme = "dark" }) {
           </div>
         </motion.div>
       </div>
-      )}
-    </AnimatePresence>
   );
 }

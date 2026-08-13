@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 /**
  * Themed confirmation dialog.
@@ -31,9 +31,13 @@ export default function ConfirmDialog({
     return () => window.removeEventListener("keydown", onKey);
   }, [isOpen, onCancel]);
 
+  // No AnimatePresence. In this app its exit-removal never completes: the
+  // closed dialog stayed in the DOM at opacity 0, and a fixed inset-0 z-[200]
+  // layer with pointer events swallowed every click in the app afterwards.
+  // Unmounting directly costs only the (never visible) close animation.
+  if (!isOpen) return null;
+
   return (
-    <AnimatePresence>
-      {isOpen && (
         <div
           className="fixed inset-0 z-[200] flex items-center justify-center p-4"
           role="dialog"
@@ -43,7 +47,6 @@ export default function ConfirmDialog({
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
             onClick={onCancel}
             className="absolute inset-0 backdrop-blur-md"
             style={{ background: "color-mix(in oklab, var(--sam-bg) 60%, transparent)" }}
@@ -51,7 +54,6 @@ export default function ConfirmDialog({
           <motion.div
             initial={{ scale: 0.94, y: 16, opacity: 0 }}
             animate={{ scale: 1, y: 0, opacity: 1 }}
-            exit={{ scale: 0.94, y: 16, opacity: 0 }}
             className="relative w-full max-w-sm rounded-[24px] border p-7 shadow-2xl backdrop-blur-2xl"
             style={{
               borderColor: "var(--sam-glass-border)",
@@ -99,7 +101,5 @@ export default function ConfirmDialog({
             </div>
           </motion.div>
         </div>
-      )}
-    </AnimatePresence>
   );
 }

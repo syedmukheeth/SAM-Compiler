@@ -5,7 +5,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import { pollUntilDone, submitRun } from "../services/codeExecutionApi";
-import { getSocket } from "../services/socketClient";
+import { getSocket, getSocketStatus } from "../services/socketClient";
 import { parseErrors } from "../services/errorParser";
 
 // LAZY LOAD PERFORMANCE HYDRATION (Code-Splitting)
@@ -181,7 +181,6 @@ export default function EditorPage() {
     }
     return defaults;
   });
-  const [isColdStarting] = useState(false);
   const [runStatus, setRunStatus] = useState("Ready");
   const [theme, setTheme] = useState(() => localStorage.getItem('sam-theme') || 'dark');
   // Lets the mount-once terminal effect read the current theme without taking
@@ -195,8 +194,13 @@ export default function EditorPage() {
   const [showAiPanel, setShowAiPanel] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
 
-  const [isEngineReady, setIsEngineReady] = useState(false);
+  // "preparing" | "primary" | "sandbox" | "offline". This subsumes the separate
+  // isEngineReady flag, which nothing rendered.
   const [engineMode, setEngineMode] = useState("preparing");
+  // The "Engine Warming Up" overlay was wired to a state that was hardcoded
+  // false, so a user waiting on a cold backend saw an idle, silent terminal and
+  // no indication anything was happening.
+  const isColdStarting = engineMode === "preparing" && !busy && runStatus === "Ready";
   const [failSafeActive, setFailSafeActive] = useState(false);
   // The health-poll effect reads this but cannot depend on it without
   // restarting the interval every time it flips; it previously closed over a
@@ -822,62 +826,79 @@ builtins.input = _sam_input
 
   // Socket Initialization is handled in the status monitoring effect below to prevent duplicate mounts
 
-  // Health check for worker availability (Backend sanity) & ADAPTIVE HEARTBEAT
+  // Health check for worker availability (Backend sanity) & ADAPTIVE HEARTBEAT.
+  //
+  // Mounts once. It used to depend on `isEngineReady` purely to pick the poll
+  // interval, which meant every flip of that flag tore down the interval, fired
+  // an immediate extra check and started a new one - several requests inside the
+  // same second, against an endpoint rate-limited to 100/minute. Tripping that
+  // limiter made the health check fail, which flipped the flag again.
   useEffect(() => {
+    let cancelled = false;
+    let pollTimer = null;
     let failSafeTimer = null;
-    
+    let ready = false;
+
+    const applyReady = (value, mode) => {
+      ready = value;
+      setEngineMode(mode);
+    };
+
     const checkStatus = async () => {
-      if (!navigator.onLine) { 
-        setIsEngineReady(false);
-        setEngineMode("offline");
-        return; 
+      if (!navigator.onLine) {
+        applyReady(false, "offline");
+        return;
       }
       try {
-        // WAKE UP PING: Proactively trigger Render cold-start wakeup
-        // We ping the root and the health check as early as possible
-        const API_BASE = ENDPOINTS.WS_ENDPOINT;
-        fetch(API_BASE).catch(() => {}); // Fire and forget root ping
-
-        const res = await fetch(`${API_BASE}/api/runs/health/queue`);
+        // One request, not two: this endpoint wakes a sleeping Render instance
+        // just as well as a root ping did, at half the rate-limit cost.
+        const res = await fetch(`${ENDPOINTS.WS_ENDPOINT}/api/runs/health/queue`);
+        if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
         const data = await res.json();
-        
-        setIsEngineReady(data.canExecute || data.workerOnline);
-        setEngineMode(data.workerOnline ? "primary" : data.canExecute ? "sandbox" : "preparing");
-        
-        if (data.canExecute || data.workerOnline) {
-          if (failSafeTimer) clearTimeout(failSafeTimer);
+        if (cancelled) return;
+
+        const canRun = Boolean(data.canExecute || data.workerOnline);
+        applyReady(canRun, data.workerOnline ? "primary" : data.canExecute ? "sandbox" : "preparing");
+
+        if (canRun) {
+          if (failSafeTimer) { clearTimeout(failSafeTimer); failSafeTimer = null; }
           setFailSafeActive(false);
         }
       } catch {
+        if (cancelled) return;
         // Transient network failure? Don't panic immediately unless navigator.onLine is false
         if (!navigator.onLine) {
-          setIsEngineReady(false);
-          setEngineMode("offline");
+          applyReady(false, "offline");
         } else if (!failSafeActiveRef.current) {
           // If we are online but the check fails, it might be a server-side waking state
-          setIsEngineReady(false);
-          setEngineMode("preparing");
+          applyReady(false, "preparing");
         }
       }
     };
 
     // FAIL-SAFE: If engine isn't ready in 45s, allow sandbox anyway
     failSafeTimer = setTimeout(() => {
-      if (!isEngineReady) {
-        setIsEngineReady(true);
-        setEngineMode("sandbox");
-        setFailSafeActive(true);
-      }
+      failSafeTimer = null;
+      if (cancelled || ready) return;
+      applyReady(true, "sandbox");
+      setFailSafeActive(true);
     }, 45000);
 
-    checkStatus();
-    const interval = setInterval(checkStatus, isEngineReady ? 180000 : 3000);
-    
+    const tick = async () => {
+      await checkStatus();
+      if (cancelled) return;
+      // Slow cadence once the engine answers; while it is waking, 5s is often
+      // enough for a Render cold start without hammering the limiter.
+      pollTimer = setTimeout(tick, ready ? 180000 : 5000);
+    };
+    tick();
+
     return () => {
-      clearInterval(interval);
+      cancelled = true;
+      if (pollTimer) clearTimeout(pollTimer);
       if (failSafeTimer) clearTimeout(failSafeTimer);
     };
-  }, [isEngineReady]);
+  }, []);
 
   // Persist buffers to localStorage
   useEffect(() => {
@@ -915,9 +936,22 @@ builtins.input = _sam_input
 
   // Socket status monitoring with Stability Timer
   useEffect(() => {
-    fetch(`${ENDPOINTS.WS_ENDPOINT}/api/runs/health/queue`).catch(() => {}); // Explicit ping to wake Render early
-    getSocket(token);
-    
+    // No wake ping here: the health-check effect above already polls this
+    // endpoint, and this effect re-ran on every mobile tab switch, which turned
+    // tab switching into extra requests against a rate-limited endpoint.
+    const existing = getSocket(token);
+
+    // The socket is a module-level singleton, so arriving here from another
+    // route (or a remount) means the "connected" event has already fired and
+    // will not fire again - the status bar then said SYNCING forever. Adopt the
+    // status the client already has before listening for changes.
+    const currentStatus = existing?.connected ? "connected" : getSocketStatus();
+    // Adopting an existing external state on mount is exactly what an effect is
+    // for; there is no render-time source for it.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSocketStatus(currentStatus);
+    if (currentStatus === "connected") setShowStatusBanner(false);
+
     let stabilityTimer = null;
     let flickerTimer = null;
 
@@ -966,7 +1000,10 @@ builtins.input = _sam_input
       window.removeEventListener("sam:socket:status", handleStatusUpdate);
       window.removeEventListener("orientationchange", handleViewportSync);
     };
-  }, [token, activeMobileTab]); // Sync on tab switch too
+    // `activeMobileTab` used to be a dependency ("sync on tab switch"), but this
+    // effect only registers listeners - re-running it on every tab switch just
+    // reset the banner timers and re-pinged the API.
+  }, [token]);
 
   // Resubscribe Guardian: Pick up lost streams after reconnection
   const prevSocketStatusRef = useRef(socketStatus);
@@ -1222,12 +1259,14 @@ builtins.input = _sam_input
       </header>
 
       {/* MOBILE SLIDE-DOWN MENU (Universal) */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
+      {/* Plain conditional, not AnimatePresence - see the shortcuts modal below:
+          exited children are never removed here, and a menu stuck at opacity 0
+          over the header would block the controls underneath it. */}
+      {mobileMenuOpen && (
           <motion.div
+            key="mobile-menu"
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
             /* Was `md:hidden` (<768) while the header that opens it is
                `lg:hidden` (<1024). Between 768-1023px the hamburger rendered
                but the menu it toggled did not - the button did nothing. */
@@ -1324,8 +1363,7 @@ builtins.input = _sam_input
               <X className="h-5 w-5" />
             </button>
           </motion.div>
-        )}
-      </AnimatePresence>
+      )}
 
       {/* DESKTOP HEADER */}
       <header className="hidden lg:flex relative z-[80] h-14 md:h-16 shrink-0 items-center justify-between px-4 md:px-8 sam-glass !rounded-none !border-x-0 !border-t-0">
@@ -1811,13 +1849,15 @@ builtins.input = _sam_input
                     CLOUD ENGINE
                   </span>
 
-                  {/* INTEGRATED AI DIAGNOSTIC TRIGGER */}
-                  <AnimatePresence>
-                    {pendingAiPrompt && !showAiPanel && (
+                  {/* INTEGRATED AI DIAGNOSTIC TRIGGER.
+                      Plain conditional: an AnimatePresence exit that never
+                      completes would leave an invisible but clickable button
+                      sitting in the toolbar. */}
+                  {pendingAiPrompt && !showAiPanel && (
                       <motion.button
+                        key="explain-error"
                         initial={{ opacity: 0, scale: 0.8, x: -10 }}
                         animate={{ opacity: 1, scale: 1, x: 0 }}
-                        exit={{ opacity: 0, scale: 0.8, x: -10 }}
                         onClick={() => {
                           setShowAiPanel(true);
                           if (isMobile) {
@@ -1831,8 +1871,7 @@ builtins.input = _sam_input
                         <Sparkles className="h-3 w-3 animate-pulse pointer-events-none" />
                         <span className="text-[9px] font-black uppercase tracking-widest">Explain Error</span>
                       </motion.button>
-                    )}
-                  </AnimatePresence>
+                  )}
                 </div>
                 <div style={{ fontSize: 10, fontWeight: 950, textTransform: 'uppercase', letterSpacing: '0.25em', color: runStatus === 'Failed' ? '#FF3B3B' : 'var(--sam-text-muted)', fontFamily: 'var(--font-body)' }}>{runStatus}</div>
               </div>
@@ -1914,12 +1953,16 @@ builtins.input = _sam_input
 
               {/* Terminal Body */}
               <div className="flex-1 overflow-hidden relative" style={{ background: 'var(--sam-surface)' }}>
-                {/* 1. Engine Cold Start Overlay */}
-                <AnimatePresence>
-                  {isColdStarting && (
-                    <motion.div 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-sam-bg/60 backdrop-blur-md"
+                {/* 1. Engine Cold Start Overlay.
+                    No AnimatePresence: its exit node stayed in the DOM at
+                    opacity 0 and, being inset-0 z-20, swallowed every click
+                    aimed at the terminal underneath. It also carries
+                    pointer-events-none - it is purely informational. */}
+                {isColdStarting && (
+                    <motion.div
+                      key="engine-cold-start"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="pointer-events-none absolute inset-0 z-20 flex flex-col items-center justify-center bg-sam-bg/60 backdrop-blur-md"
                     >
                       <div className="relative mb-6">
                         <div className="absolute inset-0 animate-ping rounded-full bg-blue-500/20" />
@@ -1930,8 +1973,7 @@ builtins.input = _sam_input
                       <h3 className="text-sm font-black uppercase tracking-[0.3em] text-sam-text">Engine Warming Up</h3>
                       <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-sam-text-muted">Spinning up isolated sandbox...</p>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                )}
 
                 {/* 2. Actual XTerm Instance Mount Point */}
                 <div className="h-full w-full p-3 overflow-hidden">
@@ -1939,20 +1981,21 @@ builtins.input = _sam_input
                 </div>
 
 
-                {/* 4. Mobile Execution Overlay */}
-                <AnimatePresence>
-                  {isMobile && busy && (
-                    <motion.div 
-                      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                      className="absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] bg-sam-bg/5"
+                {/* 4. Mobile Execution Overlay. Plain conditional (exits are
+                    never removed) and pointer-events-none: it is purely
+                    informational and must never eat taps on the terminal. */}
+                {isMobile && busy && (
+                    <motion.div
+                      key="mobile-executing"
+                      initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+                      className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center backdrop-blur-[2px] bg-sam-bg/5"
                     >
                       <div className="flex items-center gap-3 px-6 py-3 rounded-full border border-sam-glass-border bg-sam-bg/80 shadow-2xl">
                         <Loader2 className="h-4 w-4 text-sam-text animate-spin" />
                         <span className="text-[10px] font-black uppercase tracking-[0.3em] text-sam-text">Executing...</span>
                       </div>
                     </motion.div>
-                  )}
-                </AnimatePresence>
+                )}
               </div>
   
               <div className="flex h-8 md:h-10 shrink-0 items-center justify-between px-4 md:px-6" style={{ borderTop: '1px solid var(--sam-glass-border)', background: 'var(--sam-surface-low)' }}>
@@ -2061,16 +2104,22 @@ builtins.input = _sam_input
         />
       </footer>
 
-      <AnimatePresence>
-        {showShortcutsHelp && (
-          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
-            <motion.div 
-               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+      {/* No AnimatePresence: its exit-removal never completes here (verified in
+          the production build too), so the closed modal stayed in the DOM at
+          opacity 0 and its fixed inset-0 z-[200] layer swallowed every click in
+          the app - the UI looked frozen after opening this once. */}
+      {showShortcutsHelp && (
+          <motion.div
+            key="shortcuts-help"
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[200] flex items-center justify-center p-4"
+          >
+            <div
                onClick={() => setShowShortcutsHelp(false)}
-               className="absolute inset-0 bg-sam-bg/40 backdrop-blur-sm" 
+               className="absolute inset-0 bg-sam-bg/40 backdrop-blur-sm"
             />
-            <motion.div 
-              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
               className={`relative w-full max-w-sm rounded-[32px] border p-8 shadow-2xl backdrop-blur-2xl sam-modal-mobile-center ${
                 theme === 'dark' ? 'border-sam-glass-border bg-sam-bg/95' : 'border-slate-200 bg-sam-bg/95'
               }`}
@@ -2097,9 +2146,8 @@ builtins.input = _sam_input
                 Close Guidelines
               </button>
             </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+          </motion.div>
+      )}
 
       {/* PERSISTENT MODALS (LAZY LOADED) */}
       <React.Suspense fallback={null}>

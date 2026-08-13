@@ -21,21 +21,32 @@ const RANDOM_NAMES = [
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
 
-// How long after "sync" to wait before concluding a document is genuinely
-// empty. The server's state arrives within milliseconds of the sync event; this
-// only has to outlast that gap.
-const EMPTY_DOC_GRACE_MS = 2000;
+// How long to wait for the collaboration server before giving up and letting the
+// user edit locally. Render's free tier cold-starts in ~10-30s; the editor must
+// not be blank for any of it.
+const SYNC_TIMEOUT_MS = 6000;
+
+// How often to retry the collaboration session after falling back to local mode.
+const OFFLINE_RETRY_MS = 20000;
+
+// How long after the provider reports "sync" to keep waiting for the room's
+// actual content before concluding the room is empty and seeding it.
+const SYNC_SETTLE_MS = 2000;
 
 /**
  * CodeEditor - Collaborative Monaco editor powered by Yjs + y-socket.io.
  *
  * Key architecture decisions:
- * 1. Yjs is the SINGLE SOURCE OF TRUTH for document content.
- * 2. `value` prop is stored in a ref and used ONLY to seed a brand-new, empty room.
- *    It never overwrites an existing collaborative document.
- * 3. The Yjs lifecycle (provider, binding) is initialized INSIDE `handleMount`
- *    so it always has a valid editor reference. This prevents the race condition
- *    where the useEffect ran before Monaco finished mounting.
+ * 1. Yjs is the source of truth for document content ONCE the room has synced.
+ * 2. The Monaco model is filled with the local buffer (template or last edit)
+ *    the instant the editor mounts, and MonacoBinding is attached only after the
+ *    room syncs - the binding's constructor copies ytext into the model, so
+ *    attaching it before sync blanked the editor and left it blank for as long
+ *    as the server took to answer (forever, if it was down).
+ * 3. If the room never syncs, the editor keeps working offline against a local
+ *    Yjs doc and retries the connection in the background.
+ * 4. The Yjs lifecycle is initialized INSIDE `handleMount` so it always has a
+ *    valid editor reference.
  */
 const CodeEditor = ({
   language,
@@ -57,7 +68,15 @@ const CodeEditor = ({
   const hasInitializedRef = useRef(false);
   const cleanupRef = useRef(null); // holds the current session cleanup fn
   const pendingResetRef = useRef(null); // reset requested before the doc synced
-  const emptyDocTimerRef = useRef(null); // deferred "still empty?" seed check
+  // Text the user had locally when a reconnect attempt starts. Applied over the
+  // room after it syncs so work done offline is not silently replaced.
+  const carryOverTextRef = useRef(null);
+
+  // "connecting" until the room syncs, then "synced"; "offline" once we have
+  // given up waiting and are editing against a local-only document.
+  const [syncState, setSyncState] = useState("connecting");
+  // Bumped to rebuild the collaborative session after an offline fallback.
+  const [reconnectNonce, setReconnectNonce] = useState(0);
 
   /**
    * Replace the whole document in ONE Yjs transaction.
@@ -129,6 +148,20 @@ const CodeEditor = ({
 
     const currentSessionId = sessionIdRef.current;
     const currentLanguage = languageRef.current;
+    const model = editor.getModel();
+    if (!model) return;
+
+    // Monaco stores whatever EOL the text it was given used; ytext always holds
+    // \n, so every read that crosses that boundary must ask for LF explicitly or
+    // offsets drift by one per line on Windows-pasted code.
+    const readModel = () => model.getValue(1 /* EndOfLinePreference.LF */);
+
+    // Show something immediately. The local buffer is the template on a first
+    // visit and the user's last edit afterwards, so the editor is never blank
+    // while the room is being fetched.
+    const localSeed = seedValueRef.current ?? "";
+    if (readModel() !== localSeed) model.setValue(localSeed);
+    setSyncState("connecting");
 
     // The room name is the full sessionId which already encodes language: "default::cpp"
     const ydoc = new Y.Doc();
@@ -141,14 +174,6 @@ const CodeEditor = ({
     ydocRef.current = ydoc;
     ytextRef.current = ytext; // keep live ref for external consumers (reset button, etc.)
     providerRef.current = provider;
-
-    const binding = new MonacoBinding(
-      ytext,
-      editor.getModel(),
-      new Set([editor]),
-      provider.awareness
-    );
-    bindingRef.current = binding;
 
     provider.awareness.setLocalStateField("user", {
       name: localNameRef.current,
@@ -166,60 +191,153 @@ const CodeEditor = ({
     };
     ytext.observe(onYtextChange);
 
-    // SYNC GUARD: Mark as initialized once the server has sent us the full
-    // document state. Nothing may write to the document before this point: an
-    // edit made against an unsynced doc is concurrent with whatever the server
-    // is about to deliver, and Yjs merges both rather than replacing one with
-    // the other - which is how a reset produced two copies of the template.
-    const handleSync = (isSynced) => {
-      if (!isSynced) return;
+    let bound = false;
+    let boundMode = null;
+    let editedWhileUnbound = false;
+    let syncTimer = null;
+    let settleTimer = null;
+    let retryTimer = null;
+    // Set when this client seeds an apparently-empty room, so a straggling
+    // server copy of the same text can be recognised and undone.
+    let seededText = null;
+
+    // Until the binding exists nothing propagates edits, so keep the parent's
+    // buffer (and therefore localStorage) up to date by hand.
+    const modelListener = model.onDidChangeContent(() => {
+      if (bound) return;
+      editedWhileUnbound = true;
+      onChangeRef.current?.(readModel());
+    });
+
+    /**
+     * Attach the Yjs <-> Monaco binding. `mode` is the sync state to report:
+     * "synced" when the server answered, "offline" when it did not.
+     *
+     * Ordering matters. MonacoBinding's constructor overwrites the model with
+     * ytext, so an empty room must be seeded from the model FIRST or the user's
+     * text disappears.
+     */
+    const bind = (mode) => {
+      if (bound || !ytextRef.current) return;
+      bound = true;
+      if (syncTimer) { clearTimeout(syncTimer); syncTimer = null; }
+      if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
+
+      const localText = readModel();
+      const roomEmpty = ytext.length === 0;
+
+      if (roomEmpty && localText) {
+        seededText = localText;
+        ydoc.transact(() => ytext.insert(0, localText));
+      } else if (!roomEmpty && editedWhileUnbound && localText && carryOverTextRef.current === null) {
+        // The room has content but the user typed while we were waiting. Their
+        // keystrokes win over a stale room rather than vanishing on sync.
+        carryOverTextRef.current = localText;
+      }
+
+      bindingRef.current = new MonacoBinding(ytext, model, new Set([editor]), provider.awareness);
       hasInitializedRef.current = true;
 
-      // The server seeds new rooms (socketHandler document-loaded), but a room
-      // whose language node arrives empty - a persisted doc created before this
-      // language existed, or a seed that did not run - left the user staring at
-      // a blank editor with no way to get the template back except Reset.
-      //
-      // The check is deliberately NOT made here: y-socket.io reports sync
-      // before the document content has necessarily been applied, so an
-      // immediate seed lands concurrently with the server's own state and Yjs
-      // keeps both - the editor then shows every line twice. Re-check once the
-      // state has certainly arrived, and only ever seed an empty document.
-      if (emptyDocTimerRef.current) clearTimeout(emptyDocTimerRef.current);
-      emptyDocTimerRef.current = setTimeout(() => {
-        emptyDocTimerRef.current = null;
-        if (ytextRef.current !== ytext) return; // session changed underneath us
+      // Work carried across a reconnect, then any reset requested while the
+      // document was still incomplete (a delete over a range the server had not
+      // delivered yet removes nothing, which is how Reset produced two copies).
+      const carried = carryOverTextRef.current;
+      carryOverTextRef.current = null;
+      if (carried !== null && carried !== ytext.toString()) replaceDocument(carried);
 
-        // A reset issued before the document was whole waits here too: a
-        // delete over a range the server has not delivered yet removes nothing.
-        if (pendingResetRef.current !== null) {
-          const template = pendingResetRef.current;
-          pendingResetRef.current = null;
-          replaceDocument(template);
-          return;
-        }
+      if (pendingResetRef.current !== null) {
+        const template = pendingResetRef.current;
+        pendingResetRef.current = null;
+        replaceDocument(template);
+      }
 
-        if (ytext.length !== 0) return;
-        const template = seedValueRef.current;
-        if (!template) return;
-        ydoc.transact(() => ytext.insert(0, template));
-      }, EMPTY_DOC_GRACE_MS);
+      onChangeRef.current?.(ytext.toString());
+      boundMode = mode;
+      setSyncState(mode);
     };
 
+    // y-socket.io flips `synced` the moment the SERVER asks the client for its
+    // state vector, which happens before the server's own document has been
+    // applied. Binding on that event alone therefore saw an empty ytext and
+    // seeded a second copy of the template on top of the server's.
+    //
+    // The reliable signal is the first remote update: at that point the room's
+    // content is really here. "sync" only starts a settle timer, which seeds
+    // from the local buffer if nothing ever arrives (a genuinely empty room).
+    const onDocUpdate = (_update, origin) => {
+      if (origin !== provider) return;
+      if (!bound) {
+        bind("synced");
+        return;
+      }
+      // A server copy that lost the race with our seed: the room now holds our
+      // text exactly twice and nothing else. Narrow enough that it cannot fire
+      // on anything a user typed (their edits would break the exact equality),
+      // and it only stays armed until the first real edit.
+      if (seededText && ytext.toString() === seededText + seededText) {
+        const duplicate = seededText;
+        seededText = null;
+        ydoc.transact(() => ytext.delete(0, duplicate.length));
+      }
+    };
+    ydoc.on("update", onDocUpdate);
+
+    const handleSync = (isSynced) => {
+      if (!isSynced || bound || settleTimer) return;
+      settleTimer = setTimeout(() => {
+        settleTimer = null;
+        bind("synced");
+      }, SYNC_SETTLE_MS);
+    };
     provider.on("sync", handleSync);
+
+    // The server never answered. Rather than leaving the editor read-only-ish
+    // and blank, bind to the local document and keep trying in the background.
+    syncTimer = setTimeout(() => {
+      syncTimer = null;
+      if (bound) return;
+      // Disconnect before seeding: a local seed that is later merged with the
+      // server's own copy of the same template shows every line twice.
+      try { provider.disconnect(); } catch { /* never connected */ }
+      bind("offline");
+      retryTimer = setTimeout(retryConnection, OFFLINE_RETRY_MS);
+    }, SYNC_TIMEOUT_MS);
+
+    function retryConnection() {
+      retryTimer = null;
+      if (!editorRef.current || ytextRef.current !== ytext) return;
+      // Carry the offline work into the fresh session so a room that comes back
+      // with only the template does not overwrite it.
+      carryOverTextRef.current = readModel();
+      // Re-entering initYjs from inside itself would need a self-reference; bump
+      // a nonce instead and let the session effect rebuild everything.
+      setReconnectNonce((n) => n + 1);
+    }
+
+    const onOnline = () => {
+      if (boundMode !== "offline") return;
+      if (retryTimer) clearTimeout(retryTimer);
+      retryConnection();
+    };
+    window.addEventListener("online", onOnline);
 
     // Return cleanup function
     cleanupRef.current = () => {
+      window.removeEventListener("online", onOnline);
+      if (syncTimer) clearTimeout(syncTimer);
+      if (settleTimer) clearTimeout(settleTimer);
+      if (retryTimer) clearTimeout(retryTimer);
+      modelListener.dispose();
       ytext.unobserve(onYtextChange);
+      ydoc.off("update", onDocUpdate);
       provider.off("sync", handleSync);
-      try { binding.destroy(); } catch { /* already torn down */ }
+      if (bindingRef.current) {
+        try { bindingRef.current.destroy(); } catch { /* already torn down */ }
+        bindingRef.current = null;
+      }
       try { provider.destroy(); } catch { /* already torn down */ }
       hasInitializedRef.current = false;
       pendingResetRef.current = null;
-      if (emptyDocTimerRef.current) {
-        clearTimeout(emptyDocTimerRef.current);
-        emptyDocTimerRef.current = null;
-      }
     };
   }, [replaceDocument]); // otherwise reads only from refs
 
@@ -296,7 +414,7 @@ const CodeEditor = ({
     // Skip if Monaco hasn't mounted yet - handleMount will call initYjs
     if (!editorRef.current) return;
     initYjs(editorRef.current);
-  }, [sessionId, language, initYjs]);
+  }, [sessionId, language, reconnectNonce, initYjs]);
 
   // ─── Component unmount cleanup ───────────────────────────────────────────────
   useEffect(() => {
@@ -352,10 +470,38 @@ const CodeEditor = ({
   // onChange is now driven by ytext.observe inside initYjs - no Monaco onChange needed.
 
   return (
-    <div className="h-full w-full bg-transparent">
+    <div className="relative h-full w-full bg-transparent">
+      {syncState !== "synced" && (
+        <div
+          className="pointer-events-none absolute right-3 top-2 z-10 flex items-center gap-1.5 rounded-full px-2 py-1 text-[9px] font-black uppercase tracking-widest"
+          style={{
+            background: "var(--sam-surface)",
+            border: "1px solid var(--sam-glass-border)",
+            color: "var(--sam-text-dim, var(--sam-text))",
+            opacity: 0.85
+          }}
+          title={
+            syncState === "offline"
+              ? "The collaboration server is unreachable. Your code is kept in this browser and will sync when the connection returns."
+              : "Connecting to the collaboration server."
+          }
+        >
+          <span
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: syncState === "offline" ? "#F59E0B" : "#3B82F6",
+              animation: syncState === "offline" ? "none" : "sam-pulse 1.4s ease-in-out infinite"
+            }}
+          />
+          {syncState === "offline" ? "Offline - saved locally" : "Connecting"}
+        </div>
+      )}
       <Editor
         theme={monacoTheme}
         language={monacoLanguage}
+        defaultValue={value ?? ""}
         onMount={handleMount}
         options={{
           minimap: { enabled: false },

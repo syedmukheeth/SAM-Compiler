@@ -29,6 +29,9 @@ const execStartCounts = new Map(); // socket.id -> { count, windowStart }
 const EXEC_START_LIMIT = 20;         // executions per socket per window
 const EXEC_START_WINDOW_MS = 60000;
 
+// Longest a Yjs handshake will wait for the persisted document to load.
+const HYDRATION_WAIT_MS = 3000;
+
 const isValidJobId = (jobId) => typeof jobId === "string" && /^[a-f0-9]{24}$/i.test(jobId);
 
 /**
@@ -210,8 +213,25 @@ function initSocket(server) {
     persistenceTimers.set(sessionId, timer);
   });
 
+  // Hydration is async, but y-socket.io emits "document-loaded" without
+  // awaiting its listeners and starts the sync handshake immediately after. The
+  // client therefore synced against an empty document, saw a blank editor, and
+  // (once its own fallback seeded a template) merged that seed with the state
+  // that arrived milliseconds later - the duplicated-template bug.
+  //
+  // Every hydration is recorded here so the namespace middleware below can wait
+  // for it before the connection - and thus the handshake - proceeds.
+  const hydrations = new Map(); // sessionId -> Promise
+
   // Pre-load state from DB when doc is first created
-  ysocket.on("document-loaded", async (doc) => {
+  ysocket.on("document-loaded", (doc) => {
+    const promise = hydrateDocument(doc).finally(() => {
+      if (hydrations.get(doc.name) === promise) hydrations.delete(doc.name);
+    });
+    hydrations.set(doc.name, promise);
+  });
+
+  async function hydrateDocument(doc) {
     try {
       const sessionId = doc.name;
       const state = await ProjectStateModel.findOne({ sessionId });
@@ -261,9 +281,38 @@ function initSocket(server) {
     } catch (err) {
       logger.error({ err, doc: doc.name }, "Failed to load/initialize Yjs state from MongoDB");
     }
-  });
+  }
 
   ysocket.initialize();
+
+  // Registered after initialize(), so it runs after y-socket.io's own auth
+  // middleware and before its connection handler starts the sync handshake.
+  // The document is created here rather than in that handler, which means the
+  // client's first sync sees the fully hydrated state.
+  // (`io.of(regex)` a second time would register a *second* parent namespace
+  // that never wins the match, so reuse y-socket.io's own.)
+  ysocket.nsp?.use(async (socket, next) => {
+    const sessionId = socket.nsp.name.replace(/^\/yjs\|/, "");
+    try {
+      await ysocket.initDocument(sessionId, socket.nsp);
+      // Bounded: with Mongo unreachable, findOne sits in mongoose's command
+      // buffer for its full timeout, and the editor must not wait that long for
+      // a handshake. A late-arriving state still reaches the client as a normal
+      // sync update.
+      const pending = hydrations.get(sessionId);
+      if (pending) {
+        await Promise.race([
+          pending,
+          new Promise((resolve) => setTimeout(resolve, HYDRATION_WAIT_MS))
+        ]);
+      }
+    } catch (err) {
+      // A failed hydration must not block editing: the client falls back to its
+      // local buffer and the room simply starts empty.
+      logger.error({ err, sessionId }, "Yjs pre-connection hydration failed");
+    }
+    next();
+  });
   
   // Dedicated Redis Subscriber for execution logs
   if (redis) {

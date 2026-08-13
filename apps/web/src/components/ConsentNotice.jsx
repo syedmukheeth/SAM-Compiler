@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { Cookie, X, ShieldCheck, ShieldAlert } from "lucide-react";
 
 export default function ConsentNotice() {
@@ -18,13 +18,15 @@ export default function ConsentNotice() {
     setIsVisible(false);
   };
 
+  // No AnimatePresence: exited children are never removed in this app, so a
+  // dismissed notice stayed in the DOM at z-index 130 over the bottom-right of
+  // the page and kept intercepting clicks there.
+  if (!isVisible) return null;
+
   return (
-    <AnimatePresence>
-      {isVisible && (
         <motion.div
           initial={{ y: 50, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          exit={{ y: 50, opacity: 0 }}
           style={{
             zIndex: 130,
             bottom: 'calc(var(--sam-mobile-nav-height) + 16px)'
@@ -79,7 +81,5 @@ export default function ConsentNotice() {
             </div>
           </div>
         </motion.div>
-      )}
-    </AnimatePresence>
   );
 }
