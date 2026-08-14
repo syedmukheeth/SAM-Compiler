@@ -12,6 +12,7 @@ const {
 const { authMiddleware } = require("../../middleware/auth.middleware");
 const { logger } = require("../../config/logger");
 const { env } = require("../../config/env");
+const { callbackURLFor } = require("../../config/oauthCallback");
 const passport = require("passport");
 const EmailService = require("../../services/email.service");
 
@@ -84,7 +85,14 @@ router.get("/github", (req, res, next) => {
       message: "GitHub Integration is not configured. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET to your environment variables." 
     });
   }
-  passport.authenticate("github", { scope: ["user:email", "repo"], session: false })(req, res, next);
+  // callbackURL is passed per request rather than relying on the strategy's
+  // construction-time value, so a base corrected at startup takes effect. It
+  // must match on the exchange below too - providers compare the two.
+  passport.authenticate("github", {
+    scope: ["user:email", "repo"],
+    session: false,
+    callbackURL: callbackURLFor("github")
+  })(req, res, next);
 });
 
 
@@ -92,16 +100,21 @@ router.get("/google", (req, res, next) => {
   if (!env.GOOGLE_CLIENT_ID || env.GOOGLE_CLIENT_ID === "placeholder") {
     return res.status(400).json({ message: "Google Social Login is not configured. Please add GOOGLE_CLIENT_ID to .env" });
   }
-  passport.authenticate("google", { scope: ["profile", "email"], session: false })(req, res, next);
+  passport.authenticate("google", {
+    scope: ["profile", "email"],
+    session: false,
+    callbackURL: callbackURLFor("google")
+  })(req, res, next);
 });
 
 // Social Auth Callbacks
 router.get("/github/callback", (req, res, next) => {
   const frontendUrl = webOrigin();
       
-  passport.authenticate("github", { 
-    failureRedirect: `${frontendUrl}/?error=auth_failed`, 
-    session: false 
+  passport.authenticate("github", {
+    failureRedirect: `${frontendUrl}/?error=auth_failed`,
+    session: false,
+    callbackURL: callbackURLFor("github")
   }, (err, user) => {
     if (err || !user) {
       return res.redirect(`${frontendUrl}/?error=auth_failed`);
@@ -116,9 +129,10 @@ router.get("/github/callback", (req, res, next) => {
 router.get("/google/callback", (req, res, next) => {
   const frontendUrl = webOrigin();
 
-  passport.authenticate("google", { 
-    failureRedirect: `${frontendUrl}/?error=auth_failed`, 
-    session: false 
+  passport.authenticate("google", {
+    failureRedirect: `${frontendUrl}/?error=auth_failed`,
+    session: false,
+    callbackURL: callbackURLFor("google")
   }, (err, user) => {
     if (err || !user) {
       return res.redirect(`${frontendUrl}/?error=auth_failed`);

@@ -1,17 +1,17 @@
 const passport = require("passport");
 const GitHubStrategy = require("passport-github2").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const { env, callbackUrlBase } = require("./env");
+const { env } = require("./env");
+const { callbackURLFor } = require("./oauthCallback");
 const User = require("../modules/auth/user.model");
 
-// Built from config/env's callbackUrlBase: an explicit CALLBACK_URL_BASE when
-// one is set, otherwise this instance's own origin. Reading env.CALLBACK_URL_BASE
-// directly here meant an unset variable produced ".../github/callback" against a
-// hardcoded hostname belonging to one particular deployment.
+// These values are only the strategies' defaults. The routes pass the current
+// callback URL per request, so a base corrected at startup (see
+// config/oauthCallback) applies without rebuilding the strategies.
 //
 // Whatever this resolves to must also be registered in the GitHub/Google
 // dashboards, e.g. https://your-api.onrender.com/api/auth/github/callback
-const getCallbackURL = (provider) => `${callbackUrlBase}/${provider}/callback`;
+const getCallbackURL = (provider) => callbackURLFor(provider);
 
 
 

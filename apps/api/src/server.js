@@ -1,6 +1,7 @@
 const http = require("http");
 const { logger } = require("./config/logger");
 const { env, publicBaseUrl, callbackUrlBase, callbackOrigin } = require("./config/env");
+const { overrideCallbackBase } = require("./config/oauthCallback");
 const { connectMongo } = require("./config/mongo");
 const { createApp, INSTANCE_ID } = require("./app");
 const { initSocket } = require("./modules/runs/socketHandler");
@@ -63,17 +64,24 @@ function verifyOAuthCallbackHost() {
 
       logger.error(
         { callbackUrlBase, status: res.statusCode, publicBaseUrl },
-        "OAuth callback host is NOT this instance - sign-in will drop users on the wrong host. " +
+        "OAuth callback host is NOT this instance - sign-in would drop users on the wrong host. " +
         `Set CALLBACK_URL_BASE to ${publicBaseUrl || "this service's origin"}/api/auth (or unset it to derive it ` +
         "automatically) and register the matching /api/auth/<provider>/callback URLs in the GitHub and Google dashboards."
       );
+
+      // A definite answer from something that is not this application: the
+      // configured host is disproven, so stop handing it to providers.
+      if (publicBaseUrl) overrideCallbackBase(`${publicBaseUrl}/api/auth`);
     });
   });
   req.setTimeout(10000, () => req.destroy());
   req.on("error", (err) => {
+    // Deliberately no override here: an unreachable host is usually a blip, and
+    // silently switching the callback on a transient failure would break a
+    // correctly configured custom domain.
     logger.error(
       { err: err.message, callbackUrlBase },
-      "OAuth callback host is unreachable - sign-in will fail. Check CALLBACK_URL_BASE."
+      "OAuth callback host is unreachable - sign-in may fail. Check CALLBACK_URL_BASE."
     );
   });
 }
