@@ -17,6 +17,15 @@ const crypto = require("crypto");
 // Identifies this process for the OAuth callback self-check (see /api/health).
 const INSTANCE_ID = crypto.randomUUID();
 
+// Render and Vercel both expose the built commit; short form is enough to match
+// against `git log`.
+const DEPLOYED_COMMIT = (
+  process.env.RENDER_GIT_COMMIT ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  process.env.GIT_COMMIT ||
+  ""
+).slice(0, 7) || null;
+
 
 function createApp() {
   const app = express();
@@ -89,6 +98,10 @@ function createApp() {
   app.get("/api/health", (_req, res) => res.json({
     status: "ok",
     instance: INSTANCE_ID,
+    // Which build is actually running. Without this, confirming that a push
+    // reached production takes dashboard access; the repository is public, so
+    // the commit it was built from is not a secret. Null off-platform.
+    commit: DEPLOYED_COMMIT,
     timestamp: new Date().toISOString()
   }));
 
@@ -162,6 +175,16 @@ function createApp() {
   app.get("/{*splat}", (req, res) => {
     // Skip if it's an API request that 404'd
     if (req.url.startsWith("/api/")) return res.status(404).json({ message: "API endpoint not found" });
+
+    // A missing build artefact is not a route. Serving the SPA shell for
+    // /assets/* meant every stale or mistyped asset URL answered "200 OK" with
+    // HTML: browsers reported a MIME error instead of a 404, and any check of
+    // "is this file in the deployed build?" silently answered yes for
+    // everything - which is exactly how a deploy was misdiagnosed from outside.
+    if (req.path.startsWith("/assets/")) {
+      return res.status(404).type("text/plain").send("Not found");
+    }
+
     res.setHeader("Cache-Control", "no-cache");
     res.sendFile(path.join(distPath, "index.html"));
   });
