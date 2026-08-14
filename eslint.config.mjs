@@ -70,9 +70,10 @@ export default [
       "react-refresh/only-export-components": ["warn", { allowConstantExport: true }]
     }
   },
-  // Node/CommonJS config files
+  // Build/tooling config files. These run in Node even inside apps/web, so they
+  // need `process` - vite.config.js reads it to make sourcemaps opt-in.
   {
-    files: ["**/*.cjs", "**/postcss.config.*", "**/tailwind.config.*"],
+    files: ["**/*.cjs", "**/postcss.config.*", "**/tailwind.config.*", "**/vite.config.*"],
     languageOptions: {
       globals: {
         module: "readonly",

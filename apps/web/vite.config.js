@@ -22,7 +22,14 @@ export default defineConfig({
   build: {
     // Raise the warning threshold - Monaco is inherently large and can't be eliminated
     chunkSizeWarningLimit: 1000,
-    sourcemap: true,
+    // Off by default. Generating maps for this dependency set costs ~16MB of
+    // output (9.4MB for Monaco alone) and the peak memory to build them, which
+    // a 512MB Render instance does not have - the deploy dies mid-build while
+    // CI, on a far larger runner, passes.
+    //
+    // Set SOURCEMAP=true to get them back when a production stack trace needs
+    // decoding; `npm run dev` is unaffected and always has them.
+    sourcemap: process.env.SOURCEMAP === "true",
     rollupOptions: {
       output: {
         manualChunks: (id) => {
