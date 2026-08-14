@@ -46,14 +46,24 @@ Render stops a free instance after 15 idle minutes; the next visitor waits
 ~30-60s for it to boot. The editor stays usable during that wait (it falls back
 to local editing and says so), but to avoid the wait altogether:
 
-- **Keep it warm for free**: the `.github/workflows/keep-alive.yml` workflow
-  pings the service every 10 minutes and needs no setup - it defaults to this
-  repository's own deployment and only runs on the upstream repository, so forks
-  never ping it. Point it elsewhere by setting the repository variable
-  `KEEP_ALIVE_URL` (*Settings -> Secrets and variables -> Actions -> Variables*)
-  to `https://<your-service>.onrender.com/api/health`. Note this keeps the
-  instance running nearly around the clock, which consumes most of the free 750
-  instance-hours a month - fine for one service, not for two.
+- **Keep it warm for free**: `.github/workflows/keep-alive.yml` needs no setup -
+  it defaults to this repository's own deployment and only runs on the upstream
+  repository, so forks never ping it. Point it elsewhere with the repository
+  variable `KEEP_ALIVE_URL` (*Settings -> Secrets and variables -> Actions ->
+  Variables*).
+
+  Each run pings every 5 minutes for ~55 minutes rather than once, because
+  GitHub throttles scheduled workflows: this repository's `*/10` cron was
+  observed dispatching at 50-86 minute gaps, which on its own would leave the
+  service asleep for most of that. Coverage now depends on a new run starting
+  roughly hourly, not on the cron being punctual.
+
+  This keeps the instance running nearly around the clock, which consumes most
+  of the free 750 instance-hours a month - fine for one service, not for two.
+
+- **Or use an external uptime monitor** (UptimeRobot, cron-job.org and similar
+  ping on a real 5-minute schedule). More dependable than GitHub's scheduler if
+  cold starts matter enough to warrant the extra account.
 - **Or pay for it**: a Starter instance never idles out, which is the only way
   to remove cold starts entirely.
 

@@ -6,8 +6,10 @@ name: Keep alive
 # external request is the only thing that both prevents the idle-out and wakes
 # a stopped instance, so this pings the health endpoint from GitHub's runners.
 #
-# Scheduled workflows are queued, not exact - a */10 cron often fires a few
-# minutes late, which is why the interval sits well under the 15-minute window.
+# GitHub throttles scheduled workflows hard: this repository's */10 cron was
+# observed dispatching at 50-86 minute gaps, far outside the 15-minute idle
+# window. So a run does not ping once and exit - it pings every 5 minutes for
+# ~55 minutes, and the cron only has to start a fresh one before the last ends.
 #
 # Targets this repository's own deployment by default, so nothing has to be
 # configured for it to work. Set the repository variable KEEP_ALIVE_URL to point
@@ -30,30 +32,50 @@ jobs:
     name: Ping API
     if: github.repository == 'syedmukheeth/SAM-Compiler'
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # Each run pings for the best part of an hour rather than once, so coverage
+    # does not depend on when the next scheduled run is actually dispatched.
+    timeout-minutes: 60
     steps:
-      - name: Ping health endpoint
+      - name: Ping health endpoint on a loop
         env:
           KEEP_ALIVE_URL: ${{ vars.KEEP_ALIVE_URL || 'https://sam-compiler.onrender.com/api/health' }}
+          # One ping per interval, well inside the 15-minute idle window.
+          PING_INTERVAL_SECONDS: "300"
+          # Stop before the job timeout so the run ends cleanly.
+          RUN_FOR_SECONDS: "3300"
         run: |
           set -u
           if [ -z "${KEEP_ALIVE_URL}" ]; then
             echo "KEEP_ALIVE_URL is empty; nothing to ping."
             exit 0
           fi
-          echo "Pinging ${KEEP_ALIVE_URL}"
 
-          # A cold instance can take ~60s to answer, so allow a long timeout and
-          # a couple of retries before calling it a failure.
-          for attempt in 1 2 3; do
+          echo "Pinging ${KEEP_ALIVE_URL} every ${PING_INTERVAL_SECONDS}s for ${RUN_FOR_SECONDS}s"
+          deadline=$(( $(date +%s) + RUN_FOR_SECONDS ))
+          failures=0
+          pings=0
+
+          while [ "$(date +%s)" -lt "${deadline}" ]; do
+            # A cold instance can take ~60s to answer, hence the long timeout.
             status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 "${KEEP_ALIVE_URL}" || echo "000")
-            echo "Attempt ${attempt}: HTTP ${status}"
+            pings=$(( pings + 1 ))
             if [ "${status}" = "200" ]; then
-              echo "Instance is awake."
-              exit 0
+              echo "$(date -u +%H:%M:%S) awake (HTTP ${status})"
+            else
+              failures=$(( failures + 1 ))
+              echo "$(date -u +%H:%M:%S) NOT awake (HTTP ${status})"
             fi
-            sleep 15
+            sleep "${PING_INTERVAL_SECONDS}"
           done
 
-          echo "::warning::${KEEP_ALIVE_URL} did not return 200 after 3 attempts (last status ${status})."
-          exit 1
+          echo "Completed ${pings} pings, ${failures} failed."
+          # Only a total outage is worth failing the run: isolated misses are
+          # usually a deploy restarting, and a red run per blip trains everyone
+          # to ignore this workflow.
+          if [ "${failures}" -eq "${pings}" ]; then
+            echo "::error::${KEEP_ALIVE_URL} never answered across ${pings} attempts."
+            exit 1
+          fi
+          if [ "${failures}" -gt 0 ]; then
+            echo "::warning::${failures} of ${pings} pings did not return 200."
+          fi
