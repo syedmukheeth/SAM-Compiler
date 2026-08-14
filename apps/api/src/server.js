@@ -1,6 +1,6 @@
 const http = require("http");
 const { logger } = require("./config/logger");
-const { env } = require("./config/env");
+const { env, publicBaseUrl } = require("./config/env");
 const { connectMongo } = require("./config/mongo");
 const { createApp } = require("./app");
 const { initSocket } = require("./modules/runs/socketHandler");
@@ -26,8 +26,31 @@ async function main() {
 
   const io = initSocket(server);
 
-  // HEARTBEAT: Prevent Render/Railway from sleeping (Self-Warming)
-  const publicBaseUrl = env.CALLBACK_URL_BASE ? env.CALLBACK_URL_BASE.split('/api/auth')[0] : null;
+  // HEARTBEAT: keep Render/Railway from idling this instance out.
+  //
+  // The target now comes from config/env (RENDER_EXTERNAL_URL first), not from
+  // CALLBACK_URL_BASE. Production had CALLBACK_URL_BASE pointing at
+  // `sam-compiler-api.onrender.com` - a hostname that resolves to Render's 404
+  // page - so every pulse "succeeded" against a service that was not this one
+  // and the instance still went to sleep after 15 idle minutes.
+  //
+  // A self-ping can only keep a *running* instance awake; nothing inside the
+  // process can wake it once the platform has stopped it. The scheduled
+  // keep-alive workflow in .github/workflows is what covers that case.
+  if (!publicBaseUrl) {
+    logger.warn("No public base URL (RENDER_EXTERNAL_URL / PUBLIC_BASE_URL). External heartbeat disabled; the instance will idle out.");
+  } else {
+    const callbackOrigin = (env.CALLBACK_URL_BASE || "").split("/api/auth")[0];
+    if (callbackOrigin && callbackOrigin !== publicBaseUrl) {
+      // Same mismatch breaks OAuth: providers redirect back to whatever
+      // CALLBACK_URL_BASE says, and that host has to be this service.
+      logger.warn(
+        { publicBaseUrl, callbackOrigin },
+        "CALLBACK_URL_BASE does not point at this instance. OAuth callbacks will land on the wrong host - set it to " +
+        `${publicBaseUrl}/api/auth and update the GitHub/Google dashboards to match.`
+      );
+    }
+  }
 
   // Timeouts added: these were previously unbounded, so a hung heartbeat
   // request leaked a socket every 5 minutes for the life of the process.
@@ -40,21 +63,29 @@ async function main() {
     localReq.setTimeout(HEARTBEAT_TIMEOUT_MS, () => localReq.destroy());
     localReq.on("error", () => {});
 
-    // 2. External Ping (Public URL) - CRITICAL for Render/Railway load balancer activity
-    if (publicBaseUrl && publicBaseUrl.startsWith('http')) {
+    // 2. External Ping (Public URL) - this is the one the platform counts as
+    // inbound traffic, which is what resets the idle timer.
+    if (publicBaseUrl) {
       const publicUrl = `${publicBaseUrl}/api/health`;
       const client = publicUrl.startsWith('https') ? require('https') : http;
 
       const req = client.get(publicUrl, (res) => {
         res.resume();
-        logger.info({ status: res.statusCode }, "External heartbeat pulse successful");
+        // A 404 here means the URL is not this service - worth saying out loud
+        // rather than logging it as a healthy pulse, which is how the broken
+        // hostname went unnoticed.
+        if (res.statusCode >= 400) {
+          logger.warn({ status: res.statusCode, publicUrl }, "Heartbeat reached a non-OK endpoint; check the public URL");
+        } else {
+          logger.debug({ status: res.statusCode }, "External heartbeat pulse successful");
+        }
       });
       req.setTimeout(HEARTBEAT_TIMEOUT_MS, () => req.destroy());
       req.on("error", (err) => {
         logger.warn({ err: err.message }, "External heartbeat pulse failed (Expected if engine is cold)");
       });
     }
-  }, 5 * 60 * 1000); // Pulse every 5 minutes for aggressive warming
+  }, 5 * 60 * 1000); // Pulse every 5 minutes; platforms idle out at 15.
 
   server.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: process.env.NODE_ENV || "development" }, "SAM Compiler API listening");

@@ -1,0 +1,52 @@
+name: Keep alive
+
+# Render's free tier stops the instance after 15 idle minutes, and the next
+# visitor waits ~30-60s for it to boot. The API's own heartbeat cannot help
+# there: once the platform has stopped the process, nothing inside it runs. An
+# external request is the only thing that both prevents the idle-out and wakes
+# a stopped instance, so this pings the health endpoint from GitHub's runners.
+#
+# Scheduled workflows are queued, not exact - a */10 cron often fires a few
+# minutes late, which is why the interval sits well under the 15-minute window.
+#
+# Set the repository variable KEEP_ALIVE_URL to the health endpoint of the
+# deployment to keep warm. Without it the job no-ops instead of guessing.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  group: keep-alive
+  cancel-in-progress: true
+
+jobs:
+  ping:
+    name: Ping API
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Ping health endpoint
+        env:
+          KEEP_ALIVE_URL: ${{ vars.KEEP_ALIVE_URL }}
+        run: |
+          set -u
+          if [ -z "${KEEP_ALIVE_URL}" ]; then
+            echo "KEEP_ALIVE_URL repository variable is not set; nothing to ping."
+            exit 0
+          fi
+
+          # A cold instance can take ~60s to answer, so allow a long timeout and
+          # a couple of retries before calling it a failure.
+          for attempt in 1 2 3; do
+            status=$(curl -sS -o /dev/null -w '%{http_code}' --max-time 90 "${KEEP_ALIVE_URL}" || echo "000")
+            echo "Attempt ${attempt}: HTTP ${status}"
+            if [ "${status}" = "200" ]; then
+              echo "Instance is awake."
+              exit 0
+            fi
+            sleep 15
+          done
+
+          echo "::warning::${KEEP_ALIVE_URL} did not return 200 after 3 attempts (last status ${status})."
+          exit 1

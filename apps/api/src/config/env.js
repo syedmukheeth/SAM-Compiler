@@ -59,5 +59,24 @@ if (!result.success) {
 const isVercel = !!process.env.VERCEL;
 const isProduction = process.env.NODE_ENV === "production";
 
-module.exports = { env, isVercel, isProduction };
+/**
+ * The origin this instance is actually reachable at.
+ *
+ * Render injects RENDER_EXTERNAL_URL with the service's real hostname, so it
+ * cannot drift. CALLBACK_URL_BASE is the last resort because it is typed by
+ * hand: production had it pointing at `sam-compiler-api.onrender.com`, a host
+ * that does not exist, which silently aimed the keep-alive heartbeat (and the
+ * OAuth callbacks) at a 404 - so the free instance was never held awake and
+ * every visitor paid a cold start.
+ */
+const publicBaseUrl = (() => {
+  const candidate =
+    process.env.RENDER_EXTERNAL_URL ||
+    process.env.PUBLIC_BASE_URL ||
+    (env.CALLBACK_URL_BASE ? env.CALLBACK_URL_BASE.split("/api/auth")[0] : "");
+  const trimmed = (candidate || "").trim().replace(/\/+$/, "");
+  return /^https?:\/\//.test(trimmed) ? trimmed : null;
+})();
+
+module.exports = { env, isVercel, isProduction, publicBaseUrl };
 

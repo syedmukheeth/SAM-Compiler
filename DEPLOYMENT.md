@@ -23,12 +23,39 @@ Render is the simplest way to host the SAM API and the built React Web App toget
 | `MONGO_URI` | `mongodb+srv://...` |
 | `REDIS_URL` | `rediss://...` (Must use rediss:// for Upstash TLS) |
 | `WEB_ORIGIN` | `https://sam-compiler-web.vercel.app` (Required if hosting frontend on Vercel) |
-| `CALLBACK_URL_BASE` | `https://sam-compiler-api.onrender.com/api/auth` |
+| `CALLBACK_URL_BASE` | `https://<your-service>.onrender.com/api/auth` - **must be this service's own hostname** |
 | `GITHUB_CLIENT_ID` | Your ID |
 | `GITHUB_CLIENT_SECRET` | Your Secret |
 | `GOOGLE_CLIENT_ID` | Your ID |
 | `GOOGLE_CLIENT_SECRET` | Your Secret |
 | `GEMINI_API_KEY` | Your AI Key |
+
+> **Get the hostname right.** `CALLBACK_URL_BASE` must be the origin this
+> service actually answers on. Pointing it at a hostname that does not exist
+> breaks OAuth (providers redirect users to a 404) and used to break the
+> keep-alive heartbeat, which was derived from the same value. The heartbeat now
+> prefers Render's own `RENDER_EXTERNAL_URL`, and the API logs a warning at boot
+> when `CALLBACK_URL_BASE` disagrees with it - check the logs after a deploy.
+
+### 3. Cold starts on the free tier
+
+Render stops a free instance after 15 idle minutes; the next visitor waits
+~30-60s for it to boot. The editor stays usable during that wait (it falls back
+to local editing and says so), but to avoid the wait altogether:
+
+- **Keep it warm for free**: the `.github/workflows/keep-alive.yml` workflow
+  pings the service every 10 minutes. Set the repository variable
+  `KEEP_ALIVE_URL` to `https://<your-service>.onrender.com/api/health`
+  (*Settings -> Secrets and variables -> Actions -> Variables*). Without that
+  variable the workflow no-ops. Note this keeps the instance running nearly
+  around the clock, which consumes most of the free 750 instance-hours a month -
+  fine for one service, not for two.
+- **Or pay for it**: a Starter instance never idles out, which is the only way
+  to remove cold starts entirely.
+
+The API's own heartbeat cannot solve this on its own: once the platform has
+stopped the process, nothing inside it runs. It only prevents a *running*
+instance from going idle.
 
 ---
 
@@ -44,14 +71,16 @@ Render is the simplest way to host the SAM API and the built React Web App toget
 
 For authentication to work, you **must** update your developer dashboards with the exact callback URLs that include the `/api` prefix:
 
+Use the same hostname you set in `CALLBACK_URL_BASE`.
+
 ### GitHub (Authorization callback URL)
 ```bash
-https://sam-compiler-api.onrender.com/api/auth/github/callback
+https://<your-service>.onrender.com/api/auth/github/callback
 ```
 
 ### Google (Authorized redirect URIs)
 ```bash
-https://sam-compiler-api.onrender.com/api/auth/google/callback
+https://<your-service>.onrender.com/api/auth/google/callback
 ```
 
 ---
