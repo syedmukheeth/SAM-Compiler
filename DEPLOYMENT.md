@@ -47,12 +47,13 @@ Render stops a free instance after 15 idle minutes; the next visitor waits
 to local editing and says so), but to avoid the wait altogether:
 
 - **Keep it warm for free**: the `.github/workflows/keep-alive.yml` workflow
-  pings the service every 10 minutes. Set the repository variable
-  `KEEP_ALIVE_URL` to `https://<your-service>.onrender.com/api/health`
-  (*Settings -> Secrets and variables -> Actions -> Variables*). Without that
-  variable the workflow no-ops. Note this keeps the instance running nearly
-  around the clock, which consumes most of the free 750 instance-hours a month -
-  fine for one service, not for two.
+  pings the service every 10 minutes and needs no setup - it defaults to this
+  repository's own deployment and only runs on the upstream repository, so forks
+  never ping it. Point it elsewhere by setting the repository variable
+  `KEEP_ALIVE_URL` (*Settings -> Secrets and variables -> Actions -> Variables*)
+  to `https://<your-service>.onrender.com/api/health`. Note this keeps the
+  instance running nearly around the clock, which consumes most of the free 750
+  instance-hours a month - fine for one service, not for two.
 - **Or pay for it**: a Starter instance never idles out, which is the only way
   to remove cold starts entirely.
 

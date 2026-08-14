@@ -9,8 +9,13 @@ name: Keep alive
 # Scheduled workflows are queued, not exact - a */10 cron often fires a few
 # minutes late, which is why the interval sits well under the 15-minute window.
 #
-# Set the repository variable KEEP_ALIVE_URL to the health endpoint of the
-# deployment to keep warm. Without it the job no-ops instead of guessing.
+# Targets this repository's own deployment by default, so nothing has to be
+# configured for it to work. Set the repository variable KEEP_ALIVE_URL to point
+# somewhere else (a rename, a custom domain, a staging service).
+#
+# The job only runs on the upstream repository: a fork must not send its
+# scheduled traffic to somebody else's service, and GitHub keeps schedules
+# enabled on forks.
 on:
   schedule:
     - cron: "*/10 * * * *"
@@ -23,18 +28,20 @@ concurrency:
 jobs:
   ping:
     name: Ping API
+    if: github.repository == 'syedmukheeth/SAM-Compiler'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
       - name: Ping health endpoint
         env:
-          KEEP_ALIVE_URL: ${{ vars.KEEP_ALIVE_URL }}
+          KEEP_ALIVE_URL: ${{ vars.KEEP_ALIVE_URL || 'https://sam-compiler.onrender.com/api/health' }}
         run: |
           set -u
           if [ -z "${KEEP_ALIVE_URL}" ]; then
-            echo "KEEP_ALIVE_URL repository variable is not set; nothing to ping."
+            echo "KEEP_ALIVE_URL is empty; nothing to ping."
             exit 0
           fi
+          echo "Pinging ${KEEP_ALIVE_URL}"
 
           # A cold instance can take ~60s to answer, so allow a long timeout and
           # a couple of retries before calling it a failure.
