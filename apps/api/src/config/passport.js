@@ -1,18 +1,17 @@
 const passport = require("passport");
 const GitHubStrategy = require("passport-github2").Strategy;
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
-const { env } = require("./env");
+const { env, callbackUrlBase } = require("./env");
 const User = require("../modules/auth/user.model");
 
-// Built from CALLBACK_URL_BASE so the same code works locally, on staging and
-// in production. It was hardcoded to one Render domain, which meant OAuth could
-// never complete anywhere else, including local development.
-// CALLBACK_URL_BASE must match the callback registered in the GitHub/Google
-// dashboards, e.g. https://your-api.onrender.com/api/auth
-const getCallbackURL = (provider) => {
-  const base = (env.CALLBACK_URL_BASE || "").replace(/\/+$/, "");
-  return `${base}/${provider}/callback`;
-};
+// Built from config/env's callbackUrlBase: an explicit CALLBACK_URL_BASE when
+// one is set, otherwise this instance's own origin. Reading env.CALLBACK_URL_BASE
+// directly here meant an unset variable produced ".../github/callback" against a
+// hardcoded hostname belonging to one particular deployment.
+//
+// Whatever this resolves to must also be registered in the GitHub/Google
+// dashboards, e.g. https://your-api.onrender.com/api/auth/github/callback
+const getCallbackURL = (provider) => `${callbackUrlBase}/${provider}/callback`;
 
 
 

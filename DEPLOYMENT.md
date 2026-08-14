@@ -23,19 +23,22 @@ Render is the simplest way to host the SAM API and the built React Web App toget
 | `MONGO_URI` | `mongodb+srv://...` |
 | `REDIS_URL` | `rediss://...` (Must use rediss:// for Upstash TLS) |
 | `WEB_ORIGIN` | `https://sam-compiler-web.vercel.app` (Required if hosting frontend on Vercel) |
-| `CALLBACK_URL_BASE` | `https://<your-service>.onrender.com/api/auth` - **must be this service's own hostname** |
+| `CALLBACK_URL_BASE` | Optional. Leave unset and it is derived from `RENDER_EXTERNAL_URL`. Only set it when a custom domain fronts the service, and then it **must** be that domain. |
 | `GITHUB_CLIENT_ID` | Your ID |
 | `GITHUB_CLIENT_SECRET` | Your Secret |
 | `GOOGLE_CLIENT_ID` | Your ID |
 | `GOOGLE_CLIENT_SECRET` | Your Secret |
 | `GEMINI_API_KEY` | Your AI Key |
 
-> **Get the hostname right.** `CALLBACK_URL_BASE` must be the origin this
-> service actually answers on. Pointing it at a hostname that does not exist
-> breaks OAuth (providers redirect users to a 404) and used to break the
-> keep-alive heartbeat, which was derived from the same value. The heartbeat now
-> prefers Render's own `RENDER_EXTERNAL_URL`, and the API logs a warning at boot
-> when `CALLBACK_URL_BASE` disagrees with it - check the logs after a deploy.
+> **Get the hostname right.** Whatever `CALLBACK_URL_BASE` resolves to is where
+> OAuth providers hand users back, so it has to be an origin this service
+> answers on. Pointing it at a hostname that does not exist sends everyone who
+> signs in to a 404, and it used to break the keep-alive heartbeat too, since
+> that was derived from the same value.
+>
+> Both now prefer Render's own `RENDER_EXTERNAL_URL`, and at boot the API probes
+> the callback host and logs `OAuth callback host verified` - or an error naming
+> the exact value to fix. Check the deploy logs for that line.
 
 ### 3. Cold starts on the free tier
 

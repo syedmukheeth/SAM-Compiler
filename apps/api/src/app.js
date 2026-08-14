@@ -12,6 +12,10 @@ const { authRouter } = require("./modules/auth/auth.routes");
 const { aiRouter } = require("./modules/ai/ai.routes");
 const { originChecker } = require("./config/cors");
 const path = require("path");
+const crypto = require("crypto");
+
+// Identifies this process for the OAuth callback self-check (see /api/health).
+const INSTANCE_ID = crypto.randomUUID();
 
 
 function createApp() {
@@ -79,7 +83,14 @@ function createApp() {
   // Health check - moved from root to avoid conflict with frontend.
   // No longer reports NODE_ENV: an unauthenticated endpoint should not disclose
   // deployment configuration.
-  app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
+  // `instance` is a random per-boot id, not deployment configuration: it lets
+  // the startup self-check below tell "the OAuth callback host is me" from "the
+  // callback host is some other service that happens to answer".
+  app.get("/api/health", (_req, res) => res.json({
+    status: "ok",
+    instance: INSTANCE_ID,
+    timestamp: new Date().toISOString()
+  }));
 
   // Both prefixes are served so the endpoints survive proxy path rewriting.
   // These were previously registered twice each - once for /api only, then
@@ -178,3 +189,4 @@ const app = createApp();
 
 module.exports = app;
 module.exports.createApp = createApp;
+module.exports.INSTANCE_ID = INSTANCE_ID;

@@ -16,7 +16,11 @@ const EnvSchema = z.object({
   GITHUB_CLIENT_SECRET: z.string().trim().optional(),
   GOOGLE_CLIENT_ID: z.string().trim().optional(),
   GOOGLE_CLIENT_SECRET: z.string().trim().optional(),
-  CALLBACK_URL_BASE: z.string().trim().default("https://sam-compiler.onrender.com/api/auth"),
+  // Deliberately has no default. It used to fall back to one specific Render
+  // hostname, so any other deployment silently built OAuth callbacks pointing
+  // at somebody else's service. When unset it is now derived from the origin
+  // this instance actually answers on (see callbackUrlBase below).
+  CALLBACK_URL_BASE: z.string().trim().optional(),
   GEMINI_API_KEY: z.string().trim().min(1),
   OPENAI_API_KEYS: z.string().trim().optional(), // Comma-separated list for rotation
   GEMINI_MODEL: z.string().trim().default("gemini-2.5-flash")
@@ -78,5 +82,31 @@ const publicBaseUrl = (() => {
   return /^https?:\/\//.test(trimmed) ? trimmed : null;
 })();
 
-module.exports = { env, isVercel, isProduction, publicBaseUrl };
+/**
+ * Where OAuth providers send the user back. This is the value that must also be
+ * registered in the GitHub and Google dashboards.
+ *
+ * An explicit CALLBACK_URL_BASE still wins, because a deployment can legitimately
+ * sit behind a custom domain that RENDER_EXTERNAL_URL knows nothing about. When
+ * it is not set we derive it from this instance's own origin rather than a
+ * hardcoded hostname, and local development falls back to localhost so the OAuth
+ * flow can be exercised there at all.
+ */
+const callbackUrlBase = (() => {
+  const explicit = (env.CALLBACK_URL_BASE || "").trim().replace(/\/+$/, "");
+  if (explicit) return explicit;
+  const origin = publicBaseUrl || `http://localhost:${env.PORT}`;
+  return `${origin}/api/auth`;
+})();
+
+/** Origin part of the callback base, for comparing against this instance. */
+const callbackOrigin = (() => {
+  try {
+    return new URL(callbackUrlBase).origin;
+  } catch {
+    return null;
+  }
+})();
+
+module.exports = { env, isVercel, isProduction, publicBaseUrl, callbackUrlBase, callbackOrigin };
 

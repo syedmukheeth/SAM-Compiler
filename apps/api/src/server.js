@@ -1,8 +1,8 @@
 const http = require("http");
 const { logger } = require("./config/logger");
-const { env, publicBaseUrl } = require("./config/env");
+const { env, publicBaseUrl, callbackUrlBase, callbackOrigin } = require("./config/env");
 const { connectMongo } = require("./config/mongo");
-const { createApp } = require("./app");
+const { createApp, INSTANCE_ID } = require("./app");
 const { initSocket } = require("./modules/runs/socketHandler");
 
 // Neither app had these. On Node >= 15 an unhandled rejection terminates the
@@ -14,6 +14,69 @@ process.on("uncaughtException", (err) => {
   logger.fatal({ err }, "Uncaught exception - exiting");
   process.exit(1);
 });
+
+/**
+ * Confirms the host OAuth providers will redirect users back to is this
+ * service, and says exactly what to change when it is not.
+ *
+ * Production ran for months with CALLBACK_URL_BASE pointing at
+ * `sam-compiler-api.onrender.com`, which is not a deployed service: users who
+ * signed in with GitHub authorised successfully and were then handed to a 404.
+ * Nothing in the logs said so, because nothing ever checked. A custom domain in
+ * front of the service is legitimate, so this probes rather than assumes - a
+ * working custom domain answers with this instance's id and stays quiet.
+ *
+ * Never blocks startup: it runs after listen and only ever logs.
+ */
+function verifyOAuthCallbackHost() {
+  if (!callbackOrigin) {
+    logger.error({ callbackUrlBase }, "OAuth callback base is not a valid URL; sign-in will fail");
+    return;
+  }
+  // Local development has no public host to check against.
+  if (callbackOrigin.startsWith("http://localhost")) return;
+
+  const client = callbackOrigin.startsWith("https") ? require("https") : http;
+  const req = client.get(`${callbackOrigin}/api/health`, (res) => {
+    let body = "";
+    res.setEncoding("utf8");
+    res.on("data", (chunk) => { if (body.length < 2048) body += chunk; });
+    res.on("end", () => {
+      let payload = null;
+      try { payload = JSON.parse(body); } catch { /* not our health payload */ }
+
+      if (res.statusCode === 200 && payload?.instance === INSTANCE_ID) {
+        logger.info({ callbackUrlBase }, "OAuth callback host verified");
+        return;
+      }
+
+      // Behind a load balancer the probe can land on a sibling of this service:
+      // a different instance id, but unmistakably the same application. That is
+      // a correct configuration, so it must not be reported as a broken one.
+      if (res.statusCode === 200 && payload?.status === "ok" && typeof payload.instance === "string") {
+        logger.info(
+          { callbackUrlBase },
+          "OAuth callback host verified (answered by another instance of this service)"
+        );
+        return;
+      }
+
+      logger.error(
+        { callbackUrlBase, status: res.statusCode, publicBaseUrl },
+        "OAuth callback host is NOT this instance - sign-in will drop users on the wrong host. " +
+        `Set CALLBACK_URL_BASE to ${publicBaseUrl || "this service's origin"}/api/auth (or unset it to derive it ` +
+        "automatically) and register the matching /api/auth/<provider>/callback URLs in the GitHub and Google dashboards."
+      );
+    });
+  });
+  req.setTimeout(10000, () => req.destroy());
+  req.on("error", (err) => {
+    logger.error(
+      { err: err.message, callbackUrlBase },
+      "OAuth callback host is unreachable - sign-in will fail. Check CALLBACK_URL_BASE."
+    );
+  });
+}
 
 async function main() {
   // Fire and forget connection to MongoDB - Mongoose handles the queue/retry
@@ -39,17 +102,6 @@ async function main() {
   // keep-alive workflow in .github/workflows is what covers that case.
   if (!publicBaseUrl) {
     logger.warn("No public base URL (RENDER_EXTERNAL_URL / PUBLIC_BASE_URL). External heartbeat disabled; the instance will idle out.");
-  } else {
-    const callbackOrigin = (env.CALLBACK_URL_BASE || "").split("/api/auth")[0];
-    if (callbackOrigin && callbackOrigin !== publicBaseUrl) {
-      // Same mismatch breaks OAuth: providers redirect back to whatever
-      // CALLBACK_URL_BASE says, and that host has to be this service.
-      logger.warn(
-        { publicBaseUrl, callbackOrigin },
-        "CALLBACK_URL_BASE does not point at this instance. OAuth callbacks will land on the wrong host - set it to " +
-        `${publicBaseUrl}/api/auth and update the GitHub/Google dashboards to match.`
-      );
-    }
   }
 
   // Timeouts added: these were previously unbounded, so a hung heartbeat
@@ -89,6 +141,7 @@ async function main() {
 
   server.listen(env.PORT, () => {
     logger.info({ port: env.PORT, env: process.env.NODE_ENV || "development" }, "SAM Compiler API listening");
+    verifyOAuthCallbackHost();
   });
 
   // GRACEFUL SHUTDOWN: Ensure we don't drop active runs or Yjs updates on redeploy.
