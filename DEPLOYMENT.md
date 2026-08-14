@@ -61,9 +61,23 @@ to local editing and says so), but to avoid the wait altogether:
   This keeps the instance running nearly around the clock, which consumes most
   of the free 750 instance-hours a month - fine for one service, not for two.
 
-- **Or use an external uptime monitor** (UptimeRobot, cron-job.org and similar
-  ping on a real 5-minute schedule). More dependable than GitHub's scheduler if
-  cold starts matter enough to warrant the extra account.
+- **Or use an external uptime monitor** - the dependable option, because it
+  pings on a real schedule instead of GitHub's throttled one. UptimeRobot's free
+  tier covers this; so do cron-job.org and Better Stack. Setup, once:
+
+  | Field | Value |
+  | :--- | :--- |
+  | Monitor type | HTTP(s) |
+  | URL | `https://<your-service>.onrender.com/api/health` |
+  | Interval | 5 minutes (free minimum; must stay under Render's 15) |
+  | Keyword (optional) | `"status":"ok"` - catches a 200 served by a broken build |
+  | Alerts | your email, so a genuinely down service is not mistaken for a cold start |
+
+  Point it at `/api/health` rather than `/`: it is the cheapest route, returns
+  no HTML, and its payload now carries the running commit. Once this is in
+  place the GitHub workflow is redundant - disable it in *Actions* if you would
+  rather not spend the instance hours twice.
+
 - **Or pay for it**: a Starter instance never idles out, which is the only way
   to remove cold starts entirely.
 
