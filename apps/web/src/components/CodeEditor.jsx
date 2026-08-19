@@ -1,10 +1,41 @@
 import React, { useCallback, useMemo, useRef, useEffect, useState } from "react";
-import Editor from "@monaco-editor/react";
+import Editor, { loader } from "@monaco-editor/react";
 import * as Y from "yjs";
 import { MonacoBinding } from "y-monaco";
 import { SocketIOProvider } from "y-socket.io";
 import ENDPOINTS from "../services/endpoints";
 import toast from "react-hot-toast";
+
+// Monaco was being downloaded TWICE. `y-monaco` imports
+// monaco-editor/esm/vs/editor/editor.api.js, so Vite bundled a full local
+// Monaco into the `monaco` chunk (~630KB gzipped) and the app fetched it on
+// load. But @monaco-editor/react defaults to pulling its OWN copy from
+// jsDelivr, so that local chunk was downloaded and then thrown away while the
+// editor actually rendered from a four-deep serialised CDN chain
+// (loader.js -> editor.main.js -> contributions -> editor.api, ~1MB more)
+// that did not start until ~1.3s and did not settle until ~3.0s. The editor is
+// the largest element on the page, so LCP could not happen until it finished.
+//
+// Pointing the loader at the copy that is already in the bundle deletes the
+// whole CDN chain, and takes the third party off the critical path with it -
+// a jsDelivr outage used to mean no editor at all.
+import * as monaco from "monaco-editor/esm/vs/editor/editor.api.js";
+import editorWorker from "monaco-editor/esm/vs/editor/editor.worker?worker";
+
+// editor.api.js is the editor without any language grammars, so the five
+// languages SAM compiles are registered explicitly. Importing the full
+// basic-languages barrel would pull in ~90 grammars for no benefit.
+// cpp.contribution registers both `c` and `cpp`.
+import "monaco-editor/esm/vs/basic-languages/cpp/cpp.contribution.js";
+import "monaco-editor/esm/vs/basic-languages/python/python.contribution.js";
+import "monaco-editor/esm/vs/basic-languages/javascript/javascript.contribution.js";
+import "monaco-editor/esm/vs/basic-languages/java/java.contribution.js";
+
+// Self-hosted Monaco needs to be told how to spawn its workers; without this it
+// falls back to running tokenisation on the main thread. Monaco reads this off
+// `self`, which on the main thread is `window`.
+window.MonacoEnvironment = { getWorker: () => new editorWorker() };
+loader.config({ monaco });
 
 const LANGUAGE_TO_MONACO = {
   nodejs: "javascript",

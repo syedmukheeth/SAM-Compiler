@@ -1,4 +1,10 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+/* The Google Fonts @import that used to sit here requested Inter and
+   JetBrains Mono a SECOND time - index.html already links both (plus Space
+   Grotesk) with a preconnect in front of it. Because an @import is only
+   discovered after this stylesheet has downloaded and parsed, it added a
+   serialised render-blocking round trip on top of the one already in flight:
+   app CSS finished at ~154ms, then this blocked first paint until ~354ms for
+   fonts the browser was already fetching. */
 
 @import "tailwindcss";
 
