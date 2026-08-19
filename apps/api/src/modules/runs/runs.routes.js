@@ -5,6 +5,7 @@ const { authMiddleware, optionalAuth } = require("../../middleware/auth.middlewa
 const { userRateLimiter } = require("../../middleware/rateLimiter.middleware");
 const { logger } = require("../../config/logger");
 const { signRunToken, verifyRunToken } = require("./runToken");
+const { runtimeFilename } = require("./pistonExecutor");
 
 const runsRouter = Router();
 
@@ -22,18 +23,20 @@ runsRouter.post("/", optionalAuth, userRateLimiter, async (req, res, next) => {
     const { language, code, stdin } = CreateRunSchema.parse(req.body);
     const userId = req.user ? req.user.id : null;
     const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
-    
+    // Java's entry file used to be named Solution.java while every seeded
+    // template declares `class Main`, so the worker's compile command and the
+    // file on disk disagreed. One helper now names the file for both entry
+    // points.
+    const filename = runtimeFilename(runtime);
+
     // Transform simplified payload to existing internal run format
     const run = await createRun({
       projectId: "playground",
       userId,
       runtime: runtime,
       stdin: stdin || "",
-      entrypoint: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js",
-      files: [{
-        path: language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js",
-        content: code
-      }]
+      entrypoint: filename,
+      files: [{ path: filename, content: code }]
     });
     
     const jobId = run._id.toString();

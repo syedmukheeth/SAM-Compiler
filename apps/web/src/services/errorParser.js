@@ -49,7 +49,7 @@ export const parseErrors = (output, language) => {
   }
 
   // Java Parser (javac)
-  // Format: "Solution.java:5: error: message"
+  // Format: "Main.java:5: error: message"
   else if (language === 'java') {
     const regex = /:(\d+):\s+error:\s+(.*)/i;
     lines.forEach(line => {

@@ -5,15 +5,20 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { env } = require("../config/env");
 
-function getJavaMainClass(code) {
-  // Support both public and non-public classes
-  const match = code.match(/(?:public\s+)?class\s+(\w+)/);
-  if (match) return match[1];
-  
-  // Last resort: scan for main method if class not found with regex
-  if (code.includes("public static void main")) return "Solution";
-  return "Solution";
-}
+// The worker used to guess the Java main class with its own regex (first
+// `class` token in the file, comments included), which disagreed with the
+// cloud executor's regex. Both now share one implementation.
+const { normalizeJavaSource } = require("@sam/shared");
+
+// The entry file every Java run is written to, matching what the Judge0 path
+// does, so the two backends produce identical results for the same source.
+const JAVA_ENTRY = "Main.java";
+
+// Bare `gcc file -o main` fails to link math.h and pthread users, and GCC's
+// default standard lags the language, so these mirror the cloud path's
+// compiler_options exactly.
+const C_FLAGS = "-std=gnu17 -O2 -lm -pthread";
+const CPP_FLAGS = "-std=gnu++20 -O2 -pthread";
 
 const LANGUAGE_CONFIGS = {
   javascript: {
@@ -26,70 +31,94 @@ const LANGUAGE_CONFIGS = {
   },
   cpp: {
     image: env.SANDBOX_GCC_IMAGE,
-    command: (entry) => ["sh", "-c", `g++ ${entry} -o main || exit 6; ./main`]
+    command: (entry) => ["sh", "-c", `g++ ${entry} ${CPP_FLAGS} -o main || exit 6; ./main`]
   },
   c: {
     image: env.SANDBOX_GCC_IMAGE,
-    command: (entry) => ["sh", "-c", `gcc ${entry} -o main || exit 6; ./main`]
+    command: (entry) => ["sh", "-c", `gcc ${entry} ${C_FLAGS} -o main || exit 6; ./main`]
   },
   java: {
     image: env.SANDBOX_OPENJDK_IMAGE,
-    command: (entry, code) => {
-      const className = getJavaMainClass(code);
-      return ["sh", "-c", `javac ${className}.java || exit 6; java ${className}`];
-    }
+    command: () => ["sh", "-c", `javac ${JAVA_ENTRY} || exit 6; java Main`]
   }
 };
 
+/**
+ * Everything that decides WHAT will run, with no I/O: the files to write, the
+ * entry file name, and the exact docker argv.
+ *
+ * Pulled out of executeRun so `apps/worker/tests/multiSandbox.test.js` can
+ * assert on the composed command without Docker installed - which is how the
+ * Java bug below stayed invisible for so long.
+ *
+ * @param {{language: string, files: Array<{path: string, content: string}>, entrypoint: string, runDir?: string}} opts
+ */
+function prepareRun({ language, files, entrypoint, runDir = "/run" }) {
+  const config = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS.javascript;
+
+  // A deep copy. This used to be `[...files]`, a shallow copy whose elements
+  // were the caller's own objects, so the Java rename below mutated
+  // `files[i].path` too. The lookup that followed then searched `files` for the
+  // ORIGINAL entrypoint, missed, and passed an empty string as the source -
+  // which made the command `javac Solution.java` while the file on disk was
+  // Main.java. Every Java run on this path failed to compile.
+  const materializedFiles = files.map((f) => ({ path: f.path, content: f.content }));
+
+  // Resolved once, before any path is rewritten.
+  const mainFile = materializedFiles.find((f) => f.path === entrypoint) || materializedFiles[0];
+  let sourceCode = mainFile ? mainFile.content : "";
+
+  let entry = path.posix.normalize(entrypoint).replace(/^(\.\.(\/|\\|$))+/, "");
+
+  // Java's file name must match its public type, so the entry point is
+  // normalized into a type called Main and written to Main.java.
+  if (language === "java" && mainFile) {
+    sourceCode = normalizeJavaSource(sourceCode).source;
+    mainFile.content = sourceCode;
+    mainFile.path = JAVA_ENTRY;
+    entry = JAVA_ENTRY;
+  }
+
+  // Robustly escape commands for the shell script
+  const cmdParts = config.command(entry, sourceCode);
+  const escapedCmd = cmdParts.map((p) => `'${p.replace(/'/g, "'\\''")}'`).join(" ");
+
+  const dockerArgs = [
+    "run", "--rm", "--network", "none",
+    "--memory", env.RUN_MEMORY || "128m",
+    "--cpus", env.RUN_CPUS || "0.5",
+    "--pids-limit", String(env.RUN_PIDS_LIMIT || 32),
+    "--read-only",
+    "--cap-drop", "ALL",
+    "--security-opt", "no-new-privileges",
+    "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
+    // NOT noexec: g++/gcc compile to /workspace/main and then execute it,
+    // so noexec here made every C and C++ run fail structurally on the
+    // Docker path. Running the compiled artifact is the point of the
+    // sandbox; isolation still comes from --network none, --cap-drop ALL,
+    // --read-only, no-new-privileges, the pid/memory/cpu caps and uid 1000.
+    "--tmpfs", "/workspace:rw,nosuid,size=128m",
+    "-v", `${runDir}:/workspace-host:ro`,
+    "-w", "/workspace",
+    "-u", "1000:1000",
+    config.image,
+    "sh", "-c", `cp -r /workspace-host/. /workspace/ && ${escapedCmd}`
+  ];
+
+  return { entry, sourceCode, files: materializedFiles, dockerArgs, image: config.image, shellCommand: escapedCmd };
+}
+
 async function executeRun(opts, onLog) {
   const { language, files, entrypoint, stdin = "" } = opts;
-  const config = LANGUAGE_CONFIGS[language] || LANGUAGE_CONFIGS.javascript;
-  
+
   const runDir = await fs.mkdtemp(path.join(os.tmpdir(), "sam-run-"));
   try {
-    const materializedFiles = [...files];
-    let entry = path.posix.normalize(entrypoint).replace(/^(\.\.(\/|\\|$))+/, "");
-    
-    // For Java, ensuring the entry filename matches the public class name
-    if (language === "java") {
-      const mainFile = materializedFiles.find(f => f.path === entrypoint);
-      if (mainFile) {
-        const className = getJavaMainClass(mainFile.content);
-        const newPath = `${className}.java`;
-        mainFile.path = newPath;
-        entry = newPath;
-      }
-    }
+    const prepared = prepareRun({ language, files, entrypoint, runDir });
+    await materializeFiles(runDir, prepared.files);
 
-    await materializeFiles(runDir, materializedFiles);
-    
     // 1. Try Docker first (Hardened Sandbox)
     try {
-      // Robustly escape commands for the shell script
-      const cmdParts = config.command(entry, files.find(f => f.path === entrypoint)?.content || "");
-      const escapedCmd = cmdParts.map(p => `'${p.replace(/'/g, "'\\''")}'`).join(" ");
-
-      const dockerArgs = [
-        "run", "--rm", "--network", "none",
-        "--memory", env.RUN_MEMORY || "128m",
-        "--cpus", env.RUN_CPUS || "0.5",
-        "--pids-limit", String(env.RUN_PIDS_LIMIT || 32),
-        "--read-only",
-        "--cap-drop", "ALL",
-        "--security-opt", "no-new-privileges",
-        "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
-        // NOT noexec: g++/gcc compile to /workspace/main and then execute it,
-        // so noexec here made every C and C++ run fail structurally on the
-        // Docker path. Running the compiled artifact is the point of the
-        // sandbox; isolation still comes from --network none, --cap-drop ALL,
-        // --read-only, no-new-privileges, the pid/memory/cpu caps and uid 1000.
-        "--tmpfs", "/workspace:rw,nosuid,size=128m",
-        "-v", `${runDir}:/workspace-host:ro`,
-        "-w", "/workspace",
-        "-u", "1000:1000",
-        config.image,
-        "sh", "-c", `cp -r /workspace-host/. /workspace/ && ${escapedCmd}`
-      ];
+      const dockerArgs = prepared.dockerArgs;
 
       const start = Date.now();
       const result = await execWithTimeout("docker", dockerArgs, env.RUN_TIMEOUT_MS || 5000, { onLog, stdin });
@@ -215,4 +244,4 @@ function execWithTimeout(cmd, args, timeoutMs, opts = {}) {
   });
 }
 
-module.exports = { executeRun };
+module.exports = { executeRun, prepareRun, LANGUAGE_CONFIGS };

@@ -70,6 +70,10 @@ const languageConfigs = {
 
 const PYODIDE_BASE = "https://cdn.jsdelivr.net/pyodide/v0.26.4/full/";
 
+/** How each runtime reports "I asked for input and there was none left". */
+const STDIN_EXHAUSTED =
+  /EOFError|NoSuchElementException|InputMismatchException|Could not read|unexpected end of (?:file|input)|std::bad_alloc: basic_ios/i;
+
 /**
  * Loads Pyodide exactly once per page, no matter how many times the component
  * mounts. Kept at module scope so React StrictMode's double-invoked effects
@@ -243,7 +247,6 @@ export default function EditorPage() {
   const [isResizingAi, setIsResizingAi] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
-  const [pyodide, setPyodide] = useState(null);
 
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [pyodideError, setPyodideError] = useState(null);
@@ -272,6 +275,9 @@ export default function EditorPage() {
   const fitAddonRef = useRef(null);
   const runRef = useRef({ jobId: null });
   const hasReceivedOutputRef = useRef(false);
+  // Read by finishRun, which is memoized with no deps so it cannot close over
+  // the `stdin` state directly.
+  const stdinRef = useRef("");
   const isMounted = useRef(true);
 
   // --- 4. Logic & Memoization ---
@@ -336,48 +342,82 @@ export default function EditorPage() {
   }, []);
 
   /**
-   * Runs Python in the browser via Pyodide and reports the same way the server
-   * paths do: it returns a result rather than quietly setting status itself.
+   * Offline fallback: runs Python in the browser via Pyodide when the server
+   * cannot be reached. Python used to take this path ALWAYS, which made it the
+   * one language that behaved unlike the other four - no threading, no
+   * subprocess, no real sys.stdin, and an infinite loop froze the tab. It now
+   * goes to the cloud runtime like everything else and only lands here when
+   * that fails.
    *
-   * stdin now comes from the STDIN panel. The previous implementation replaced
-   * builtins.input with window.prompt(), so the panel was rendered and editable
-   * for Python but its contents were ignored, and each input() call blocked the
-   * page on a native dialog.
+   * Pyodide is downloaded lazily on first use rather than on page load, because
+   * a ~10MB CDN fetch is not worth paying for a fallback most sessions never
+   * hit.
    */
   const runPythonInBrowser = useCallback(async (code, stdinText) => {
-    if (!pyodide) throw new Error("Python engine is still booting...");
+    let py;
+    setPyodideError(null);
+    setIsPyodideLoading(true);
+    try {
+      py = await loadPyodideOnce();
+    } catch (err) {
+      const message = err?.message || "Could not load the Python engine.";
+      setPyodideError(message);
+      throw new Error(message);
+    } finally {
+      setIsPyodideLoading(false);
+    }
 
     let captured = "";
     const write = (str) => {
       captured += str;
       if (xtermRef.current) xtermRef.current.write(str.replace(/\n/g, "\r\n"));
     };
-    pyodide.setStdout({ batched: write });
-    pyodide.setStderr({ batched: write });
+    py.setStdout({ batched: write });
+    py.setStderr({ batched: write });
 
-    // Feed the STDIN panel line by line, the way a piped stdin behaves.
-    pyodide.globals.set("__sam_stdin_lines", (stdinText || "").split("\n"));
-    await pyodide.runPythonAsync(`
-import builtins
-_sam_lines = list(__sam_stdin_lines)
+    // Pyodide ships numpy, pandas, matplotlib and friends, but only
+    // materializes them on request. Without this call `import numpy` raised
+    // ModuleNotFoundError even though the wheel was in the CDN bundle already.
+    try {
+      await py.loadPackagesFromImports(code);
+    } catch (err) {
+      write(`[SAM] Could not preload imported packages: ${err?.message || err}\n`);
+    }
+
+    // An empty STDIN panel has to behave like an empty pipe: `"".split("\n")`
+    // yields [""], so the first input() returned "" instead of raising EOFError.
+    py.globals.set("__sam_stdin_lines", stdinText ? stdinText.split("\n") : []);
+    await py.runPythonAsync(`
+import builtins, io, sys
+_sam_text = "\\n".join(list(__sam_stdin_lines))
+if _sam_text:
+    _sam_text += "\\n"
+
+# Patching only builtins.input left sys.stdin.read(), sys.stdin.readline() and
+# everything that iterates sys.stdin (fileinput, csv.reader, pandas.read_csv)
+# reading from nothing at all.
+sys.stdin = io.StringIO(_sam_text)
+
 def _sam_input(prompt=""):
     if prompt:
         print(prompt, end="")
-    if not _sam_lines:
+    line = sys.stdin.readline()
+    if not line:
         raise EOFError("EOF when reading a line")
-    return _sam_lines.pop(0)
+    return line.rstrip("\\n")
+
 builtins.input = _sam_input
     `);
 
     try {
-      await pyodide.runPythonAsync(code);
+      await py.runPythonAsync(code);
       return { status: "succeeded", stdout: captured, stderr: "" };
     } catch (err) {
       const message = err?.message || String(err);
       if (xtermRef.current) xtermRef.current.write(`\x1b[1;31m${message}\x1b[0m\r\n`);
       return { status: "failed", stdout: captured, stderr: message };
     }
-  }, [pyodide]);
+  }, []);
 
   /**
    * Everything that must happen once a run reaches a terminal state, no matter
@@ -395,6 +435,16 @@ builtins.input = _sam_input
     }
     if (!success && summary) {
       setPendingAiPrompt(`Explain and fix this error in my ${language} code:\n\n\`\`\`\n${summary}\n\`\`\``);
+    }
+
+    // Both executors are batch-only, so a program that asks for more input than
+    // the STDIN panel holds dies on EOF. That reads as "the compiler is broken"
+    // unless we name the cause.
+    if (!success && !stdinRef.current.trim() && STDIN_EXHAUSTED.test(stderr || "") && xtermRef.current) {
+      xtermRef.current.write(
+        "\r\n\x1b[1;33m[SAM]\x1b[0m \x1b[2mYour program read past the end of its input. " +
+        "Fill the STDIN panel before pressing Run.\x1b[0m\r\n"
+      );
     }
 
     // PERSISTENT GUEST HISTORY ENGINE
@@ -433,6 +483,7 @@ builtins.input = _sam_input
     hasReceivedOutputRef.current = false;
     stdErrRef.current = "";
     inputHintShownRef.current = false;
+    stdinRef.current = stdin;
 
     if (isMobile) {
       setActiveMobileTab('terminal');
@@ -456,7 +507,7 @@ builtins.input = _sam_input
     }
     setRunStatus("Running");
 
-    if (socket && !socket.connected && activeLangId !== "python") {
+    if (socket && !socket.connected) {
       // Kick the socket awake but do NOT wait for it. This used to block the
       // submission for up to 10 seconds on every run where the socket was not
       // already up - and it is not up on a cold start, which is exactly when
@@ -466,46 +517,6 @@ builtins.input = _sam_input
       try { socket.connect(); } catch { /* polling covers this */ }
     }
 
-    if (activeLangId === "python") {
-      // Python runs locally, but everything after the run is shared with the
-      // server paths. Previously this branch returned early and therefore
-      // skipped Monaco diagnostics, guest history, the Explain Error affordance
-      // and the success/failure banner, so a Python error behaved unlike every
-      // other language.
-      try {
-        const result = await runPythonInBrowser(code, stdin);
-        const success = result.status === "succeeded";
-
-        if (xtermRef.current) {
-          if (!result.stdout.trim() && success) {
-            xtermRef.current.write("\r\n\x1b[1;33m[SYSTEM] Program finished with no output.\x1b[0m\r\n");
-          }
-          xtermRef.current.write(
-            success
-              ? "\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n"
-              : "\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n"
-          );
-        }
-
-        setRunStatus(success ? "Succeeded" : "Failed");
-        finishRun({
-          success,
-          stderr: result.stderr,
-          stdout: result.stdout,
-          language: activeLangId,
-          code,
-          jobId: `local-${Date.now()}`
-        });
-      } catch (err) {
-        const message = err?.message || String(err);
-        if (xtermRef.current) xtermRef.current.write(`\x1b[1;31m${message}\x1b[0m\r\n`);
-        setRunStatus("Failed");
-        setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${message}\n\nIs this an issue with my code or the server?`);
-      } finally {
-        setBusy(false);
-      }
-      return;
-    }
     // Declared outside the try so the finally block can always detach the
     // listener and unsubscribe, even if the run throws part-way through.
     let jobId;
@@ -688,13 +699,54 @@ builtins.input = _sam_input
         });
       }
     } catch (e) {
-      setRunStatus("Failed");
       const rawMsg = e?.message || String(e);
       const isHtml = /<[a-z][\s\S]*>/i.test(rawMsg);
-      const cleanMsg = isHtml 
-        ? "Server returned an invalid response (HTML). The engine might be under maintenance." 
+      const cleanMsg = isHtml
+        ? "Server returned an invalid response (HTML). The engine might be under maintenance."
         : rawMsg.substring(0, 200);
-        
+
+      // Python has a second engine available. When the cloud runtime is
+      // unreachable (cold start, offline, rate limit) fall back to Pyodide in
+      // the browser rather than showing the user an infrastructure error.
+      if (activeLangId === "python") {
+        try {
+          if (xtermRef.current) {
+            xtermRef.current.write("\x1b[1;33m[SAM]\x1b[0m \x1b[2mCloud runtime unavailable - running locally.\x1b[0m\r\n");
+          }
+          const result = await runPythonInBrowser(code, stdin);
+          const success = result.status === "succeeded";
+
+          if (xtermRef.current) {
+            if (!result.stdout.trim() && success) {
+              xtermRef.current.write("\r\n\x1b[1;33m[SYSTEM] Program finished with no output.\x1b[0m\r\n");
+            }
+            xtermRef.current.write(
+              success
+                ? "\r\n\x1b[1;32m=== Program Finished Successfully ===\x1b[0m\r\n"
+                : "\r\n\x1b[1;31m=== Code Exited With Errors ===\x1b[0m\r\n"
+            );
+          }
+
+          setRunStatus(success ? "Succeeded" : "Failed");
+          finishRun({
+            success,
+            stderr: result.stderr,
+            stdout: result.stdout,
+            language: activeLangId,
+            code,
+            jobId: `local-${Date.now()}`
+          });
+          return;
+        } catch (localErr) {
+          const localMsg = localErr?.message || String(localErr);
+          if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${localMsg}\x1b[0m\r\n`);
+          setRunStatus("Failed");
+          setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${localMsg}\n\nIs this an issue with my code or the server?`);
+          return;
+        }
+      }
+
+      setRunStatus("Failed");
       if (xtermRef.current) xtermRef.current.write(`\x1b[1;31mError: ${cleanMsg}\x1b[0m\r\n`);
       setPendingAiPrompt(`Explain this error I'm getting from the SAM Compiler engine:\n\n${cleanMsg}\n\nIs this an issue with my code or the server?`);
     } finally {
@@ -1023,26 +1075,10 @@ builtins.input = _sam_input
     // after reconnecting could authenticate with a stale token.
   }, [socketStatus, busy, token]);
 
-  // Subscribes to the module-level loader (see loadPyodideOnce). The loader is a
-  // singleton promise rather than an effect-local guard: StrictMode invokes
-  // effects twice in development, and a ref guard combined with a cancel flag
-  // meant the first attempt was cancelled and the second returned early, so the
-  // engine never finished loading and Run stayed disabled forever.
-  useEffect(() => {
-    let active = true;
-    // Subscribing to an external async resource is what effects are for.
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setIsPyodideLoading(true);
-
-    loadPyodideOnce()
-      .then((py) => { if (active) setPyodide(py); })
-      .catch((err) => {
-        if (active) setPyodideError(err?.message || "Could not load the Python engine.");
-      })
-      .finally(() => { if (active) setIsPyodideLoading(false); });
-
-    return () => { active = false; };
-  }, []);
+  // Pyodide is no longer preloaded here. Python runs on the cloud runtime like
+  // every other language, so the ~10MB engine is fetched lazily by
+  // runPythonInBrowser only if that runtime is unreachable - and Run is never
+  // gated on a download most sessions never need.
 
   // High-fidelity branding & Title sync
   useEffect(() => {
@@ -1701,9 +1737,8 @@ builtins.input = _sam_input
                     {languageConfigs[activeLangId]?.name}
                   </span>
                 </div>
-                {/* Python runs in-browser via Pyodide (~10MB from a CDN). This
-                    state existed but was never rendered, so hitting Run before
-                    the download finished just threw into the terminal. */}
+                {/* Only shown while the offline Python fallback is downloading
+                    or after it failed - the normal path is the cloud runtime. */}
                 {activeLangId === 'python' && (isPyodideLoading || pyodideError) && (
                   <span
                     className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest"
@@ -1711,14 +1746,14 @@ builtins.input = _sam_input
                     role="status"
                   >
                     {isPyodideLoading && <Loader2 className="h-3 w-3 animate-spin" />}
-                    {pyodideError ? 'Python engine unavailable' : 'Loading Python engine'}
+                    {pyodideError ? 'Local Python engine unavailable' : 'Loading local Python engine'}
                   </span>
                 )}
                 {!isMobile && (
                   <motion.button
                     id="editor-run-btn"
                     onClick={onRun}
-                    disabled={busy || (activeLangId === 'python' && isPyodideLoading)}
+                    disabled={busy}
                     whileTap={{ scale: 0.95 }}
                     className="sam-button-run transition-all duration-300 flex items-center justify-center min-w-[100px] h-8 rounded-lg border shadow-sm px-4"
                     style={{

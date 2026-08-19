@@ -9,7 +9,7 @@
     "build": "node -e \"console.log('worker: no build step (plain JS)')\"",
     "start": "node src/worker.js",
     "lint": "eslint .",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {

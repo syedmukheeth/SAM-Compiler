@@ -208,6 +208,7 @@ async function createRun(input) {
           run.stderr = result.stderr;
           run.exitCode = result.exitCode;
           run.status = result.status;
+          run.metrics = result.metrics || {};
         } catch (pistonErr) {
           let errMsg = `\x1b[1;31m[SAM] Error: execution environment unavailable.\x1b[0m\n`;
 

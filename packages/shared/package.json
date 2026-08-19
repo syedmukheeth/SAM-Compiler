@@ -5,8 +5,11 @@
   "main": "src/index.js",
   "scripts": {
     "build": "node -e \"console.log('shared: no build step (plain JS)')\"",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "vitest": "^4.1.10"
+  }
 }
-

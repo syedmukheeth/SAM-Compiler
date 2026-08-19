@@ -8,6 +8,7 @@ const { logger } = require("../../config/logger");
 const { originChecker } = require("../../config/cors");
 const { getRedisClient } = require("./runs.queue");
 const { signRunToken } = require("./runToken");
+const { runtimeFilename } = require("./pistonExecutor");
 const Y = require("yjs");
 const { YSocketIO } = require("y-socket.io/dist/server");
 // createRun is required inside the handler to avoid circular dependency issues
@@ -493,7 +494,7 @@ function initSocket(server) {
         const userId = (socket.user && socket.user.id !== "guest") ? socket.user.id : null;
 
         const runtime = (language === "javascript" || language === "nodejs") ? "javascript" : language;
-        const filename = language === "java" ? "Solution.java" : language === "python" ? "solution.py" : language === "cpp" ? "solution.cpp" : language === "c" ? "solution.c" : "solution.js";
+        const filename = runtimeFilename(runtime);
 
         // NITRO: Direct execution pipeline invocation
         const run = await createRun({

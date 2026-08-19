@@ -11,10 +11,13 @@ const EnvSchema = z.object({
   RUN_CPUS: z.string().default("0.5"),
   RUN_PIDS_LIMIT: z.coerce.number().default(128),
   SECURITY_STRICT: z.preprocess((v) => v === "true" || v === true, z.boolean()).default(false),
-  SANDBOX_NODE_IMAGE: z.string().default("node:20-alpine"),
-  SANDBOX_PYTHON_IMAGE: z.string().default("python:3.11-alpine"),
-  SANDBOX_GCC_IMAGE: z.string().default("gcc:latest"),
-  SANDBOX_OPENJDK_IMAGE: z.string().default("openjdk:17-slim")
+  // Kept in step with the Judge0 ids in apps/api/src/modules/runs/pistonExecutor.js
+  // so a program behaves the same whichever backend picks it up. `openjdk` is
+  // deprecated on Docker Hub; `eclipse-temurin` is its successor.
+  SANDBOX_NODE_IMAGE: z.string().default("node:22-alpine"),
+  SANDBOX_PYTHON_IMAGE: z.string().default("python:3.13-alpine"),
+  SANDBOX_GCC_IMAGE: z.string().default("gcc:14"),
+  SANDBOX_OPENJDK_IMAGE: z.string().default("eclipse-temurin:17-jdk")
 });
 
 const env = EnvSchema.parse(process.env);

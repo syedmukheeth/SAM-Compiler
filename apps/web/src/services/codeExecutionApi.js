@@ -76,8 +76,10 @@ export const TERMINAL_STATUSES = [
 // navigating away did not stop it.
 const DEFAULT_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 
-export async function runAndPoll({ language, code, onUpdate, pollMs = 500, signal, timeoutMs }) {
-  const { jobId, runToken } = await submitRun({ language, code });
+export async function runAndPoll({ language, code, stdin = "", onUpdate, pollMs = 500, signal, timeoutMs }) {
+  // `stdin` used to be dropped here, so anything submitted through this helper
+  // ran against an empty pipe no matter what the STDIN panel held.
+  const { jobId, runToken } = await submitRun({ language, code, stdin });
   return pollUntilDone(jobId, { onUpdate, pollMs, signal, timeoutMs, runToken });
 }
 
