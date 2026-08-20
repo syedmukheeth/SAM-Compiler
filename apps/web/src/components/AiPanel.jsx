@@ -215,13 +215,20 @@ function MessageBubble({ msg, isDark, onApplyRefactor }) {
         </div>
       )}
 
-      {/* Bubble */}
-      <div className="relative w-full min-w-0">
+      {/* Bubble.
+          The user bubble is capped rather than full-width: the row is already
+          `items-end`, but at w-full there was no free space for that alignment
+          to show, so a user turn and a Sam turn looked like the same speaker
+          separated only by a 3% background difference. Sam keeps the full width
+          because its replies carry code blocks. */}
+      <div className={`relative min-w-0 ${isUser ? 'max-w-[85%]' : 'w-full'}`}>
         <div className={`w-full rounded-2xl px-5 py-4 text-[13px] leading-[1.7] border select-text overflow-hidden break-words transition-all ${
           isUser
             ? isDark
-              ? 'bg-white/10 text-white border-white/10 rounded-tr-none'
-              : 'bg-slate-100 text-slate-900 border-slate-200 rounded-tr-none'
+              // Was bg-white/10 against Sam's bg-white/[0.07] - a 3% difference
+              // that read as the same bubble.
+              ? 'bg-white/[0.16] text-white border-white/20 rounded-tr-none'
+              : 'bg-slate-200 text-slate-900 border-slate-300 rounded-tr-none'
             : isDark
               ? 'bg-white/[0.07] text-white/95 border-white/10 rounded-tl-none backdrop-blur-sm'
               : 'bg-white text-slate-800 border-slate-200 rounded-tl-none shadow-sm'
@@ -460,6 +467,12 @@ function AiPanel({
     }
   }, [messages, loading]);
 
+  // Exactly one thing represents the pending reply at a time: the typing
+  // indicator while it is still empty, then the bubble once text arrives.
+  const lastMessage = messages[messages.length - 1];
+  const awaitingFirstChunk =
+    loading && lastMessage?.role === "model" && !lastMessage.content && !lastMessage.isError;
+
   const quickActions = [
     {
       icon: <BookOpen />,
@@ -530,16 +543,27 @@ function AiPanel({
       >
         <AnimatePresence initial={false}>
           {messages.map((msg, i) => (
-            <MessageBubble
-              key={msg._id || i}
-              msg={msg}
-              isDark={isDark}
-              onApplyRefactor={onApplyRefactor}
-            />
+            // The pending assistant turn is added to `messages` as an empty
+            // placeholder the moment the request starts, then filled in as
+            // chunks stream. Rendering it while it is still empty produced a
+            // blank bubble under its own "Sam AI" header, sitting directly
+            // above the typing indicator - two headers for one reply.
+            (msg.content || msg.isError) ? (
+              <MessageBubble
+                key={msg._id || i}
+                msg={msg}
+                isDark={isDark}
+                onApplyRefactor={onApplyRefactor}
+              />
+            ) : null
           ))}
         </AnimatePresence>
 
-        {loading && (
+        {/* Shown only until the first chunk lands. `loading` alone stays true
+            for the whole stream (it is cleared in sendMessage's finally), so
+            gating on it kept the dots visible underneath a reply that was
+            already writing itself. */}
+        {awaitingFirstChunk && (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
