@@ -1255,7 +1255,7 @@ builtins.input = _sam_input
 
       {/* MOBILE COMPACT HEADER */}
       <header
-        className="flex lg:hidden h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl z-[80] safe-top"
+        className="sam-mobile-header flex lg:hidden h-14 shrink-0 items-center justify-between border-b px-4 backdrop-blur-xl z-[80] safe-top"
         style={{
           background: theme === 'light' ? 'rgba(255,255,255,0.92)' : 'rgba(0,0,0,0.88)',
           borderBottomColor: 'var(--sam-glass-border)',

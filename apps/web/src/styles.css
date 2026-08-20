@@ -164,6 +164,49 @@
 }
 
 /*
+ * Landscape phone.
+ *
+ * A phone on its side is ~390px tall, and the header (56px), status bar (48px)
+ * and floating tab bar (87px plus its 8px gap) took 199px of that - 51% of the
+ * screen - leaving 191px for the editor, about seven lines of code.
+ *
+ * Horizontal room is plentiful at this size and vertical room is not, so the
+ * chrome gets compact instead of anything being hidden: the tab bar keeps its
+ * icons but drops the text labels underneath them, and the header loses a row
+ * of padding. Every control stays reachable.
+ *
+ * Keyed on height rather than width so it cannot catch a short desktop window
+ * that has plenty of controls on screen, and paired with `orientation` so a
+ * narrow-but-tall phone is unaffected.
+ */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sam-mobile-header {
+    height: 2.5rem;
+  }
+
+  .sam-mobile-nav-inner {
+    margin-bottom: 0.5rem;
+    padding: 0.125rem;
+    border-radius: 18px;
+  }
+
+  /* Still honours the 44px minimum from .sam-tap above - dropping the labels
+     buys back far more room than shrinking the touch target would, so there is
+     no reason to trade away reachability here. */
+  .sam-mobile-nav-btn {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+    gap: 0;
+    min-height: 44px;
+  }
+
+  /* The icons carry the meaning; the labels are what cost the vertical room. */
+  .sam-mobile-nav-label {
+    display: none;
+  }
+}
+
+/*
  * Measured height of the floating mobile tab bar, published by MobileTabNav.
  *
  * Four different hardcoded guesses at this value used to be scattered around
