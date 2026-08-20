@@ -26,6 +26,7 @@ const LanguageSelector = ({ activeLanguage, onLanguageChange }) => {
     <div className="relative" ref={dropdownRef}>
       <button
         id="language-selector-btn"
+        className="sam-tap"
         onClick={() => setIsOpen(!isOpen)}
         style={{
           display: "flex",

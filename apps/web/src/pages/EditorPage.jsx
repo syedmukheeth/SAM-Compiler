@@ -34,6 +34,7 @@ import ThemeToggle from "../components/ThemeToggle";
 import SamNavLogo from "../components/SamNavLogo";
 import ShortcutItem from "../components/ShortcutItem";
 import MobileTabNav from "../components/MobileTabNav";
+import { useIsCompactLayout } from "../hooks/useMediaQuery";
 
 const languageConfigs = {
   cpp: {
@@ -246,7 +247,10 @@ export default function EditorPage() {
   const [isResizingEditor, setIsResizingEditor] = useState(false);
   const [isResizingAi, setIsResizingAi] = useState(false);
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  // Was `useState(window.innerWidth < 768)` fed by a debounced resize listener.
+  // 768 disagreed with the `lg:` (1024px) utilities on the very elements it
+  // controls, so 768-1023px rendered neither layout properly.
+  const isCompact = useIsCompactLayout();
 
   const [isPyodideLoading, setIsPyodideLoading] = useState(false);
   const [pyodideError, setPyodideError] = useState(null);
@@ -485,7 +489,7 @@ builtins.input = _sam_input
     inputHintShownRef.current = false;
     stdinRef.current = stdin;
 
-    if (isMobile) {
+    if (isCompact) {
       setActiveMobileTab('terminal');
       setShowAiPanel(false);
     }
@@ -759,7 +763,7 @@ builtins.input = _sam_input
       }
       setBusy(false);
     }
-  }, [activeLangId, buffers, busy, token, isMobile, runPythonInBrowser, stdin, renderDiagnosticLine, finishRun]);
+  }, [activeLangId, buffers, busy, token, isCompact, runPythonInBrowser, stdin, renderDiagnosticLine, finishRun]);
 
   const onClear = useCallback(() => {
     if (xtermRef.current) xtermRef.current.clear();
@@ -964,21 +968,10 @@ builtins.input = _sam_input
     localStorage.setItem("sam-theme", theme);
   }, [theme]);
 
-  // Debounced Responsive logic
-  useEffect(() => {
-    let timeoutId = null;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth < 768);
-      }, 150);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      clearTimeout(timeoutId);
-    };
-  }, []);
+  // Responsive layout now comes from useIsCompactLayout() (matchMedia), which
+  // fires only when the breakpoint is actually crossed. The debounced resize
+  // listener that used to live here ran on every resize frame and left the
+  // layout 150ms behind the viewport.
 
   // Lifecycle safety
   useEffect(() => {
@@ -1183,17 +1176,17 @@ builtins.input = _sam_input
 
   // Consolidate layout fit on change
   useEffect(() => {
-    const delay = isMobile ? 300 : 100; // LONGER DELAY for mobile tab transitions
+    const delay = isCompact ? 300 : 100; // LONGER DELAY for mobile tab transitions
     const timer = setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
       // EXPLICIT MONACO LAYOUT: Force editor to re-calculate dimensions
-      if (window.samEditor && (!isMobile || activeMobileTab === 'editor')) {
+      if (window.samEditor && (!isCompact || activeMobileTab === 'editor')) {
         window.samEditor.layout();
       }
       safeFit();
     }, delay);
     return () => clearTimeout(timer);
-  }, [editorWidth, aiWidth, showAiPanel, activeMobileTab, isMobile, safeFit]);
+  }, [editorWidth, aiWidth, showAiPanel, activeMobileTab, isCompact, safeFit]);
 
   // Keyboard Shortcuts
   useEffect(() => {
@@ -1238,10 +1231,10 @@ builtins.input = _sam_input
         setShowAiPanel(prev => {
           const opening = !prev;
           if (opening) {
-            if (isMobile) setActiveMobileTab('ai');
+            if (isCompact) setActiveMobileTab('ai');
             else applyLayout(33.33, aiWidth, true);
           } else {
-            if (!isMobile) applyLayout(50, aiWidth, false);
+            if (!isCompact) applyLayout(50, aiWidth, false);
           }
           return opening;
         });
@@ -1249,14 +1242,14 @@ builtins.input = _sam_input
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onRun, onClear, isMobile, aiWidth, applyLayout, buffers]);
+  }, [onRun, onClear, isCompact, aiWidth, applyLayout, buffers]);
 
   // Settings management moved to top to satisfy hook ordering rules
 
 
 
   return (
-    <div className={`relative flex h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isMobile ? 'pb-[calc(var(--sam-mobile-nav-height)+8px)]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
+    <div className={`relative flex h-[100dvh] w-full flex-col overflow-hidden selection:bg-sam-text/10 ${isCompact ? 'pb-[calc(var(--sam-mobile-nav-height)+8px)]' : ''}`} style={{ background: 'var(--sam-bg)' }}>
       <div className="bg-mesh" />
       <div className="noise-overlay" />
 
@@ -1279,14 +1272,14 @@ builtins.input = _sam_input
           <ThemeToggle theme={theme} toggle={() => setTheme(prev => prev === 'dark' ? 'light' : 'dark')} />
            <button 
              onClick={() => setActiveModal('about')}
-             className="p-2 active:scale-95 transition-transform"
+             className="sam-tap p-2 active:scale-95 transition-transform"
              style={{ color: 'var(--sam-text-dim)' }}
            >
              <CircleHelp className="h-5 w-5" />
            </button>
            <button 
              onClick={() => setMobileMenuOpen(true)}
-             className="p-2 active:scale-95 transition-transform"
+             className="sam-tap p-2 active:scale-95 transition-transform"
              style={{ color: 'var(--sam-text-dim)' }}
            >
              <Menu className="h-5 w-5" />
@@ -1412,7 +1405,7 @@ builtins.input = _sam_input
               <div className="scale-[0.7] sm:scale-100 origin-left">
                 <SamNavLogo theme={theme} />
               </div>
-              <div className={`flex flex-col leading-[0.9] mt-1 relative scale-[0.75] sm:scale-100 origin-left -ml-1 sm:ml-0 ${isMobile ? 'hidden sm:flex' : 'flex'}`}>
+              <div className={`flex flex-col leading-[0.9] mt-1 relative scale-[0.75] sm:scale-100 origin-left -ml-1 sm:ml-0 ${isCompact ? 'hidden sm:flex' : 'flex'}`}>
                 <span className="font-black tracking-tight text-[16px] sm:text-[18px] uppercase italic" style={{ fontFamily: 'var(--font-display)', color: 'var(--sam-text)' }}>SAM</span>
                 <span className="text-[8px] sm:text-[10px] font-black uppercase tracking-[0.35em] opacity-60 ml-0.5" style={{ color: 'var(--sam-text)' }}>Compiler</span>
               </div>
@@ -1552,7 +1545,7 @@ builtins.input = _sam_input
               onClick={() => {
                 const next = !showAiPanel;
                 setShowAiPanel(next);
-                if (isMobile) {
+                if (isCompact) {
                   if (next) setActiveMobileTab('ai');
                 } else {
                   if (next) {
@@ -1562,7 +1555,7 @@ builtins.input = _sam_input
                   }
                 }
               }}
-              className="flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-auto md:px-4 items-center justify-center gap-2 rounded-xl border transition-all duration-300 shrink-0"
+              className="sam-tap flex h-8 w-8 sm:h-9 sm:w-9 md:h-10 md:w-auto md:px-4 items-center justify-center gap-2 rounded-xl border transition-all duration-300 shrink-0"
               style={{ 
                 background: showAiPanel ? 'var(--sam-accent-muted)' : 'var(--sam-surface-low)',
                 borderColor: showAiPanel ? 'var(--sam-accent)' : 'var(--sam-glass-border)',
@@ -1599,13 +1592,13 @@ builtins.input = _sam_input
       </header>
 
       {/* MOBILE TAB NAVIGATOR */}
-      {isMobile && (
+      {isCompact && (
         <MobileTabNav 
           activeTab={activeMobileTab} 
           onTabChange={(tab) => {
             setActiveMobileTab(tab);
             if (tab === 'ai') setShowAiPanel(true);
-            else if (!isMobile) setShowAiPanel(false); // Should not happen but for safety
+            else if (!isCompact) setShowAiPanel(false); // Should not happen but for safety
             setTimeout(() => window.dispatchEvent(new Event('resize')), 50);
           }} 
           theme={theme} 
@@ -1620,7 +1613,7 @@ builtins.input = _sam_input
           and the AI panel's send button and quick actions occupy exactly that
           corner, so the two overlapped and the run button intercepted taps
           meant for Send. */}
-      {isMobile && activeMobileTab !== 'ai' && (
+      {isCompact && activeMobileTab !== 'ai' && (
         <motion.button
           id="mobile-run-fab"
           onClick={onRun}
@@ -1706,10 +1699,10 @@ builtins.input = _sam_input
         <main className="relative z-10 flex flex-1 flex-col md:flex-row overflow-y-auto overflow-x-hidden md:overflow-hidden p-0 md:p-6 md:pb-6 gap-2 md:gap-0 transition-all duration-200 ease-out">
           {/* EDITOR SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden w-full md:w-auto ${isMobile && activeMobileTab !== 'editor' ? 'hidden' : ''}`}
-            style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
+            className={`flex flex-col overflow-hidden w-full lg:w-auto ${isCompact && activeMobileTab !== 'editor' ? 'hidden' : ''}`}
+            style={isCompact ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${editorWidth}%`, flexGrow: 0, flexShrink: 0 }}
           >
-              <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`}>
+              <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isCompact ? 'rounded-none border-0' : 'rounded-2xl border'}`}>
                 <div className="flex h-11 shrink-0 items-center justify-between px-3 md:px-5" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-4">
                   <LanguageSelector activeLanguage={activeLangId} onLanguageChange={setActiveLangId} />
@@ -1717,6 +1710,7 @@ builtins.input = _sam_input
                   {/* Reset Safety Valve */}
                   <button
                     onClick={handleCodeReset}
+                    className="sam-tap"
                     title="Reset To Boilerplate"
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
@@ -1749,7 +1743,7 @@ builtins.input = _sam_input
                     {pyodideError ? 'Local Python engine unavailable' : 'Loading local Python engine'}
                   </span>
                 )}
-                {!isMobile && (
+                {!isCompact && (
                   <motion.button
                     id="editor-run-btn"
                     onClick={onRun}
@@ -1818,7 +1812,7 @@ builtins.input = _sam_input
 
           {/* SPLITTER 1 (Editor | Terminal) */}
 
-          {!isMobile && (
+          {!isCompact && (
             <div 
                onMouseDown={startResizingEditor}
                className="hidden lg:flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-sam-text/5 z-30"
@@ -1829,10 +1823,10 @@ builtins.input = _sam_input
 
           {/* TERMINAL SECTION */}
           <section 
-            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full lg:w-auto ${isMobile && activeMobileTab !== 'terminal' ? 'hidden' : ''}`}
-            style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flex: 1, minWidth: 0 }}
+            className={`flex flex-col overflow-hidden sam-terminal-container ${busy ? 'is-active' : ''} w-full lg:w-auto ${isCompact && activeMobileTab !== 'terminal' ? 'hidden' : ''}`}
+            style={isCompact ? { flex: '1 1 100%', height: '100%' } : { flex: 1, minWidth: 0 }}
           >
-              <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isMobile ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ background: 'var(--sam-surface)' }}>
+              <div className={`sam-glass flex flex-1 flex-col overflow-hidden ${isCompact ? 'rounded-none border-0' : 'rounded-2xl border'}`} style={{ background: 'var(--sam-surface)' }}>
                 <div className="flex h-11 shrink-0 items-center justify-between px-4 md:px-6" style={{ background: 'var(--sam-surface-low)', borderBottom: '1px solid var(--sam-glass-border)' }}>
                 <div className="flex items-center gap-2 md:gap-3">
                   <button
@@ -1895,7 +1889,7 @@ builtins.input = _sam_input
                         animate={{ opacity: 1, scale: 1, x: 0 }}
                         onClick={() => {
                           setShowAiPanel(true);
-                          if (isMobile) {
+                          if (isCompact) {
                             setActiveMobileTab('ai');
                           } else {
                             applyLayout(33.33, 33.33, true);
@@ -2019,7 +2013,7 @@ builtins.input = _sam_input
                 {/* 4. Mobile Execution Overlay. Plain conditional (exits are
                     never removed) and pointer-events-none: it is purely
                     informational and must never eat taps on the terminal. */}
-                {isMobile && busy && (
+                {isCompact && busy && (
                     <motion.div
                       key="mobile-executing"
                       initial={{ opacity: 0 }} animate={{ opacity: 1 }}
@@ -2056,7 +2050,7 @@ builtins.input = _sam_input
           </section>
 
           {/* SPLITTER 2 (Terminal | SAM AI) */}
-          {showAiPanel && !isMobile && (
+          {showAiPanel && !isCompact && (
             <div 
                onMouseDown={startResizingAi}
                className="flex group relative w-1.5 h-full cursor-col-resize items-center justify-center transition-all hover:bg-sam-text/5 z-30"
@@ -2068,8 +2062,8 @@ builtins.input = _sam_input
           {/* SAM AI PANEL - Now Integrated */}
           {showAiPanel && (
             <section 
-              className={`flex-col h-full overflow-hidden ${isMobile && activeMobileTab !== 'ai' ? 'hidden' : 'flex'} w-full lg:w-auto`}
-              style={isMobile ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${aiWidth}%`, flexGrow: 0, flexShrink: 0 }}
+              className={`flex-col h-full overflow-hidden ${isCompact && activeMobileTab !== 'ai' ? 'hidden' : 'flex'} w-full lg:w-auto`}
+              style={isCompact ? { flex: '1 1 100%', height: '100%' } : { flexBasis: `${aiWidth}%`, flexGrow: 0, flexShrink: 0 }}
             >
               <React.Suspense fallback={
                 <div className="flex h-full w-full items-center justify-center bg-sam-bg/50 backdrop-blur-md rounded-2xl">
@@ -2080,7 +2074,7 @@ builtins.input = _sam_input
                   isOpen={showAiPanel}
                   onClose={() => {
                     setShowAiPanel(false);
-                    if (isMobile) setActiveMobileTab('editor');
+                    if (isCompact) setActiveMobileTab('editor');
                     else {
                       applyLayout(50, 33.33, false);
                     }
@@ -2089,17 +2083,17 @@ builtins.input = _sam_input
                   language={activeLangId}
                   onApplyRefactor={(refactoredCode) => {
                     setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
-                    // The confirmation toast used to be inside `if (isMobile)`,
+                    // The confirmation toast used to be inside `if (isCompact)`,
                     // so desktop users got no feedback that a refactor had been
                     // applied. It also hardcoded its colours instead of using
                     // the theme tokens.
                     window.dispatchEvent(new CustomEvent('sam-editor-reset', {
                       detail: { template: refactoredCode, message: "Refactor applied" }
                     }));
-                    if (isMobile) setActiveMobileTab('editor');
+                    if (isCompact) setActiveMobileTab('editor');
                   }}
                   theme={theme}
-                  isMobile={isMobile}
+                  isCompact={isCompact}
                   activeMobileTab={activeMobileTab}
                   initialPrompt={pendingAiPrompt}
                 />

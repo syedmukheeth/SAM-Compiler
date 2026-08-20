@@ -145,6 +145,25 @@
 .safe-right { padding-right: env(safe-area-inset-right, 0px); }
 
 /*
+ * Minimum touch target.
+ *
+ * Several icon-only controls render at 14-29px, well under the 44px both Apple
+ * and WCAG 2.2 (2.5.8) ask for. Scoped to `pointer: coarse` so dense desktop
+ * toolbars keep their current spacing and only touch input pays the extra size.
+ *
+ * This grows the element rather than overlaying an invisible pseudo-element:
+ * these buttons sit in flex rows only ~8px apart, so expanded hit areas would
+ * overlap and steal each other's taps, which is worse than a small target.
+ * Growing the box lets flex reflow around it.
+ */
+@media (pointer: coarse) {
+  .sam-tap {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/*
  * Measured height of the floating mobile tab bar, published by MobileTabNav.
  *
  * Four different hardcoded guesses at this value used to be scattered around

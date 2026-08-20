@@ -1,6 +1,7 @@
 import React from "react";
 import { Bug, RefreshCw, Info } from "lucide-react";
 import { reconnect } from "../services/socketClient";
+import { useIsNarrowViewport } from "../hooks/useMediaQuery";
 
 const ISSUES_URL = "https://github.com/syedmukheeth/SAM-Compiler/issues/new";
 
@@ -12,18 +13,17 @@ const StatusBar = ({
   showBanner = true
 }) => {
   const [localPos, setLocalPos] = React.useState({ lineNumber: 1, column: 1 });
-  const [isSmallMobile, setIsSmallMobile] = React.useState(() => typeof window !== 'undefined' ? window.innerWidth < 480 : false);
+  // Second copy of the innerWidth-plus-resize pattern, with its own breakpoint.
+  // Both now read the same matchMedia helper.
+  const isSmallMobile = useIsNarrowViewport();
 
   React.useEffect(() => {
     const handleMetricsUpdate = (e) => {
       setLocalPos({ lineNumber: e.detail.lineNumber, column: e.detail.column });
     };
-    const handleResize = () => setIsSmallMobile(window.innerWidth < 480);
     window.addEventListener("sam:editor:metrics", handleMetricsUpdate);
-    window.addEventListener("resize", handleResize);
     return () => {
       window.removeEventListener("sam:editor:metrics", handleMetricsUpdate);
-      window.removeEventListener("resize", handleResize);
     };
   }, []);
 
@@ -114,7 +114,7 @@ const StatusBar = ({
           href={ISSUES_URL}
           target="_blank"
           rel="noopener noreferrer"
-          className={`group flex items-center gap-2 transition-all hover:scale-105 active:scale-95 ${theme === 'dark' ? 'text-rose-400 hover:text-rose-300' : 'text-rose-500 hover:text-rose-600'}`}
+          className={`sam-tap group flex items-center justify-center gap-2 transition-all hover:scale-105 active:scale-95 ${theme === 'dark' ? 'text-rose-400 hover:text-rose-300' : 'text-rose-500 hover:text-rose-600'}`}
           title="Report a bug on GitHub"
         >
           <Bug className="h-3.5 w-3.5 transition-transform group-hover:rotate-12" />
@@ -123,7 +123,7 @@ const StatusBar = ({
 
         <button 
            onClick={onShowAbout}
-           className={`group flex items-center justify-center p-1.5 rounded-lg border border-sam-glass-border bg-sam-text/5 transition-all hover:bg-sam-text/10 ${isSmallMobile ? 'inline-flex' : 'hidden lg:inline-flex'}`}
+           className={`sam-tap group flex items-center justify-center p-1.5 rounded-lg border border-sam-glass-border bg-sam-text/5 transition-all hover:bg-sam-text/10 ${isSmallMobile ? 'inline-flex' : 'hidden lg:inline-flex'}`}
            title="About SAM"
         >
           <Info className="h-3.5 w-3.5 text-sam-text-muted group-hover:text-sam-text transition-colors" />

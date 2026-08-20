@@ -53,7 +53,7 @@ export default function ConsentNotice() {
               <button
                 type="button"
                 onClick={() => handleAction("dismissed")}
-                className="shrink-0 p-1 text-sam-text-muted hover:text-sam-text transition-colors"
+                className="sam-tap shrink-0 p-1 text-sam-text-muted hover:text-sam-text transition-colors"
                 title="Dismiss"
               >
                 <X className="h-4 w-4" />
