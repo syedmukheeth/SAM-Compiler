@@ -774,6 +774,23 @@ builtins.input = _sam_input
   // ignores the theme, cannot be styled and is suppressible by the browser.
   const [confirmState, setConfirmState] = useState(null);
 
+  /**
+   * Stable identity so the memoized message bubbles in AiPanel are not
+   * invalidated on every EditorPage render - as an inline arrow this prop
+   * changed every time, which defeated the memo and re-rendered the whole
+   * conversation on each streamed chunk.
+   */
+  const handleApplyRefactor = useCallback((refactoredCode) => {
+    setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
+    // The confirmation toast used to be inside `if (isCompact)`, so desktop
+    // users got no feedback that a refactor had been applied. It also
+    // hardcoded its colours instead of using the theme tokens.
+    window.dispatchEvent(new CustomEvent('sam-editor-reset', {
+      detail: { template: refactoredCode, message: "Refactor applied" }
+    }));
+    if (isCompact) setActiveMobileTab('editor');
+  }, [activeLangId, isCompact]);
+
   const handleCodeReset = useCallback(() => {
     setConfirmState({
       title: "Reset workspace",
@@ -2081,17 +2098,7 @@ builtins.input = _sam_input
                   }}
                   currentCode={buffers[activeLangId]}
                   language={activeLangId}
-                  onApplyRefactor={(refactoredCode) => {
-                    setBuffers(prev => ({ ...prev, [activeLangId]: refactoredCode }));
-                    // The confirmation toast used to be inside `if (isCompact)`,
-                    // so desktop users got no feedback that a refactor had been
-                    // applied. It also hardcoded its colours instead of using
-                    // the theme tokens.
-                    window.dispatchEvent(new CustomEvent('sam-editor-reset', {
-                      detail: { template: refactoredCode, message: "Refactor applied" }
-                    }));
-                    if (isCompact) setActiveMobileTab('editor');
-                  }}
+                  onApplyRefactor={handleApplyRefactor}
                   theme={theme}
                   isCompact={isCompact}
                   activeMobileTab={activeMobileTab}

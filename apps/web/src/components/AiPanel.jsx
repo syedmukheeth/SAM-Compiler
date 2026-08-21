@@ -197,6 +197,8 @@ function MessageBubble({ msg, isDark, onApplyRefactor }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
+      // Read by the scroll effect to park a new question at the top of the view.
+      data-msg-role={isUser ? "user" : "model"}
       className={`group flex w-full min-w-0 flex-col ${isUser ? 'items-end' : 'items-start'}`}
     >
       {/* SAM AI label */}
@@ -263,6 +265,15 @@ function MessageBubble({ msg, isDark, onApplyRefactor }) {
     </motion.div>
   );
 }
+
+/**
+ * `messages` gets a new identity on every streamed chunk, which re-rendered
+ * every bubble in the thread - each one re-running ReactMarkdown over its whole
+ * body. The cost grew with both conversation length and answer length, so a
+ * long reply visibly slowed down as it wrote itself. Only the bubble whose
+ * content actually changed re-renders now.
+ */
+const MemoizedMessageBubble = React.memo(MessageBubble);
 
 // ── Error Boundary ────────────────────────────────────────────────────────────
 class AiPanelErrorBoundary extends React.Component {
@@ -461,11 +472,78 @@ function AiPanel({
     sendMessage(initialPrompt);
   }, [initialPrompt, isOpen, sendMessage]);
 
+  /**
+   * Reading position.
+   *
+   * This used to slam scrollTop to scrollHeight on every `messages` change -
+   * and `messages` changes on every streamed chunk - so the panel dragged the
+   * reader to the tail of an answer they had not started reading, and kept
+   * dragging as it grew. A long reply was only ever visible from its end.
+   *
+   * Instead: when a turn starts, park that question at the top of the viewport
+   * so the answer unfolds downward from its first line. After that, only follow
+   * the text if the reader is already sitting at the bottom (i.e. they chose to
+   * tail it). Scrolling away pauses the follow; scrolling back resumes it.
+   */
+  const anchorToQuestionRef = useRef(false);
+  const pinnedToBottomRef = useRef(true);
+  // Counted rather than "is the last message a user one?": sendMessage appends
+  // the question and the empty assistant placeholder in two setMessages calls
+  // that React batches into a single commit, so the last message is always the
+  // placeholder and that check never fired.
+  const prevUserCountRef = useRef(messages.filter(m => m.role === "user").length);
+  // What we last set scrollTop to, so our own scrolls can be told apart from
+  // the reader's. Without this the scroll event fired by the anchor below was
+  // read back as "the reader is at the bottom" - true only because the thread
+  // was still short - which re-armed bottom-following and undid the anchor the
+  // moment a long reply landed.
+  const expectedScrollTopRef = useRef(0);
+
+  const scrollTo = useCallback((el, top) => {
+    const clamped = Math.max(0, Math.min(top, el.scrollHeight - el.clientHeight));
+    expectedScrollTopRef.current = clamped;
+    el.scrollTop = clamped;
+  }, []);
+
+  const handleScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    // Ours, not the reader's - leave the current mode alone.
+    if (Math.abs(el.scrollTop - expectedScrollTopRef.current) <= 1) return;
+
+    // A deliberate scroll hands control back to the reader.
+    anchorToQuestionRef.current = false;
+    pinnedToBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 48;
+  }, []);
+
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    const el = scrollRef.current;
+    if (!el) return;
+
+    const userCount = messages.filter(m => m.role === "user").length;
+    const newTurn = userCount > prevUserCountRef.current;
+    prevUserCountRef.current = userCount;
+
+    if (newTurn) {
+      anchorToQuestionRef.current = true;
+      pinnedToBottomRef.current = false;
     }
-  }, [messages, loading]);
+
+    // Re-applied on every content change, so when the answer arrives in one
+    // burst the question is pulled back to the top instead of the view landing
+    // on the last paragraph.
+    if (anchorToQuestionRef.current) {
+      const rows = el.querySelectorAll('[data-msg-role="user"]');
+      const newest = rows[rows.length - 1];
+      if (newest) {
+        const top = newest.getBoundingClientRect().top - el.getBoundingClientRect().top + el.scrollTop;
+        scrollTo(el, top - 12);
+        return;
+      }
+    }
+
+    if (pinnedToBottomRef.current) scrollTo(el, el.scrollHeight);
+  }, [messages, loading, scrollTo]);
 
   // Exactly one thing represents the pending reply at a time: the typing
   // indicator while it is still empty, then the bubble once text arrives.
@@ -538,6 +616,7 @@ function AiPanel({
       {/* ── Chat Messages ── */}
       <div
         ref={scrollRef}
+        onScroll={handleScroll}
         className={`flex-1 overflow-y-auto overflow-x-hidden ${isMobile ? 'p-3 space-y-4' : 'p-5 space-y-5'} custom-scrollbar min-w-0`}
         style={{ background: isDark ? 'transparent' : '#f1f5f9' }}
       >
@@ -549,7 +628,7 @@ function AiPanel({
             // blank bubble under its own "Sam AI" header, sitting directly
             // above the typing indicator - two headers for one reply.
             (msg.content || msg.isError) ? (
-              <MessageBubble
+              <MemoizedMessageBubble
                 key={msg._id || i}
                 msg={msg}
                 isDark={isDark}
